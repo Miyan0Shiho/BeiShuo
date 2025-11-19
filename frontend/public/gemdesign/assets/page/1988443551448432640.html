@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="zh-CN">
+ <head> 
+  <meta charset="utf-8"> 
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"> 
+  <title>碑说 - AI碑文识别与阐释平台</title> 
+  <script src="../javascript/reload.js"></script> 
+  <script src="./1988443551448432640/resource_6689110000.js"></script> 
+  <link href="./1988443551448432640/all.min.css" rel="stylesheet"> 
+  <script src="./1988443551448432640/echarts.min.js"></script> 
+  <script>tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#8B5A2B',
+        secondary: '#F5F5DC',
+        accent: '#D2B48C',
+        dark: '#3E2723',
+        light: '#F9F5EB'
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['Noto Serif SC', 'serif']
+      }
+    }
+  }
+};</script> 
+  <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .bg-texture {
+                background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d2b48c' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+            }
+        }
+    </style> 
+ </head> 
+ <body class="bg-light bg-texture text-dark font-sans min-h-screen flex flex-col"> 
+  <!-- [MODULE] a1b_导航栏 --> 
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-sm shadow-sm transition-custom"> 
+   <div class="container mx-auto px-4 sm:px-6 lg:px-8"> 
+    <div class="flex justify-between items-center h-16 md:h-20"> 
+     <!-- Logo --> 
+     <div class="flex items-center"> 
+      <a class="flex items-center" href="javascript:void(0);"> <i class="fas fa-monument text-primary text-2xl md:text-3xl mr-2"> </i> <span class="text-xl md:text-2xl font-serif font-bold text-primary"> 碑说 </span> </a> 
+     </div> 
+     <!-- 桌面导航 --> 
+     <nav class="hidden md:flex space-x-8"> 
+      <a class="nav-link text-dark/70 font-medium hover:text-primary transition-custom flex items-center" custom-href="w=1920&amp;h=1080&amp;appuuid=1988264127688081408&amp;version=6&amp;pageType=web&amp;uuid=1988264127725830144&amp;appName=未命名" data-page="home-page" href="javascript:void(0);" is-add="false" is-page="true" onclick="ytCustomLinkNavigation()" target="_top"> <i class="fas fa-home mr-1"> </i> 首页 </a> 
+      <a class="nav-link text-dark/70 font-medium hover:text-primary transition-custom flex items-center" custom-href="w=1920&amp;h=1080&amp;appuuid=1988264127688081408&amp;version=2&amp;pageType=web&amp;uuid=1988595444078346240&amp;appName=未命名" data-page="recognition-page" href="javascript:void(0);" is-add="false" is-page="true" onclick="ytCustomLinkNavigation()" target="_top"> <i class="fas fa-camera mr-1"> </i> 碑文识别 </a> 
+      <a class="nav-link text-primary font-medium hover:text-accent transition-custom flex items-center yt-editor" data-page="history-page" href="javascript:void(0);" contenteditable="false" style="outline: none;"> <i class="fas fa-history mr-1"> </i> 我的碑文 </a> 
+      <a class="nav-link text-dark/70 font-medium hover:text-primary transition-custom flex items-center yt-editor" data-page="recommendation-page" href="javascript:void(0);" target="_top" is-page="true" is-add="false" custom-href="w=1920&amp;h=1080&amp;appuuid=1988264127688081408&amp;version=1&amp;pageType=web&amp;uuid=1988557465465126912&amp;appName=未命名" onclick="ytCustomLinkNavigation()" contenteditable="false" style="outline: none;"> <i class="fas fa-lightbulb mr-1"> </i> 碑文知识库 </a> 
+     </nav> 
+     <!-- 用户操作 --> 
+     <div class="flex items-center space-x-4"> 
+      <button class="hidden sm:block px-4 py-2 rounded-md text-primary border border-primary hover:bg-primary/5 transition-custom" id="login-btn"> 登录 </button> 
+      <button class="hidden sm:block px-4 py-2 rounded-md bg-primary text-white hover:bg-primary/90 transition-custom" id="register-btn"> 注册 </button> 
+      <!-- 移动端菜单按钮 --> 
+      <button class="md:hidden text-dark hover:text-primary transition-custom" id="mobile-menu-btn"> <i class="fas fa-bars text-xl"> </i> </button> 
+     </div> 
+    </div> 
+   </div> 
+   <!-- 移动端导航菜单 --> 
+   <div class="hidden md:hidden bg-white border-t" id="mobile-menu"> 
+    <div class="container mx-auto px-4 py-3 space-y-3"> 
+     <a class="block py-2 px-3 rounded-md text-dark/70 hover:bg-secondary/30 transition-custom" href="javascript:void(0);"> <i class="fas fa-home mr-2"> </i> 首页 </a> 
+     <a class="block py-2 px-3 rounded-md text-dark/70 hover:bg-secondary/30 transition-custom" href="javascript:void(0);"> <i class="fas fa-camera mr-2"> </i> 碑文识别 </a> 
+     <a class="block py-2 px-3 rounded-md bg-secondary/50 text-primary font-medium" href="javascript:void(0);"> <i class="fas fa-history mr-2"> </i> 历史记录 </a> 
+     <a class="block py-2 px-3 rounded-md text-dark/70 hover:bg-secondary/30 transition-custom" href="javascript:void(0);"> <i class="fas fa-lightbulb mr-2"> </i> 兴趣推荐 </a> 
+     <div class="pt-2 flex space-x-3 border-t border-gray-100"> 
+      <button class="flex-1 py-2 rounded-md text-primary border border-primary hover:bg-primary/5 transition-custom"> 登录 </button> 
+      <button class="flex-1 py-2 rounded-md bg-primary text-white hover:bg-primary/90 transition-custom"> 注册 </button> 
+     </div> 
+    </div> 
+   </div> 
+  </header> 
+  <!-- [/MODULE] a1b_导航栏 -- 包含网站logo、主导航链接和用户登录注册按钮，移动端适配汉堡菜单 --> 
+  <!-- [MODULE] c3d_主内容区域 --> 
+  <main class="flex-grow"> 
+   <!-- [MODULE] e5g_历史记录页面 --> 
+   <div class="py-8" id="history-page"> 
+    <!-- [MODULE] f6h_历史记录页面:页面标题 --> 
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 mb-8"> 
+     <div class="flex flex-col md:flex-row md:items-center md:justify-between"> 
+      <div> 
+       <h1 class="text-3xl md:text-4xl font-serif font-bold text-primary"> 历史记录 </h1> 
+       <p class="mt-2 text-dark/70"> 查看您的所有碑文识别记录和历史操作 </p> 
+      </div> 
+      <div class="mt-4 md:mt-0 flex space-x-3"> 
+       <div class="relative"> 
+        <input class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary w-full md:w-64" placeholder="搜索历史记录..." type="text"> 
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-dark/40"> </i> 
+       </div> 
+       <button class="px-4 py-2 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center"> <i class="fas fa-download mr-2"> </i> 导出记录 </button> 
+      </div> 
+     </div> 
+    </div> 
+    <!-- [/MODULE] f6h_历史记录页面:页面标题 -- 包含页面标题、描述文字、搜索框和导出记录按钮 --> 
+    <!-- [MODULE] g7i_历史记录页面:筛选区域 --> 
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 mb-6"> 
+     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100"> 
+      <div class="flex flex-wrap items-center gap-4"> 
+       <div class="flex items-center"> 
+        <span class="text-dark/70 mr-3"> 筛选： </span> 
+        <select class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-dark/70"> <option> 全部记录 </option> <option> 本月记录 </option> <option> 上月记录 </option> <option> 近三个月 </option> <option> 近半年 </option> <option> 今年 </option> </select> 
+       </div> 
+       <div class="flex items-center"> 
+        <span class="text-dark/70 mr-3"> 状态： </span> 
+        <select class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-dark/70"> <option> 全部状态 </option> <option> 已完成 </option> <option> 处理中 </option> <option> 已失败 </option> </select> 
+       </div> 
+       <div class="flex items-center"> 
+        <span class="text-dark/70 mr-3"> 排序： </span> 
+        <select class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-dark/70"> <option> 最新优先 </option> <option> 最早优先 </option> <option> 识别字数多到少 </option> <option> 识别字数少到多 </option> </select> 
+       </div> 
+       <div class="ml-auto"> 
+        <button class="text-primary hover:text-accent transition-custom flex items-center text-sm"> <i class="fas fa-sliders-h mr-1"> </i> 更多筛选 </button> 
+       </div> 
+      </div> 
+     </div> 
+    </div> 
+    <!-- [/MODULE] g7i_历史记录页面:筛选区域 -- 包含时间范围、状态和排序方式的筛选下拉框，以及更多筛选选项 --> 
+    <!-- [MODULE] h8j_历史记录页面:记录列表 --> 
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8"> 
+     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"> 
+      <!-- 记录为空状态 --> 
+      <!-- <div class="py-20 text-center">
+                        <div class="w-20 h-20 bg-secondary/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-folder-open text-3xl text-primary/50"></i>
+                        </div>
+                        <h3 class="text-xl font-medium text-dark mb-2">暂无历史记录</h3>
+                        <p class="text-dark/60 mb-6 max-w-md mx-auto">您还没有任何识别记录，快去上传并识别您的第一个碑文吧</p>
+                        <a href="javascript:void(0);" class="inline-flex items-center px-6 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom">
+                            <i class="fas fa-camera mr-2"></i>
+                            开始识别
+                        </a>
+                    </div> --> 
+      <!-- 记录列表 --> 
+      <div class="overflow-x-auto"> 
+       <table class="w-full"> 
+        <thead> 
+         <tr class="bg-gray-50 border-b border-gray-200"> 
+          <th class="px-6 py-4 text-left text-sm font-semibold text-dark/70"> 识别时间 </th> 
+          <th class="px-6 py-4 text-left text-sm font-semibold text-dark/70"> 碑文名称 </th> 
+          <th class="px-6 py-4 text-left text-sm font-semibold text-dark/70"> 朝代 </th> 
+          <th class="px-6 py-4 text-left text-sm font-semibold text-dark/70"> 字数 </th> 
+          <th class="px-6 py-4 text-left text-sm font-semibold text-dark/70"> 置信度 </th> 
+          <th class="px-6 py-4 text-left text-sm font-semibold text-dark/70"> 状态 </th> 
+          <th class="px-6 py-4 text-right text-sm font-semibold text-dark/70"> 操作 </th> 
+         </tr> 
+        </thead> 
+        <tbody> 
+         <!-- 记录项1 --> 
+         <tr class="border-b border-gray-100 hover:bg-secondary/10 transition-custom"> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 2023-06-15 14:30 </td> 
+          <td class="px-6 py-4"> 
+           <div class="flex items-center"> 
+            <img alt="李白墓碑文" class="w-10 h-10 rounded object-cover mr-3" src="./1988443551448432640/14d787832f08efe75f8cd90196bc39bb.png"> 
+            <div> 
+             <div class="font-medium text-primary hover:text-accent transition-custom cursor-pointer">
+               李白墓碑文 
+             </div> 
+             <div class="text-xs text-dark/50">
+               识别ID: #BS20230615001 
+             </div> 
+            </div> 
+           </div> </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 唐代 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 286字 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 98.7% </td> 
+          <td class="px-6 py-4"> <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"> 已完成 </span> </td> 
+          <td class="px-6 py-4 text-right"> 
+           <div class="flex justify-end space-x-2"> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="查看详情"> <i class="fas fa-eye"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="重新识别"> <i class="fas fa-redo"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-red-500 hover:bg-red-50 rounded transition-custom" title="删除记录"> <i class="fas fa-trash"> </i> </button> 
+           </div> </td> 
+         </tr> 
+         <!-- 记录项2 --> 
+         <tr class="border-b border-gray-100 hover:bg-secondary/10 transition-custom"> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 2023-06-10 09:15 </td> 
+          <td class="px-6 py-4"> 
+           <div class="flex items-center"> 
+            <img alt="张迁碑" class="w-10 h-10 rounded object-cover mr-3" src="./1988443551448432640/abd2b01b3b1666d55b0880e9c900db3b.png"> 
+            <div> 
+             <div class="font-medium text-primary hover:text-accent transition-custom cursor-pointer">
+               张迁碑 
+             </div> 
+             <div class="text-xs text-dark/50">
+               识别ID: #BS20230610002 
+             </div> 
+            </div> 
+           </div> </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 汉代 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 423字 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 97.5% </td> 
+          <td class="px-6 py-4"> <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"> 已完成 </span> </td> 
+          <td class="px-6 py-4 text-right"> 
+           <div class="flex justify-end space-x-2"> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="查看详情"> <i class="fas fa-eye"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="重新识别"> <i class="fas fa-redo"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-red-500 hover:bg-red-50 rounded transition-custom" title="删除记录"> <i class="fas fa-trash"> </i> </button> 
+           </div> </td> 
+         </tr> 
+         <!-- 记录项3 --> 
+         <tr class="border-b border-gray-100 hover:bg-secondary/10 transition-custom"> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 2023-06-05 16:40 </td> 
+          <td class="px-6 py-4"> 
+           <div class="flex items-center"> 
+            <img alt="九成宫醴泉铭" class="w-10 h-10 rounded object-cover mr-3" src="./1988443551448432640/894fc06d7b71e70fe768862013eb7eca.png"> 
+            <div> 
+             <div class="font-medium text-primary hover:text-accent transition-custom cursor-pointer">
+               九成宫醴泉铭 
+             </div> 
+             <div class="text-xs text-dark/50">
+               识别ID: #BS20230605003 
+             </div> 
+            </div> 
+           </div> </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 唐代 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 368字 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 99.2% </td> 
+          <td class="px-6 py-4"> <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"> 已完成 </span> </td> 
+          <td class="px-6 py-4 text-right"> 
+           <div class="flex justify-end space-x-2"> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="查看详情"> <i class="fas fa-eye"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="重新识别"> <i class="fas fa-redo"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-red-500 hover:bg-red-50 rounded transition-custom" title="删除记录"> <i class="fas fa-trash"> </i> </button> 
+           </div> </td> 
+         </tr> 
+         <!-- 记录项4 --> 
+         <tr class="border-b border-gray-100 hover:bg-secondary/10 transition-custom"> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 2023-05-28 11:25 </td> 
+          <td class="px-6 py-4"> 
+           <div class="flex items-center"> 
+            <img alt="醉翁亭记碑" class="w-10 h-10 rounded object-cover mr-3" src="./1988443551448432640/9e8a959d7cadc4726170eab68a9534d8.png"> 
+            <div> 
+             <div class="font-medium text-primary hover:text-accent transition-custom cursor-pointer">
+               醉翁亭记碑 
+             </div> 
+             <div class="text-xs text-dark/50">
+               识别ID: #BS20230528004 
+             </div> 
+            </div> 
+           </div> </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 宋代 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 402字 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 98.1% </td> 
+          <td class="px-6 py-4"> <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"> 已完成 </span> </td> 
+          <td class="px-6 py-4 text-right"> 
+           <div class="flex justify-end space-x-2"> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="查看详情"> <i class="fas fa-eye"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="重新识别"> <i class="fas fa-redo"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-red-500 hover:bg-red-50 rounded transition-custom" title="删除记录"> <i class="fas fa-trash"> </i> </button> 
+           </div> </td> 
+         </tr> 
+         <!-- 记录项5 --> 
+         <tr class="border-b border-gray-100 hover:bg-secondary/10 transition-custom"> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 2023-05-20 09:50 </td> 
+          <td class="px-6 py-4"> 
+           <div class="flex items-center"> 
+            <img alt="永乐大典序碑" class="w-10 h-10 rounded object-cover mr-3" src="./1988443551448432640/33db277ed7450f7ae5119d2ab3855120.png"> 
+            <div> 
+             <div class="font-medium text-primary hover:text-accent transition-custom cursor-pointer">
+               永乐大典序碑 
+             </div> 
+             <div class="text-xs text-dark/50">
+               识别ID: #BS20230520005 
+             </div> 
+            </div> 
+           </div> </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 明代 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 512字 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 97.8% </td> 
+          <td class="px-6 py-4"> <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"> 已完成 </span> </td> 
+          <td class="px-6 py-4 text-right"> 
+           <div class="flex justify-end space-x-2"> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="查看详情"> <i class="fas fa-eye"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="重新识别"> <i class="fas fa-redo"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-red-500 hover:bg-red-50 rounded transition-custom" title="删除记录"> <i class="fas fa-trash"> </i> </button> 
+           </div> </td> 
+         </tr> 
+         <!-- 记录项6 --> 
+         <tr class="border-b border-gray-none hover:bg-secondary/10 transition-custom"> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 2023-05-15 15:20 </td> 
+          <td class="px-6 py-4"> 
+           <div class="flex items-center"> 
+            <img alt="模糊碑文" class="w-10 h-10 rounded object-cover mr-3" src="./1988443551448432640/abd0a7dd947e363b023423ce05b77657.png"> 
+            <div> 
+             <div class="font-medium text-primary hover:text-accent transition-custom cursor-pointer">
+               模糊碑文 
+             </div> 
+             <div class="text-xs text-dark/50">
+               识别ID: #BS20230515006 
+             </div> 
+            </div> 
+           </div> </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> 未知 </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> - </td> 
+          <td class="px-6 py-4 text-sm text-dark/70"> - </td> 
+          <td class="px-6 py-4"> <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full"> 已失败 </span> </td> 
+          <td class="px-6 py-4 text-right"> 
+           <div class="flex justify-end space-x-2"> 
+            <button class="p-1.5 text-dark/40 cursor-not-allowed rounded" disabled title="无法查看"> <i class="fas fa-eye"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-primary hover:bg-secondary/20 rounded transition-custom" title="重新识别"> <i class="fas fa-redo"> </i> </button> 
+            <button class="p-1.5 text-dark/60 hover:text-red-500 hover:bg-red-50 rounded transition-custom" title="删除记录"> <i class="fas fa-trash"> </i> </button> 
+           </div> </td> 
+         </tr> 
+        </tbody> 
+       </table> 
+      </div> 
+      <!-- 分页 --> 
+      <div class="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center"> 
+       <div class="text-sm text-dark/60 mb-4 sm:mb-0">
+         显示 1-6 条，共 24 条记录 
+       </div> 
+       <div class="flex items-center space-x-1"> 
+        <button class="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-dark/40 cursor-not-allowed" disabled> <i class="fas fa-chevron-left text-xs"> </i> </button> 
+        <button class="w-9 h-9 flex items-center justify-center rounded bg-primary text-white"> 1 </button> 
+        <button class="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-dark/70 hover:border-primary hover:text-primary transition-custom"> 2 </button> 
+        <button class="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-dark/70 hover:border-primary hover:text-primary transition-custom"> 3 </button> 
+        <button class="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-dark/70 hover:border-primary hover:text-primary transition-custom"> 4 </button> 
+        <button class="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-dark/70 hover:border-primary hover:text-primary transition-custom"> <i class="fas fa-chevron-right text-xs"> </i> </button> 
+       </div> 
+      </div> 
+     </div> 
+    </div> 
+    <!-- [/MODULE] h8j_历史记录页面:记录列表 -- 以表格形式展示用户的碑文识别历史记录，包含识别时间、碑文名称、朝代、字数、置信度、状态等信息，以及查看详情、重新识别和删除操作按钮 --> 
+    <!-- [MODULE] i9k_历史记录页面:使用统计 --> 
+    <!-- [/MODULE] i9k_历史记录页面:使用统计 -- 已删除使用统计模块 --> 
+   </div> 
+   <!-- [/MODULE] e5g_历史记录页面 -- 历史记录功能的主页面，包含记录列表、筛选功能和使用统计图表 --> 
+  </main> 
+  <!-- [/MODULE] c3d_主内容区域 -- 包含历史记录页面的所有主要内容模块，包括页面标题、筛选区域、记录列表和使用统计 --> 
+  <!-- [MODULE] t2u_页脚 --> 
+  <footer class="bg-dark text-white pt-16 pb-8"> 
+   <div class="container mx-auto px-4 sm:px-6 lg:px-8"> 
+    <div class="grid md:grid-cols-4 gap-8 mb-12"> 
+     <!-- 关于我们 --> 
+     <div> 
+      <div class="flex items-center mb-4"> 
+       <i class="fas fa-monument text-accent text-2xl mr-2"> </i> 
+       <span class="text-xl font-serif font-bold"> 碑说 </span> 
+      </div> 
+      <p class="text-white/60 mb-4"> 碑说致力于通过AI技术，让古老碑文焕发新生，为历史文化传承贡献力量。 </p> 
+      <div class="flex space-x-4"> 
+       <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> <i class="fab fa-weibo"> </i> </a> 
+       <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> <i class="fab fa-weixin"> </i> </a> 
+       <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> <i class="fab fa-qq"> </i> </a> 
+       <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> <i class="fab fa-github"> </i> </a> 
+      </div> 
+     </div> 
+     <!-- 快速链接 --> 
+     <div> 
+      <h4 class="text-lg font-semibold mb-4"> 快速链接 </h4> 
+      <ul class="space-y-2"> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 首页 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 碑文识别 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> AI阐释 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 历史记录 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 兴趣推荐 </a> </li> 
+      </ul> 
+     </div> 
+     <!-- 帮助中心 --> 
+     <div> 
+      <h4 class="text-lg font-semibold mb-4"> 帮助中心 </h4> 
+      <ul class="space-y-2"> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 使用教程 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 常见问题 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 联系我们 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 意见反馈 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 技术支持 </a> </li> 
+      </ul> 
+     </div> 
+     <!-- 联系我们 --> 
+     <div> 
+      <h4 class="text-lg font-semibold mb-4"> 联系我们 </h4> 
+      <ul class="space-y-3"> 
+       <li class="flex items-start"> <i class="fas fa-map-marker-alt text-accent mt-1 mr-3"> </i> <span class="text-white/60"> 北京市海淀区中关村南大街5号 </span> </li> 
+       <li class="flex items-center"> <i class="fas fa-phone text-accent mr-3"> </i> <span class="text-white/60"> 400-123-4567 </span> </li> 
+       <li class="flex items-center"> <i class="fas fa-envelope text-accent mr-3"> </i> <span class="text-white/60"> contact@beishuo.com </span> </li> 
+      </ul> 
+     </div> 
+    </div> 
+    <div class="border-t border-white/10 pt-8"> 
+     <div class="flex flex-col md:flex-row justify-between items-center"> 
+      <p class="text-white/40 text-sm mb-4 md:mb-0"> © 2023 碑说 AI 碑文识别与阐释平台. 保留所有权利. </p> 
+      <div class="flex space-x-6"> 
+       <a class="text-white/40 hover:text-white/70 text-sm transition-custom" href="javascript:void(0);"> 隐私政策 </a> 
+       <a class="text-white/40 hover:text-white/70 text-sm transition-custom" href="javascript:void(0);"> 服务条款 </a> 
+       <a class="text-white/40 hover:text-white/70 text-sm transition-custom" href="javascript:void(0);"> Cookie政策 </a> 
+      </div> 
+     </div> 
+    </div> 
+   </div> 
+  </footer> 
+  <!-- [/MODULE] t2u_页脚 -- 包含网站的底部信息，包括关于我们、快速链接、帮助中心、联系我们等栏目，以及版权信息和法律链接 --> 
+  <!-- [MODULE] v3w_登录模态框 --> 
+  <div class="fixed inset-0 z-50 flex items-center justify-center hidden" id="login-modal"> 
+   <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-overlay"> 
+   </div> 
+   <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden transform transition-all"> 
+    <div class="p-6 md:p-8"> 
+     <div class="flex justify-between items-center mb-6"> 
+      <h3 class="text-2xl font-serif font-bold text-primary"> 用户登录 </h3> 
+      <button class="text-dark/50 hover:text-dark transition-custom" id="close-login-modal"> <i class="fas fa-times text-xl"> </i> </button> 
+     </div> 
+     <form> 
+      <div class="mb-4"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="login-email"> 邮箱 </label> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-envelope text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="login-email" placeholder="请输入您的邮箱" type="email"> 
+       </div> 
+      </div> 
+      <div class="mb-6"> 
+       <div class="flex justify-between items-center mb-1"> 
+        <label class="block text-sm font-medium text-dark/70" for="login-password"> 密码 </label> 
+        <a class="text-sm text-primary hover:text-accent transition-custom" href="javascript:void(0);"> 忘记密码? </a> 
+       </div> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-lock text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="login-password" placeholder="请输入您的密码" type="password"> 
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center"> 
+         <button class="text-dark/40 hover:text-dark transition-custom" id="toggle-password" type="button"> <i class="fas fa-eye-slash"> </i> </button> 
+        </div> 
+       </div> 
+      </div> 
+      <button class="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-custom mb-4" type="submit"> 登录 </button> 
+      <div class="text-center text-sm text-dark/60"> 
+       <span> 还没有账号? </span> 
+       <button class="text-primary font-medium hover:text-accent transition-custom" id="switch-to-register" type="button"> 立即注册 </button> 
+      </div> 
+      <div class="mt-6 pt-6 border-t border-gray-100"> 
+       <p class="text-center text-sm text-dark/60 mb-4"> 或使用以下方式登录 </p> 
+       <div class="flex justify-center space-x-4"> 
+        <button class="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center text-dark/70 hover:bg-gray-50 transition-custom"> <i class="fab fa-weixin text-xl"> </i> </button> 
+        <button class="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center text-dark/70 hover:bg-gray-50 transition-custom"> <i class="fab fa-qq text-xl"> </i> </button> 
+        <button class="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center text-dark/70 hover:bg-gray-50 transition-custom"> <i class="fab fa-weibo text-xl"> </i> </button> 
+       </div> 
+      </div> 
+     </form> 
+    </div> 
+   </div> 
+  </div> 
+  <!-- [/MODULE] v3w_登录模态框 -- 用户登录弹窗，包含邮箱密码登录表单和第三方登录选项 --> 
+  <!-- [MODULE] x4y_注册模态框 --> 
+  <div class="fixed inset-0 z-50 flex items-center justify-center hidden" id="register-modal"> 
+   <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="register-modal-overlay"> 
+   </div> 
+   <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden transform transition-all"> 
+    <div class="p-6 md:p-8"> 
+     <div class="flex justify-between items-center mb-6"> 
+      <h3 class="text-2xl font-serif font-bold text-primary"> 用户注册 </h3> 
+      <button class="text-dark/50 hover:text-dark transition-custom" id="close-register-modal"> <i class="fas fa-times text-xl"> </i> </button> 
+     </div> 
+     <form> 
+      <div class="mb-4"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="register-name"> 姓名 </label> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-user text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="register-name" placeholder="请输入您的姓名" type="text"> 
+       </div> 
+      </div> 
+      <div class="mb-4"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="register-email"> 邮箱 </label> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-envelope text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="register-email" placeholder="请输入您的邮箱" type="email"> 
+       </div> 
+      </div> 
+      <div class="mb-4"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="register-password"> 密码 </label> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-lock text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="register-password" placeholder="请设置密码" type="password"> 
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center"> 
+         <button class="text-dark/40 hover:text-dark transition-custom" id="toggle-register-password" type="button"> <i class="fas fa-eye-slash"> </i> </button> 
+        </div> 
+       </div> 
+      </div> 
+      <div class="mb-6"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="register-code"> 验证码 </label> 
+       <div class="flex space-x-3"> 
+        <div class="relative flex-grow"> 
+         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+          <i class="fas fa-shield-alt text-dark/40"> </i> 
+         </div> 
+         <input class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="register-code" placeholder="请输入验证码" type="text"> 
+        </div> 
+        <button class="whitespace-nowrap px-4 py-3 bg-gray-100 text-dark/70 rounded-lg hover:bg-gray-200 transition-custom" type="button"> 获取验证码 </button> 
+       </div> 
+      </div> 
+      <div class="mb-6"> 
+       <label class="flex items-start"> <input class="mt-1 text-primary focus:ring-primary/50 border-gray-300 rounded" type="checkbox"> <span class="ml-2 text-sm text-dark/70"> 我已阅读并同意 <a class="text-primary hover:text-accent transition-custom" href="javascript:void(0);"> 《用户协议》 </a> 和 <a class="text-primary hover:text-accent transition-custom" href="javascript:void(0);"> 《隐私政策》 </a> </span> </label> 
+      </div> 
+      <button class="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-custom" type="submit"> 注册账号 </button> 
+      <div class="text-center text-sm text-dark/60 mt-4"> 
+       <span> 已有账号? </span> 
+       <button class="text-primary font-medium hover:text-accent transition-custom" id="switch-to-login" type="button"> 立即登录 </button> 
+      </div> 
+     </form> 
+    </div> 
+   </div> 
+  </div> 
+  <!-- [/MODULE] x4y_注册模态框 -- 用户注册弹窗，包含注册表单和相关协议勾选框 --> 
+  <!-- JavaScript 交互逻辑 --> 
+  <!-- [JSMOD] z9x_页面切换逻辑 --> 
+  <script id="page-switch-script">document.addEventListener('DOMContentLoaded', function () {
+  // 页面元素
+  var navLinks = document.querySelectorAll('.nav-link');
+  var pages = {
+    'home-page': document.getElementById('home-page'),
+    'recognition-page': document.getElementById('recognition-page'),
+    'history-page': document.getElementById('history-page'),
+    'recommendation-page': document.getElementById('recommendation-page')
+  };
+
+  // 移动端菜单切换
+  var mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  var mobileMenu = document.getElementById('mobile-menu');
+  if (mobileMenuBtn && mobileMenu) {
+    mobileMenuBtn.addEventListener('click', function () {
+      mobileMenu.classList.toggle('hidden');
+    });
+  }
+
+  // 页面切换函数
+  function switchPage(pageId) {
+    // 隐藏所有页面
+    Object.values(pages).forEach(function (page) {
+      if (page) page.classList.add('hidden');
+    });
+
+    // 显示目标页面
+    var activePage = pages[pageId];
+    if (activePage) {
+      activePage.classList.remove('hidden');
+    }
+
+    // 更新导航链接状态
+    navLinks.forEach(function (link) {
+      if (link.dataset.page === pageId) {
+        link.classList.add('text-primary');
+        link.classList.remove('text-dark/70');
+      } else {
+        link.classList.remove('text-primary');
+        link.classList.add('text-dark/70');
+      }
+    });
+
+    // 关闭移动端菜单
+    if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+      mobileMenu.classList.add('hidden');
+    }
+  }
+
+  // 为导航链接添加点击事件
+  navLinks.forEach(function (link) {
+    link.addEventListener('click', function () {
+      var pageId = link.dataset.page;
+      if (pageId) {
+        switchPage(pageId);
+      }
+    });
+  });
+
+  // 初始化历史记录页面为当前活动页面
+  switchPage('history-page');
+});</script> 
+  <!-- [/JSMOD] z9x_页面切换逻辑 -- 处理导航菜单切换和页面显隐控制 --> 
+  <!-- [JSMOD] z5a_移动端菜单交互 --> 
+  <script id="mobile-menu-script">// 页面加载时初始化渲染
+document.addEventListener('DOMContentLoaded', function () {
+  // 移动端菜单切换
+  var mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  var mobileMenu = document.getElementById('mobile-menu');
+  if (mobileMenuBtn && mobileMenu) {
+    mobileMenuBtn.addEventListener('click', function () {
+      mobileMenu.classList.toggle('hidden');
+    });
+  }
+  // 点击其他区域关闭移动端菜单
+  document.addEventListener('click', function (e) {
+    if (mobileMenu && !mobileMenu.classList.contains('hidden') && !mobileMenuBtn.contains(e.target) && !mobileMenu.contains(e.target)) {
+      mobileMenu.classList.add('hidden');
+    }
+  });
+});</script> 
+  <!-- [/JSMOD] z5a_移动端菜单交互 -- 处理移动端菜单的显示和隐藏逻辑 --> 
+  <!-- [JSMOD] b6c_登录注册模态框交互 --> 
+  <script id="auth-modal-script">// 页面加载时初始化渲染
+document.addEventListener('DOMContentLoaded', function () {
+  // 获取模态框相关元素
+  var loginBtn = document.getElementById('login-btn');
+  var registerBtn = document.getElementById('register-btn');
+  var loginModal = document.getElementById('login-modal');
+  var registerModal = document.getElementById('register-modal');
+  var closeLoginModal = document.getElementById('close-login-modal');
+  var closeRegisterModal = document.getElementById('close-register-modal');
+  var modalOverlay = document.getElementById('modal-overlay');
+  var registerModalOverlay = document.getElementById('register-modal-overlay');
+  var switchToRegister = document.getElementById('switch-to-register');
+  var switchToLogin = document.getElementById('switch-to-login');
+  // 密码显示切换
+  var togglePassword = document.getElementById('toggle-password');
+  var loginPassword = document.getElementById('login-password');
+  var toggleRegisterPassword = document.getElementById('toggle-register-password');
+  var registerPassword = document.getElementById('register-password');
+  // 打开登录模态框
+  if (loginBtn && loginModal) {
+    loginBtn.addEventListener('click', function () {
+      loginModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden'; // 防止背景滚动
+    });
+  }
+  // 打开注册模态框
+  if (registerBtn && registerModal) {
+    registerBtn.addEventListener('click', function () {
+      registerModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden'; // 防止背景滚动
+    });
+  }
+  // 关闭登录模态框
+  var closeLogin = function closeLogin() {
+    if (loginModal) {
+      loginModal.classList.add('hidden');
+      document.body.style.overflow = ''; // 恢复背景滚动
+    }
+  };
+  if (closeLoginModal) closeLoginModal.addEventListener('click', closeLogin);
+  if (modalOverlay) modalOverlay.addEventListener('click', closeLogin);
+  // 关闭注册模态框
+  var closeRegister = function closeRegister() {
+    if (registerModal) {
+      registerModal.classList.add('hidden');
+      document.body.style.overflow = ''; // 恢复背景滚动
+    }
+  };
+  if (closeRegisterModal) closeRegisterModal.addEventListener('click', closeRegister);
+  if (registerModalOverlay) registerModalOverlay.addEventListener('click', closeRegister);
+  // 切换到注册
+  if (switchToRegister) {
+    switchToRegister.addEventListener('click', function () {
+      if (loginModal) loginModal.classList.add('hidden');
+      if (registerModal) registerModal.classList.remove('hidden');
+    });
+  }
+  // 切换到登录
+  if (switchToLogin) {
+    switchToLogin.addEventListener('click', function () {
+      if (registerModal) registerModal.classList.add('hidden');
+      if (loginModal) loginModal.classList.remove('hidden');
+    });
+  }
+  // 切换登录密码显示
+  if (togglePassword && loginPassword) {
+    togglePassword.addEventListener('click', function () {
+      var type = loginPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+      loginPassword.setAttribute('type', type);
+      togglePassword.querySelector('i').classList.toggle('fa-eye');
+      togglePassword.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+  }
+  // 切换注册密码显示
+  if (toggleRegisterPassword && registerPassword) {
+    toggleRegisterPassword.addEventListener('click', function () {
+      var type = registerPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+      registerPassword.setAttribute('type', type);
+      toggleRegisterPassword.querySelector('i').classList.toggle('fa-eye');
+      toggleRegisterPassword.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+  }
+  // 点击ESC键关闭模态框
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      closeLogin();
+      closeRegister();
+    }
+  });
+});</script> 
+  <!-- [/JSMOD] b6c_登录注册模态框交互 -- 处理登录和注册模态框的显示、隐藏和切换逻辑，以及密码显示切换功能 --> 
+  <!-- [JSMOD] d7e_页面滚动效果 --> 
+  <script id="scroll-effect-script">// 页面加载时初始化渲染
+document.addEventListener('DOMContentLoaded', function () {
+  var header = document.querySelector('header');
+  var lastScrollTop = 0;
+  // 监听滚动事件，添加导航栏滚动效果
+  window.addEventListener('scroll', function () {
+    if (!header) return;
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    // 滚动超过50px添加阴影和背景变化
+    if (scrollTop > 50) {
+      header.classList.add('shadow-md');
+      header.classList.add('bg-white/95');
+    } else {
+      header.classList.remove('shadow-md');
+      header.classList.remove('bg-white/95');
+    }
+    lastScrollTop = scrollTop;
+  });
+  // 平滑滚动
+  document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      var targetId = this.getAttribute('href');
+      if (targetId === '#') return;
+      var targetElement = document.querySelector(targetId);
+      if (targetElement) {
+        window.scrollTo({
+          top: targetElement.offsetTop - 80,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+});</script> 
+  <!-- [/JSMOD] d7e_页面滚动效果 -- 处理页面滚动时导航栏样式变化和平滑滚动效果 --> 
+  <!-- [JSMOD] f8g_图片懒加载 --> 
+  <script id="image-lazy-load-script">// 页面加载时初始化渲染
+document.addEventListener('DOMContentLoaded', function () {
+  // 图片懒加载实现
+  if ('IntersectionObserver' in window) {
+    var imageObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          var image = entry.target;
+          image.classList.add('opacity-100');
+          image.classList.remove('opacity-0');
+          imageObserver.unobserve(image);
+        }
+      });
+    });
+    // 为所有图片添加淡入效果
+    document.querySelectorAll('img').forEach(function (img) {
+      img.classList.add('transition-opacity', 'duration-500');
+      imageObserver.observe(img);
+    });
+  }
+});</script> 
+  <!-- [/JSMOD] f8g_图片懒加载 -- 使用IntersectionObserver实现图片懒加载和淡入效果 --> 
+  <!-- [JSMOD] h9i_历史记录图表 --> 
+  <script id="history-chart-script">// 页面加载时初始化渲染
+document.addEventListener('DOMContentLoaded', function () {
+  // 月度识别统计图表已删除
+
+  // 识别类型分布图表已删除
+
+  // 历史记录操作功能
+  var deleteButtons = document.querySelectorAll('button[title="删除记录"]');
+  deleteButtons.forEach(function (button) {
+    button.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var recordRow = this.closest('tr');
+      var recordName = recordRow.querySelector('.font-medium')?.textContent || '该记录';
+      if (confirm("\u786E\u5B9A\u8981\u5220\u9664".concat(recordName, "\u5417\uFF1F\u6B64\u64CD\u4F5C\u4E0D\u53EF\u6062\u590D\u3002"))) {
+        // 添加删除动画
+        recordRow.classList.add('bg-red-50');
+        recordRow.style.transition = 'all 0.3s ease';
+        recordRow.style.height = recordRow.offsetHeight + 'px';
+        setTimeout(function () {
+          recordRow.style.height = '0';
+          recordRow.style.opacity = '0';
+          recordRow.style.padding = '0';
+          recordRow.style.margin = '0';
+          recordRow.style.border = 'none';
+          setTimeout(function () {
+            recordRow.remove();
+            // 检查是否还有记录
+            var remainingRows = document.querySelectorAll('tbody tr');
+            if (remainingRows.length === 0) {
+              var tableContainer = document.querySelector('.overflow-x-auto');
+              if (tableContainer) {
+                tableContainer.innerHTML = "<div class=\"py-20 text-center\">\n                                                <div class=\"w-20 h-20 bg-secondary/30 rounded-full flex items-center justify-center mx-auto mb-4\">\n                                                    <i class=\"fas fa-folder-open text-3xl text-primary/50\"></i>\n                                                </div>\n                                                <h3 class=\"text-xl font-medium text-dark mb-2\">\u6682\u65E0\u5386\u53F2\u8BB0\u5F55</h3>\n                                                <p class=\"text-dark/60 mb-6 max-w-md mx-auto\">\u60A8\u8FD8\u6CA1\u6709\u4EFB\u4F55\u8BC6\u522B\u8BB0\u5F55\uFF0C\u5FEB\u53BB\u4E0A\u4F20\u5E76\u8BC6\u522B\u60A8\u7684\u7B2C\u4E00\u4E2A\u7891\u6587\u5427</p>\n                                                <a href=\"javascript:void(0);\" class=\"inline-flex items-center px-6 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom\">\n                                                    <i class=\"fas fa-camera mr-2\"></i>\n                                                    \u5F00\u59CB\u8BC6\u522B\n                                                </a>\n                                            </div>";
+              }
+            }
+          }, 300);
+        }, 300);
+      }
+    });
+  });
+
+  // 查看详情按钮功能
+  var viewButtons = document.querySelectorAll('button[title="查看详情"]');
+  viewButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      var recordRow = this.closest('tr');
+      var recordId = recordRow.querySelector('.text-xs')?.textContent?.split(': #')[1] || '';
+      // 在实际应用中，这里会跳转到详情页或打开详情模态框
+      alert("\u67E5\u770B\u8BC6\u522B\u8BB0\u5F55 #".concat(recordId, "\u7684\u8BE6\u60C5"));
+    });
+  });
+
+  // 重新识别按钮功能
+  var redoButtons = document.querySelectorAll('button[title="重新识别"]');
+  redoButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      var recordRow = this.closest('tr');
+      var recordName = recordRow.querySelector('.font-medium')?.textContent || '该记录';
+      // 在实际应用中，这里会跳转到识别页面并加载相关图片
+      alert("\u91CD\u65B0\u8BC6\u522B".concat(recordName));
+    });
+  });
+});</script> 
+  <!-- [/JSMOD] h9i_历史记录图表 -- 初始化历史记录页面的统计图表，处理历史记录的删除、查看详情和重新识别操作 -->  
+ </body>
+</html>
