@@ -188,8 +188,7 @@ const watchDemo = () => {
           <div class="hidden md:block relative">
             <img alt="古代石碑展示"
               class="rounded-lg shadow-xl w-full h-auto object-cover transform hover:scale-[1.02] transition-custom duration-500"
-              src="
-              D:\A_ZJGSU\CODE\school\SoftwareEngineering\BeiShuo\frontend\public\gemdesign\assets\page\1988264127725830144\8c939d4ad1088f74dbcdbfb264c6e042.png">
+              src="/gemdesign/assets/page/1988264127725830144/8c939d4ad1088f74dbcdbfb264c6e042.png">
             <div
               class="absolute -bottom-6 -left-6 bg-white p-4 rounded-lg shadow-lg max-w-xs transform rotate-[-3deg] hover:rotate-0 transition-custom">
               <div class="flex items-start">

@@ -1,0 +1,38 @@
+name: Backend CI
+on:
+  push:
+    branches:
+      - feature/backend*
+      - feature/techTest
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - 'backend/**'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_DATABASE: beishuo
+          MYSQL_USER: devuser
+          MYSQL_PASSWORD: devpass
+          MYSQL_ROOT_PASSWORD: devpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1" --health-interval 10s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Maven Test
+        run: mvn -B -DskipITs=false test
+        working-directory: backend
+      - name: Build Jar
+        run: mvn -B package -DskipTests
+        working-directory: backend

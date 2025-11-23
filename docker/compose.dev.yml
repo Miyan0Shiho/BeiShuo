@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: beishuo-backend
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - OSS_ENDPOINT=http://localhost:9000
+      - FAISS_INDEX_PATH=/faiss
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../data/faiss:/faiss
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: beishuo-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_BACKEND_BASE=http://localhost:8080
+    depends_on:
+      - backend
