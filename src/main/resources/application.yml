@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: beishuo-backend
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+      file-size-threshold: 2KB
+
+server:
+  port: 8000
+  servlet:
+    context-path: /api/v1
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.beishuo: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    name: logs/beishuo-backend.log
+    max-size: 10MB
+    max-history: 30
+
+# 数据库API配置（等待实际服务地址）
+database:
+  api:
+    base-url: http://localhost:8081/api/database  # 改回 base-url
+    connect-timeout: 5000
+    read-timeout: 10000
+    retry-times: 3
+
+# Redis API配置（等待实际服务地址）
+redis:
+  api:
+    base-url: http://localhost:8082/api/redis
+    connect-timeout: 3000
+    read-timeout: 5000
+    retry-times: 3
+
+# LLM API配置(maybe aliyun，等待实际服务api与密钥）
+llm:
+  api:
+    base-url: https://api.openai.com/v1
+    api-key: your-llm-api-key-here
+    model: gpt-4
+    temperature: 0.7
+    max-tokens: 2000
+    timeout: 30000
+
+# RAG API配置（修改实际服务地址）
+rag:
+  api:
+    base-url: http://localhost:8083/api/rag
+    connect-timeout: 5000
+    read-timeout: 15000
+    top-k: 5
+
+# JWT配置（随机生成了32位密钥，可修改）
+jwt:
+  secret: K8mN2pQ7vX4wZ9aB3cD5eF6gH1jL8nM0qR2sT4uV6wY8zA1bC3dE5fG7hI9jK0
+  expiration: 86400000
+  refresh-expiration: 604800000
+  header: Authorization
+  token-prefix: Bearer
+
+# 文件上传配置
+file:
+  upload:
+    path: ./uploads
+    max-size: 10485760
+    allowed-types: jpg,jpeg,png,webp
+    url-prefix: /uploads
+
+# 缓存配置
+cache:
+  inscription-list-ttl: 300
+  knowledge-list-ttl: 600
+  search-result-ttl: 600
+  user-info-ttl: 1800
+
+# 业务配置
+business:
+  inscription:
+    max-title-length: 100
+    max-description-length: 1000
+  interpretation:
+    max-context-length: 5000
+    enable-stream: false
+

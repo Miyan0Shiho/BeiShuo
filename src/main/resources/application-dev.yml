@@ -1,0 +1,76 @@
+spring:
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+# 日志配置（开发环境）
+logging:
+  level:
+    root: INFO
+    com.beishuo: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+
+# 数据库API配置（开发环境）（等待实际服务地址）
+database:
+  api:
+    base-url: http://localhost:8081/api/database  # 改回 base-url
+    connect-timeout: 5000
+    read-timeout: 10000
+    retry-times: 3
+
+# Redis API配置（开发环境）（等待实际服务地址）
+redis:
+  api:
+    base-url: http://localhost:8082/api/redis
+    connect-timeout: 3000
+    read-timeout: 5000
+
+# LLM API配置（开发环境）（等待实际服务地址）
+llm:
+  api:
+    base-url: https://api.openai.com/v1
+    api-key: your-dev-llm-api-key-here
+    model: gpt-3.5-turbo
+    timeout: 30000
+
+# RAG API配置（开发环境）（等待实际服务地址）
+rag:
+  api:
+    base-url: http://localhost:8083/api/rag
+    connect-timeout: 5000
+    read-timeout: 15000
+
+# JWT配置（开发环境）（随机生成32位密钥，可修改）
+jwt:
+  secret: K8mN2pQ7vX4wZ9aB3cD5eF6gH1jL8nM0qR2sT4uV6wY8zA1bC3dE5fG7hI9jK0
+  expiration: 86400000
+  refresh-expiration: 604800000
+
+# 文件上传配置（开发环境）
+file:
+  upload:
+    path: ./uploads/dev
+    max-size: 10485760
+    url-prefix: http://localhost:8080/api/uploads
+
+# 跨域配置（开发环境）
+cors:
+  allowed-origins:       # 根据前端端口修改
+    - http://localhost:3000
+    - http://localhost:8080
+    - http://127.0.0.1:3000
+    - http://127.0.0.1:8080
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed-headers:
+    - "*"
+  allow-credentials: true
+  max-age: 3600
+

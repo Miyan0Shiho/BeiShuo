@@ -7,12 +7,19 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Node / Frontend
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Java / Backend
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Editors
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,6 +29,47 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Eclipse / NetBeans
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Python
+python/__pycache__/
+python/*.py[cod]
+python/*$py.class
+python/*.so
+python/.Python
+python/env/
+python/venv/
+python/ENV/
+python/env.bak/
+python/venv.bak/
+python/.venv
+python/*.egg-info/
+python/dist/
+python/build/
+python/.eggs/
+python/.pytest_cache/
+python/.mypy_cache/
+python/.coverage
+python/htmlcov/
+python/.tox/
+python/.env
+python/logs/*.log
 
 # Resource files
 文件资源/碑说 (2)/

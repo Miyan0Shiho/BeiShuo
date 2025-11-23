@@ -1,0 +1,50 @@
+2025-11-23 16:49:53 [main] INFO  com.beishuo.beishuoApplication - Starting beishuoApplication using Java 17.0.16 on ANSTER with PID 183276 (C:\Users\13539\Desktop\beishuo-backend\target\classes started by 13539 in C:\Users\13539\Desktop\beishuo-backend)
+2025-11-23 16:49:53 [main] DEBUG com.beishuo.beishuoApplication - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-11-23 16:49:53 [main] INFO  com.beishuo.beishuoApplication - The following 1 profile is active: "dev"
+2025-11-23 16:49:54 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8000 (http)
+2025-11-23 16:49:54 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-23 16:49:54 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.83]
+2025-11-23 16:49:54 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/api/v1] - Initializing Spring embedded WebApplicationContext
+2025-11-23 16:49:54 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1031 ms
+2025-11-23 16:49:54 [main] DEBUG com.beishuo.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-23 16:49:54 [main] DEBUG org.springframework.web.filter.CorsFilter - Filter 'corsFilter' configured for use
+2025-11-23 16:49:55 [main] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
+
+Using generated security password: e9a6d5ae-9396-464d-96c6-5b23b3494bc5
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2025-11-23 16:49:55 [main] DEBUG o.s.s.w.a.e.ExpressionBasedFilterInvocationSecurityMetadataSource - Adding web access control expression [permitAll] for Ant [pattern='/**']
+2025-11-23 16:49:55 [main] DEBUG o.s.s.w.a.e.ExpressionBasedFilterInvocationSecurityMetadataSource - Adding web access control expression [authenticated] for any request
+2025-11-23 16:49:55 [main] INFO  o.s.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@1e4c6583, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@2ee48610, org.springframework.security.web.context.SecurityContextPersistenceFilter@724aefc3, org.springframework.security.web.header.HeaderWriterFilter@31db34da, org.springframework.security.web.authentication.logout.LogoutFilter@1e95b653, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@2a097d77, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@6a916402, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@1d901f20, org.springframework.security.web.session.SessionManagementFilter@3f362135, org.springframework.security.web.access.ExceptionTranslationFilter@311ff287, org.springframework.security.web.access.intercept.FilterSecurityInterceptor@695c938d]
+2025-11-23 16:49:55 [main] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerAdapter - ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2025-11-23 16:49:55 [main] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - 38 mappings in 'requestMappingHandlerMapping'
+2025-11-23 16:49:55 [main] DEBUG o.s.web.servlet.handler.SimpleUrlHandlerMapping - Patterns [/webjars/**, /**, /uploads/**] in 'resourceHandlerMapping'
+2025-11-23 16:49:55 [main] DEBUG o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - ControllerAdvice beans: 1 @ExceptionHandler, 1 ResponseBodyAdvice
+2025-11-23 16:49:55 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8000 (http) with context path '/api/v1'
+2025-11-23 16:49:55 [main] INFO  com.beishuo.beishuoApplication - Started beishuoApplication in 1.982 seconds (JVM running for 2.627)
+2025-11-23 16:50:24 [main] INFO  com.beishuo.beishuoApplication - Starting beishuoApplication using Java 17.0.16 on ANSTER with PID 173804 (C:\Users\13539\Desktop\beishuo-backend\target\classes started by 13539 in C:\Users\13539\Desktop\beishuo-backend)
+2025-11-23 16:50:24 [main] DEBUG com.beishuo.beishuoApplication - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-11-23 16:50:24 [main] INFO  com.beishuo.beishuoApplication - The following 1 profile is active: "dev"
+2025-11-23 16:50:25 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8000 (http)
+2025-11-23 16:50:25 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-23 16:50:25 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.83]
+2025-11-23 16:50:25 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/api/v1] - Initializing Spring embedded WebApplicationContext
+2025-11-23 16:50:25 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 960 ms
+2025-11-23 16:50:25 [main] DEBUG com.beishuo.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-23 16:50:25 [main] DEBUG org.springframework.web.filter.CorsFilter - Filter 'corsFilter' configured for use
+2025-11-23 16:50:25 [main] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
+
+Using generated security password: adaaa3c9-9a4b-409d-bba4-29d442c6e5e7
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2025-11-23 16:50:25 [main] DEBUG o.s.s.w.a.e.ExpressionBasedFilterInvocationSecurityMetadataSource - Adding web access control expression [permitAll] for Ant [pattern='/**']
+2025-11-23 16:50:25 [main] DEBUG o.s.s.w.a.e.ExpressionBasedFilterInvocationSecurityMetadataSource - Adding web access control expression [authenticated] for any request
+2025-11-23 16:50:25 [main] INFO  o.s.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@d257579, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@518ddd3b, org.springframework.security.web.context.SecurityContextPersistenceFilter@2f4b98f6, org.springframework.security.web.header.HeaderWriterFilter@e38f0b7, org.springframework.security.web.authentication.logout.LogoutFilter@2a097d77, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@58c1da09, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@4232b34a, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@939ff41, org.springframework.security.web.session.SessionManagementFilter@463561c5, org.springframework.security.web.access.ExceptionTranslationFilter@7fc420b8, org.springframework.security.web.access.intercept.FilterSecurityInterceptor@3e36b7a0]
+2025-11-23 16:50:25 [main] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerAdapter - ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2025-11-23 16:50:25 [main] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - 38 mappings in 'requestMappingHandlerMapping'
+2025-11-23 16:50:25 [main] DEBUG o.s.web.servlet.handler.SimpleUrlHandlerMapping - Patterns [/webjars/**, /**, /uploads/**] in 'resourceHandlerMapping'
+2025-11-23 16:50:25 [main] DEBUG o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - ControllerAdvice beans: 1 @ExceptionHandler, 1 ResponseBodyAdvice
+2025-11-23 16:50:25 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8000 (http) with context path '/api/v1'
+2025-11-23 16:50:25 [main] INFO  com.beishuo.beishuoApplication - Started beishuoApplication in 1.902 seconds (JVM running for 2.205)
