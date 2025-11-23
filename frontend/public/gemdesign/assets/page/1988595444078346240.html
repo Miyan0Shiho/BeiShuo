@@ -1,0 +1,1612 @@
+<!doctype html>
+<html lang="zh-CN">
+ <head> 
+  <meta charset="utf-8"> 
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"> 
+  <title>碑说 - AI碑文识别与阐释平台</title> 
+  <script src="../javascript/reload.js"></script> 
+  <script src="./1988595444078346240/resource_4979810000.js"></script> 
+  <link href="./1988595444078346240/all.min.css" rel="stylesheet"> 
+  <script src="./1988595444078346240/echarts.min.js"></script> 
+  <script>tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#8B5A2B',
+        secondary: '#F5F5DC',
+        accent: '#D2B48C',
+        dark: '#3E2723',
+        light: '#F9F5EB'
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['Noto Serif SC', 'serif']
+      }
+    }
+  }
+};</script> 
+  <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .bg-texture {
+                background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d2b48c' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+            }
+            .upload-hover {
+                @apply hover:border-primary hover:bg-primary/5 hover:text-primary;
+            }
+            .example-active {
+                @apply border-primary ring-2 ring-primary/30;
+            }
+            .correction-word {
+                @apply hover:bg-yellow-100 px-1 py-0.5 rounded cursor-pointer transition-custom;
+            }
+            .scrollbar-thin {
+                scrollbar-width: thin;
+            }
+            .scrollbar-thin::-webkit-scrollbar {
+                width: 4px;
+                height: 4px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                background-color: rgba(156, 163, 175, 0.5);
+                border-radius: 2px;
+            }
+        }
+    </style> 
+ </head> 
+ <body class="bg-light bg-texture text-dark font-sans min-h-screen flex flex-col"> 
+  <!-- [MODULE] a1b_导航栏 --> 
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-sm shadow-sm transition-custom"> 
+   <div class="container mx-auto px-4 sm:px-6 lg:px-8"> 
+    <div class="flex justify-between items-center h-16 md:h-20"> 
+     <!-- Logo --> 
+     <div class="flex items-center"> 
+      <a class="flex items-center" href="javascript:void(0);"> <i class="fas fa-monument text-primary text-2xl md:text-3xl mr-2"> </i> <span class="text-xl md:text-2xl font-serif font-bold text-primary"> 碑说 </span> </a> 
+     </div> 
+     <!-- 桌面导航 --> 
+     <nav class="hidden md:flex space-x-8"> 
+      <a class="nav-link text-dark/70 font-medium hover:text-primary transition-custom flex items-center" custom-href="w=1920&amp;h=1080&amp;appuuid=1988264127688081408&amp;version=6&amp;pageType=web&amp;uuid=1988264127725830144&amp;appName=未命名" data-page="home-page" href="javascript:void(0);" is-add="false" is-page="true" onclick="ytCustomLinkNavigation()" target="_top"> <i class="fas fa-home mr-1"> </i> 首页 </a> 
+      <a class="nav-link text-primary font-medium hover:text-accent transition-custom flex items-center" data-page="recognition-page" href="javascript:void(0);"> <i class="fas fa-camera mr-1"> </i> 碑文识别 </a> 
+      <a class="nav-link text-dark/70 font-medium hover:text-primary transition-custom flex items-center" contenteditable="false" custom-href="w=1920&amp;h=1080&amp;appuuid=1988264127688081408&amp;version=1&amp;pageType=web&amp;uuid=1990611432919531520&amp;appName=碑说" data-page="history-page" href="javascript:void(0);" is-add="false" is-page="true" onclick="ytCustomLinkNavigation()" style="outline: none;" target="_top"> <i class="fas fa-history mr-1"> </i> 我的碑文 </a> 
+      <a class="nav-link text-dark/70 font-medium hover:text-primary transition-custom flex items-center yt-editor" contenteditable="false" custom-href="w=1920&amp;h=1080&amp;appuuid=1988264127688081408&amp;version=4&amp;pageType=web&amp;uuid=1988557465465126912&amp;appName=未命名" data-page="recommendation-page" href="javascript:void(0);" is-add="false" is-page="true" onclick="ytCustomLinkNavigation()" style="outline: none;" target="_top"> <i class="fas fa-lightbulb mr-1"> </i> 碑文知识库 </a> 
+     </nav> 
+     <!-- 用户操作 --> 
+     <div class="flex items-center space-x-4"> 
+      <button class="hidden sm:block px-4 py-2 rounded-md text-primary border border-primary hover:bg-primary/5 transition-custom" id="login-btn"> 登录 </button> 
+      <button class="hidden sm:block px-4 py-2 rounded-md bg-primary text-white hover:bg-primary/90 transition-custom" id="register-btn"> 注册 </button> 
+      <!-- 移动端菜单按钮 --> 
+      <button class="md:hidden text-dark hover:text-primary transition-custom" id="mobile-menu-btn"> <i class="fas fa-bars text-xl"> </i> </button> 
+     </div> 
+    </div> 
+   </div> 
+   <!-- 移动端导航菜单 --> 
+   <div class="hidden md:hidden bg-white border-t" id="mobile-menu"> 
+    <div class="container mx-auto px-4 py-3 space-y-3"> 
+     <a class="block py-2 px-3 rounded-md text-dark/70 hover:bg-secondary/30 transition-custom" href="javascript:void(0);"> <i class="fas fa-home mr-2"> </i> 首页 </a> 
+     <a class="block py-2 px-3 rounded-md bg-secondary/50 text-primary font-medium" href="javascript:void(0);"> <i class="fas fa-camera mr-2"> </i> 碑文识别 </a> 
+     <a class="block py-2 px-3 rounded-md text-dark/70 hover:bg-secondary/30 transition-custom" href="javascript:void(0);"> <i class="fas fa-history mr-2"> </i> 历史记录 </a> 
+     <a class="block py-2 px-3 rounded-md text-dark/70 hover:bg-secondary/30 transition-custom" href="javascript:void(0);"> <i class="fas fa-lightbulb mr-2"> </i> 兴趣推荐 </a> 
+     <div class="pt-2 flex space-x-3 border-t border-gray-100"> 
+      <button class="flex-1 py-2 rounded-md text-primary border border-primary hover:bg-primary/5 transition-custom" id="mobile-login-btn"> 登录 </button> 
+      <button class="flex-1 py-2 rounded-md bg-primary text-white hover:bg-primary/90 transition-custom" id="mobile-register-btn"> 注册 </button> 
+     </div> 
+    </div> 
+   </div> 
+  </header> 
+  <!-- [/MODULE] a1b_导航栏 -- 包含网站logo、主导航链接和用户登录注册按钮，移动端适配汉堡菜单 --> 
+  <!-- [MODULE] c3d_主内容区域 --> 
+  <main class="flex-grow"> 
+   <!-- [MODULE] d4e_碑文识别页面 --> 
+   <section class="py-12 md:py-16" id="recognition-page"> 
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8" data-ytextravalue="extra-w552t6k7r"> 
+     <!-- [MODULE] e5f_碑文识别页面:页面标题 --> 
+     <div class="mb-10 text-center md:text-left md:flex md:items-center md:justify-between" data-ytindex="0" data-ytoriginindex="0"> 
+      <div> 
+       <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-serif font-bold text-primary mb-2"> 碑文识别 </h1> 
+       <p class="text-dark/70 max-w-2xl"> 上传碑文图片，AI将自动识别文字内容并提供历史文化阐释，探索古老文字背后的故事 </p> 
+      </div> 
+      <div class="mt-4 md:mt-0"> 
+       <button class="px-5 py-2 bg-primary text-white rounded-md font-medium hover:bg-primary/90 shadow-md hover:shadow-lg transition-custom flex items-center"> <i class="fas fa-question-circle mr-2"> </i> 使用帮助 </button> 
+      </div> 
+     </div> 
+     <!-- [/MODULE] e5f_碑文识别页面:页面标题 -- 包含页面标题、描述文字和使用帮助按钮 --> 
+     <!-- [MODULE] f6g_碑文识别页面:识别区域 --> 
+     <div class="grid grid-cols-1 gap-8 lg:gap-12" data-ytindex="1" data-ytoriginindex="1" data-ytparentvalue="extra-w552t6k7r"> 
+      <!-- 右侧识别结果区域 --> 
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 flex flex-col" id="result-section"> 
+       <!-- 识别状态/结果切换 --> 
+       <div class="border-b border-gray-100"> 
+        <div class="flex"> 
+         <button class="flex-1 py-4 px-6 border-b-2 font-medium text-primary border-primary" contenteditable="false" id="status-tab" style="outline: none;"> 图片上传 </button> 
+         <button class="flex-1 py-4 px-6 text-dark/50 border-b-2 border-transparent font-medium hover:text-dark/70" id="proofread-tab"> 详细校对 </button> 
+         <button class="flex-1 py-4 px-6 text-dark/50 border-b-2 border-transparent font-medium hover:text-dark/70" id="result-tab"> 识别结果 </button> 
+         <button class="flex-1 py-4 px-6 text-dark/50 border-b-2 border-transparent font-medium hover:text-dark/70" id="interpretation-tab"> AI阐释 </button> 
+        </div> 
+       </div> 
+       <!-- 识别状态内容 --> 
+       <div class="p-6 md:p-8 flex-grow flex flex-col items-center justify-center text-center" id="status-content"> 
+        <div class="block" id="waiting-state"> 
+         <div class="w-24 h-24 bg-secondary/30 rounded-full flex items-center justify-center mb-6"> 
+          <i class="fas fa-upload text-primary/50 text-4xl"> </i> 
+         </div> 
+         <h3 class="text-xl font-semibold text-dark mb-3"> 等待上传图片 </h3> 
+         <p class="text-dark/70 max-w-md mb-8"> 上传碑文图片后，AI将自动开始识别文字内容 </p> 
+         <div class="w-full max-w-xs"> 
+          <button class="w-full py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center justify-center yt-editor" contenteditable="false" id="start-recognition" style="outline: none;"> <i class="fas fa-magic mr-2"> </i> 上传图片 </button> 
+         </div> 
+        </div> 
+        <div class="hidden" id="processing-state"> 
+         <div class="w-24 h-24 bg-secondary/30 rounded-full flex items-center justify-center mb-6"> 
+          <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"> 
+          </div> 
+         </div> 
+         <h3 class="text-xl font-semibold text-dark mb-3"> 正在识别... </h3> 
+         <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2"> 
+          <div class="bg-primary h-2.5 rounded-full" id="recognition-progress" style="width: 30%"> 
+          </div> 
+         </div> 
+         <p class="text-dark/70 text-sm mb-8" id="processing-status"> 正在分析碑文文字结构 (30%) </p> 
+         <button class="px-6 py-2 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom"> <i class="fas fa-stop-circle mr-1"> </i> 取消识别 </button> 
+        </div> 
+        <div class="hidden" id="completed-state"> 
+         <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6"> 
+          <i class="fas fa-check text-green-500 text-4xl"> </i> 
+         </div> 
+         <h3 class="text-xl font-semibold text-dark mb-3"> 识别完成 </h3> 
+         <p class="text-dark/70 max-w-md mb-8"> 已成功识别碑文内容，共286字，置信度98.7% </p> 
+         <div class="w-full max-w-xs"> 
+          <button class="w-full py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center justify-center" id="view-results-btn"> <i class="fas fa-arrow-right mr-2"> </i> 查看结果 </button> 
+         </div> 
+        </div> 
+       </div> 
+       <!-- 详细校对内容 --> 
+       <div class="p-6 md:p-8 hidden" id="proofread-content"> 
+        <div class="flex justify-between items-center mb-4"> 
+         <h3 class="text-lg font-semibold text-primary"> 详细校对 </h3> 
+         <div class="flex space-x-2"> 
+          <button class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom" title="保存校对结果"> <i class="fas fa-save"> </i> </button> 
+          <button class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom" title="恢复原始识别"> <i class="fas fa-undo"> </i> </button> 
+         </div> 
+        </div> 
+        <!-- 列对比区域 --> 
+        <div class="mb-6"> 
+         <div class="flex justify-between items-center mb-4"> 
+          <div class="flex items-center space-x-3"> 
+           <button class="p-2 rounded-md border border-gray-200 text-dark/70 hover:bg-gray-50 transition-custom" id="prev-column"> <i class="fas fa-chevron-left"> </i> </button> 
+           <span class="text-sm text-dark/70"> 第 <span id="current-column"> 1 </span> 列 / 共 <span id="total-columns"> 12 </span> 列 </span> 
+           <button class="p-2 rounded-md border border-gray-200 text-dark/70 hover:bg-gray-50 transition-custom" id="next-column"> <i class="fas fa-chevron-right"> </i> </button> 
+          </div> 
+          <div class="flex items-center space-x-2"> 
+           <button class="text-xs px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-custom" id="auto-correct-all"> <i class="fas fa-magic mr-1"> </i> 自动校正全部 </button> 
+           <button class="text-xs px-2 py-1 bg-gray-100 text-dark/70 rounded hover:bg-gray-200 transition-custom"> <i class="fas fa-check mr-1"> </i> 全部确认 </button> 
+          </div> 
+         </div> 
+         <!-- 列对比容器 --> 
+         <div class="relative overflow-x-auto pb-4"> 
+          <div class="flex space-x-4 min-w-max" id="columns-container"> 
+           <!-- 左侧图片列 --> 
+           <div class="w-24 flex-shrink-0"> 
+            <div class="bg-gray-100 rounded-lg overflow-hidden border border-gray-200 h-[400px]"> 
+             <img alt="碑文图片列" class="w-full h-full object-cover" src="./1988595444078346240/aa8f1ecb7fe313a613aef15f6d62b96f.png"> 
+            </div> 
+            <div class="text-center text-xs text-dark/60 mt-2">
+              原始碑文 
+            </div> 
+           </div> 
+           <!-- 识别结果列 --> 
+           <div class="w-24 flex-shrink-0"> 
+            <div class="bg-gray-50 rounded-lg border border-gray-200 h-[400px] p-2 overflow-y-auto"> 
+             <div class="space-y-1 text-center"> 
+              <span class="correction-word block py-2 cursor-pointer" data-candidates="维,惟,唯" data-original="维" onclick="showCorrectionPopup(this)"> 维 </span> 
+              <span class="correction-word block py-2" data-candidates="大,太,天" data-original="大"> 大 </span> 
+              <span class="correction-word block py-2" data-candidates="唐,塘,堂" data-original="唐"> 唐 </span> 
+              <span class="correction-word block py-2" data-candidates="开,井,并" data-original="开"> 开 </span> 
+              <span class="correction-word block py-2" data-candidates="元,无,兀" data-original="元"> 元 </span> 
+              <span class="correction-word block py-2" data-candidates="二,三,土" data-original="二"> 二 </span> 
+              <span class="correction-word block py-2" data-candidates="十,千,干" data-original="十"> 十 </span> 
+              <span class="correction-word block py-2" data-candidates="有,又,友" data-original="有"> 有 </span> 
+              <span class="correction-word block py-2" data-candidates="九,丸,凡" data-original="九"> 九 </span> 
+              <span class="correction-word block py-2" data-candidates="年,牛,午" data-original="年"> 年 </span> 
+              <span class="correction-word block py-2" data-candidates="岁,夕,山" data-original="岁"> 岁 </span> 
+              <span class="correction-word block py-2" data-candidates="次,欠,吹" data-original="次"> 次 </span> 
+              <span class="correction-word block py-2" data-candidates="辛,亲,立" data-original="辛"> 辛 </span> 
+              <span class="correction-word block py-2" data-candidates="巳,己,已" data-original="巳"> 巳 </span> 
+              <span class="correction-word block py-2" data-candidates="秋,种,和" data-original="秋"> 秋 </span> 
+              <span class="correction-word block py-2" data-candidates="八,入,人" data-original="八"> 八 </span> 
+              <span class="correction-word block py-2" data-candidates="月,日,目" data-original="月"> 月 </span> 
+              <span class="correction-word block py-2" data-candidates="丁,于,才" data-original="丁"> 丁 </span> 
+              <span class="correction-word block py-2" data-candidates="丑,五,互" data-original="丑"> 丑 </span> 
+              <span class="correction-word block py-2" data-candidates="朔,溯,塑" data-original="朔"> 朔 </span> 
+              <span class="correction-word block py-2" data-candidates="十,千,干" data-original="十"> 十 </span> 
+              <span class="correction-word block py-2" data-candidates="三,王,主" data-original="三"> 三 </span> 
+              <span class="correction-word block py-2" data-candidates="日,目,白" data-original="日"> 日 </span> 
+              <span class="correction-word block py-2" data-candidates="己,已,巳" data-original="己"> 己 </span> 
+              <span class="correction-word block py-2" data-candidates="丑,五,互" data-original="丑"> 丑 </span> 
+             </div> 
+            </div> 
+            <div class="text-center text-xs text-dark/60 mt-2">
+              识别文字 
+            </div> 
+           </div> 
+           <!-- 校正结果列 --> 
+           <div class="w-24 flex-shrink-0"> 
+            <div class="bg-primary/5 rounded-lg border border-primary/20 h-[400px] p-2 overflow-y-auto"> 
+             <div class="space-y-1 text-center"> 
+              <span class="block py-2 font-medium"> 维 </span> 
+              <span class="block py-2 font-medium"> 大 </span> 
+              <span class="block py-2 font-medium"> 唐 </span> 
+              <span class="block py-2 font-medium"> 开 </span> 
+              <span class="block py-2 font-medium"> 元 </span> 
+              <span class="block py-2 font-medium"> 二 </span> 
+              <span class="block py-2 font-medium"> 十 </span> 
+              <span class="block py-2 font-medium"> 有 </span> 
+              <span class="block py-2 font-medium"> 九 </span> 
+              <span class="block py-2 font-medium"> 年 </span> 
+              <span class="block py-2 font-medium"> 岁 </span> 
+              <span class="block py-2 font-medium"> 次 </span> 
+              <span class="block py-2 font-medium"> 辛 </span> 
+              <span class="block py-2 font-medium"> 巳 </span> 
+              <span class="block py-2 font-medium"> 秋 </span> 
+              <span class="block py-2 font-medium"> 八 </span> 
+              <span class="block py-2 font-medium"> 月 </span> 
+              <span class="block py-2 font-medium"> 丁 </span> 
+              <span class="block py-2 font-medium"> 丑 </span> 
+              <span class="block py-2 font-medium"> 朔 </span> 
+              <span class="block py-2 font-medium"> 十 </span> 
+              <span class="block py-2 font-medium"> 三 </span> 
+              <span class="block py-2 font-medium"> 日 </span> 
+              <span class="block py-2 font-medium"> 己 </span> 
+              <span class="block py-2 font-medium"> 丑 </span> 
+             </div> 
+            </div> 
+            <div class="text-center text-xs text-primary mt-2">
+              校正结果 
+            </div> 
+           </div> 
+          </div> 
+         </div> 
+        </div> 
+        <!-- 底部操作按钮 --> 
+        <div class="flex justify-between"> 
+         <button class="px-4 py-2 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom"> <i class="fas fa-arrow-left mr-1"> </i> 上一页 </button> 
+         <button class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom"> 保存校对结果 </button> 
+         <button class="px-4 py-2 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom"> 下一页 <i class="fas fa-arrow-right ml-1"> </i> </button> 
+        </div> 
+        <!-- 校对弹窗 --> 
+        <div class="fixed hidden z-50 bg-white rounded-lg shadow-lg p-4 border border-gray-200 w-64" id="correction-popup"> 
+         <h4 class="font-medium text-dark mb-2"> 校正文字 </h4> 
+         <p class="text-sm text-dark/70 mb-3"> 请选择正确的文字或手动输入 </p> 
+         <div class="grid grid-cols-3 gap-2 mb-3" id="candidates-container"> 
+          <button class="candidate-btn px-2 py-1 border border-gray-200 rounded hover:bg-primary/10 hover:text-primary"> 维 </button> 
+          <button class="candidate-btn px-2 py-1 border border-gray-200 rounded hover:bg-primary/10 hover:text-primary"> 惟 </button> 
+          <button class="candidate-btn px-2 py-1 border border-gray-200 rounded hover:bg-primary/10 hover:text-primary"> 唯 </button> 
+         </div> 
+         <div class="flex"> 
+          <input class="flex-1 border border-gray-300 rounded-l-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" id="custom-word" type="text"> 
+          <button class="bg-primary text-white px-4 py-1 rounded-r-md text-sm" id="confirm-correction"> 确认 </button> 
+         </div> 
+        </div> 
+       </div> 
+       <!-- 识别结果内容 (默认隐藏) --> 
+       <div class="p-6 md:p-8 hidden" id="result-content"> 
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3"> 
+         <h3 class="text-lg font-semibold text-primary"> 识别结果 </h3> 
+         <div class="flex space-x-2"> 
+          <button class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom" title="复制文本"> <i class="fas fa-copy"> </i> </button> 
+          <button class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom" title="下载文本"> <i class="fas fa-download"> </i> </button> 
+          <button class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom" title="编辑文本"> <i class="fas fa-edit"> </i> </button> 
+         </div> 
+        </div> 
+        <div class="mb-4 flex flex-wrap items-center text-sm text-dark/70 gap-y-2"> 
+         <span class="flex items-center mr-4"> <i class="fas fa-clock mr-1"> </i> 识别时间: 刚刚 </span> 
+         <span class="flex items-center mr-4"> <i class="fas fa-font mr-1"> </i> 字数: 286 </span> 
+         <span class="flex items-center"> <i class="fas fa-check-circle text-green-500 mr-1"> </i> 置信度: 98.7% </span> 
+        </div> 
+        <div class="border border-gray-200 rounded-lg p-4 h-64 md:h-80 overflow-y-auto mb-6 bg-gray-50"> 
+         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2"> 
+          <span class="text-sm text-dark/70"> 点击文字可进行校对 </span> 
+          <div class="flex space-x-2"> 
+           <button class="text-xs px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-custom" id="auto-correct"> <i class="fas fa-magic mr-1"> </i> 自动校正 </button> 
+           <button class="text-xs px-2 py-1 bg-gray-100 text-dark/70 rounded hover:bg-gray-200 transition-custom"> <i class="fas fa-check mr-1"> </i> 全部确认 </button> 
+          </div> 
+         </div> 
+         <div class="text-dark/90 leading-relaxed whitespace-pre-line" id="recognition-result"> 
+          <span class="correction-word" data-candidates="维,惟,唯" data-original="维"> 维 </span> 大唐开元二十有九年，岁次辛巳，秋八月丁丑朔，十三日己丑。故朝散大夫、守秘书少监、集贤院学士、上柱国、赐紫金鱼袋、赠秘书监、江夏李公，字太白，葬于当涂青山之阳。 公之生也，先天地而生；公之没也，后天地而没。其为文也，拔地倚天，陵轹万古；其为志也，怀瑾握瑜，含英咀华。 公性倜傥，好神仙，喜纵横，击剑为任侠，轻财好施。常欲济苍生，安社稷，然遭逢乱世，有志不伸。乃浪迹江湖，浮游四方，与名流贤士，诗酒唱和。 公之诗，雄奇豪放，清新飘逸，名动天下，传于后世。其代表作有《将进酒》、《望庐山瀑布》、《蜀道难》等，皆为千古绝唱。 
+         </div> 
+        </div> 
+        <div class="flex space-x-3"> 
+         <button class="flex-1 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom"> <i class="fas fa-book-reader mr-2"> </i> 查看AI阐释 </button> 
+         <button class="px-4 py-3 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom"> <i class="fas fa-share-alt"> </i> </button> 
+        </div> 
+       </div> 
+       <!-- AI阐释内容 (默认隐藏) --> 
+       <div class="p-6 md:p-8 hidden" id="interpretation-content"> 
+        <!-- 顶部操作按钮 --> 
+        <div class="flex justify-end mb-6"> 
+         <button class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-custom flex items-center" contenteditable="false" id="save-to-my-epigraphs" style="outline: none;"> <i class="fas fa-bookmark mr-2"> </i> 保存到我的碑文 </button> 
+        </div> 
+        <!-- 原文与译文对照 --> 
+        <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden"> 
+         <div class="bg-gray-50 border-b border-gray-200 px-4 py-2 flex justify-between"> 
+          <h4 class="font-medium text-dark"> 原文 </h4> 
+          <h4 class="font-medium text-dark"> 现代文译文 </h4> 
+         </div> 
+         <div class="flex"> 
+          <div class="w-1/2 p-4 border-r border-gray-200 bg-white/50 text-sm leading-relaxed overflow-y-auto h-48">
+            维大唐开元二十有九年，岁次辛巳，秋八月丁丑朔，十三日己丑。故朝散大夫、守秘书少监、集贤院学士、上柱国、赐紫金鱼袋、赠秘书监、江夏李公，字太白，葬于当涂青山之阳。 公之生也，先天地而生；公之没也，后天地而没。其为文也，拔地倚天，陵轹万古；其为志也，怀瑾握瑜，含英咀华。 公性倜傥，好神仙，喜纵横，击剑为任侠，轻财好施。常欲济苍生，安社稷，然遭逢乱世，有志不伸。乃浪迹江湖，浮游四方，与名流贤士，诗酒唱和。 
+          </div> 
+          <div class="w-1/2 p-4 bg-white/50 text-sm leading-relaxed overflow-y-auto h-48">
+            在大唐开元二十九年，岁次辛巳，秋季八月初一为丁丑日，十三日为己丑日。已故的朝散大夫、守秘书少监、集贤院学士、上柱国、赐紫金鱼袋、追赠秘书监的江夏李公，字太白，安葬在当涂青山的南面。 李先生诞生仿佛先于天地，逝世又似后于天地。他的文章，气势雄伟高出地面贴近天际，超越万古；他的志向，如同怀揣美玉手握宝玉，品味吸收着诗文的精华。 李先生性情洒脱不拘，喜好神仙之术，热衷于纵横之学，击剑行侠仗义，轻视财物乐于施舍。常常想要救济苍生，安定国家社稷，然而遭遇乱世，有志向而不能施展。于是浪迹江湖，漫游四方，与名流贤士们诗歌唱和，饮酒作乐。 
+          </div> 
+         </div> 
+        </div> 
+        <!-- 阐释标签页 --> 
+        <div class="border-b border-gray-200 mb-6"> 
+         <nav aria-label="Tabs" class="-mb-px flex space-x-8"> 
+          <button aria-current="page" class="py-4 px-1 border-b-2 border-primary text-primary font-medium text-sm md:text-base whitespace-nowrap tab-btn" data-tab="history"> 历史背景 </button> 
+          <button class="py-4 px-1 border-b-2 border-transparent text-dark/50 hover:text-dark/70 hover:border-gray-300 font-medium text-sm md:text-base whitespace-nowrap tab-btn" data-tab="culture"> 文化意义 </button> 
+          <button class="py-4 px-1 border-b-2 border-transparent text-dark/50 hover:text-dark/70 hover:border-gray-300 font-medium text-sm md:text-base whitespace-nowrap tab-btn" data-tab="figures"> 相关人物 </button> 
+          <button class="py-4 px-1 border-b-2 border-transparent text-dark/50 hover:text-dark/70 hover:border-gray-300 font-medium text-sm md:text-base whitespace-nowrap tab-btn" data-tab="reading"> 延伸阅读 </button> 
+         </nav> 
+        </div> 
+        <!-- 阐释内容 --> 
+        <div class="grid md:grid-cols-3 gap-8"> 
+         <!-- 左侧：主要阐释内容 --> 
+         <div class="md:col-span-2"> 
+          <h3 class="text-2xl font-serif font-semibold text-primary mb-4 tab-content-title" data-tab="history"> 李白墓碑文历史背景分析 </h3> 
+          <div class="prose max-w-none text-dark/90 leading-relaxed mb-6 tab-content" data-tab="history"> 
+           <p class="mb-4"> 李白墓碑文撰写于大唐开元二十九年（公元741年），正值盛唐时期，这是中国历史上政治稳定、经济繁荣、文化昌盛的黄金时代。 </p> 
+           <p class="mb-4"> 开元年间，唐玄宗李隆基励精图治，任用贤能，开创了"开元盛世"。这一时期，文化艺术得到极大发展，诗歌创作达到顶峰，出现了李白、杜甫、王维等一大批杰出诗人。 </p> 
+           <p class="mb-4"> 李白（701年－762年），字太白，号青莲居士，是唐代最伟大的浪漫主义诗人之一，被后人誉为"诗仙"。他的一生历经坎坷，曾供奉翰林，后因得罪权贵而离开长安，开始漫游四方。安史之乱爆发后，他因参与永王李璘幕府而被流放夜郎，途中遇赦。晚年漂泊东南一带，最终病逝于当涂（今属安徽）。 </p> 
+           <p> 此碑文撰写于李白去世前一年，反映了当时文人对李白文学成就的高度评价，也体现了盛唐时期文人的精神风貌和价值取向。 </p> 
+          </div> 
+          <div class="prose max-w-none text-dark/90 leading-relaxed mb-6 tab-content hidden" data-tab="culture"> 
+           <p class="mb-4"> 李白墓碑文不仅是一份历史文献，更是唐代文化精神的集中体现。碑文以"拔地倚天，陵轹万古"来评价李白的文学成就，恰当地概括了盛唐文化的雄浑气象。 </p> 
+           <p class="mb-4"> 唐代文人崇尚个性解放与精神自由，李白的"天生我材必有用，千金散尽还复来"正是这种精神的写照。碑文中对李白"好神仙，喜纵横，击剑为任侠"的描述，反映了唐代文人多元化的精神追求。 </p> 
+           <p class="mb-4"> 李白诗歌的豪放风格与唐代的时代精神相契合，他的作品不仅在当时广为流传，而且对后世文学产生了深远影响。从宋代的苏轼、辛弃疾到清代的龚自珍，都可以看到李白诗歌风格的影子。 </p> 
+           <p class="mb-4"> 碑文所体现的"文以载道"思想，是中国传统文化的重要组成部分。李白的文学创作不仅是个人情感的抒发，更是对时代精神的反映和对社会现实的关注。 </p> 
+           <p> 李白墓碑文的书法艺术也具有重要价值，其碑刻字体融合了楷书的端庄与行书的流畅，体现了唐代书法艺术的高超水平，是研究唐代书法演变的重要实物资料。 </p> 
+          </div> 
+          <div class="prose max-w-none text-dark/90 leading-relaxed mb-6 tab-content hidden" data-tab="figures"> 
+           <p class="mb-4"> 李白一生交游广泛，与唐代许多著名文人、官员都有密切往来。这些交往不仅丰富了他的人生阅历，也对他的诗歌创作产生了重要影响。 </p> 
+           <p class="mb-4"> 杜甫是李白最重要的诗友之一，两人曾同游梁宋，结下深厚友谊。杜甫在《寄李十二白二十韵》中写道："笔落惊风雨，诗成泣鬼神"，高度评价了李白的文学成就。 </p> 
+           <p class="mb-4"> 贺知章作为李白的"伯乐"，在长安首次见到李白时，便惊叹其才华，称之为"谪仙人"，并解金龟换酒，与李白共饮，成为文坛佳话。 </p> 
+           <p class="mb-4"> 李白与孟浩然的交往也传为佳话，"故人西辞黄鹤楼，烟花三月下扬州"便是李白送别孟浩然时所作，情谊深厚，意境优美。 </p> 
+           <p> 此外，李白还与王昌龄、高适、岑参等著名诗人交往密切，他们之间的唱和之作成为中国文学史上的宝贵财富。这些交往不仅促进了唐代诗歌的繁荣，也对李白的诗歌风格产生了深远影响。 </p> 
+          </div> 
+          <div class="prose max-w-none text-dark/90 leading-relaxed mb-6 tab-content hidden" data-tab="reading"> 
+           <p class="mb-4"> 要深入理解李白的文学成就和历史地位，以下几部著作值得一读： </p> 
+           <p class="mb-4"> 《李太白全集》收录了李白的全部诗作和文赋，是研究李白的基本文献。清代王琦注本最为详尽，对李白作品的背景、典故都有详细考证。 </p> 
+           <p class="mb-4"> 《唐才子传 · 李白传》是元代辛文房所著的唐代诗人传记，其中对李白生平事迹的记载具有重要参考价值。 </p> 
+           <p class="mb-4"> 《李白诗选》（人民文学出版社）精选了李白各时期的代表作品，注释详尽，适合初学者阅读。 </p> 
+           <p class="mb-4"> 《李白与唐代文化》（中华书局）从文化史角度探讨了李白诗歌与唐代社会文化的关系，视角独特。 </p> 
+           <p> 现代学者的研究著作中，林庚的《诗人李白》、陈贻焮的《李白评传》等都对李白的生平思想和诗歌艺术进行了深入分析，是了解李白的重要参考资料。 </p> 
+          </div> 
+          <!-- AI对话入口 --> 
+          <div class="bg-secondary/30 p-4 rounded-lg border border-secondary"> 
+           <div class="flex items-start"> 
+            <div class="flex-shrink-0 mr-3"> 
+             <i class="fas fa-robot text-primary text-xl"> </i> 
+            </div> 
+            <div class="flex-grow"> 
+             <p class="text-dark/80 mb-3"> 对这段阐释有疑问？我可以为您解答更多细节 </p> 
+             <div class="flex"> 
+              <input class="flex-grow px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="ai-question" placeholder="请输入您的问题..." type="text"> 
+              <button class="bg-primary text-white px-4 py-2 rounded-r-md hover:bg-primary/90 transition-custom" id="send-question-btn"> <i class="fas fa-paper-plane"> </i> </button> 
+             </div> 
+            </div> 
+           </div> 
+          </div> 
+         </div> 
+         <!-- 右侧：相关信息 --> 
+         <div class="space-y-6"> 
+          <!-- 时间线 --> 
+          <div class="bg-light p-5 rounded-xl border border-gray-100"> 
+           <h4 class="text-lg font-semibold text-primary mb-4 flex items-center"> <i class="fas fa-history mr-2"> </i> 相关时间线 </h4> 
+           <div class="space-y-4"> 
+            <div class="flex"> 
+             <div class="flex-shrink-0 w-8 text-right pr-3 relative"> 
+              <span class="inline-block w-3 h-3 bg-primary rounded-full absolute right-0 top-1/2 -translate-y-1/2"> </span> 
+              <span class="text-sm font-medium text-primary"> 701年 </span> 
+             </div> 
+             <div class="flex-grow border-l border-gray-200 pl-3 pb-4"> 
+              <p class="text-dark/80"> 李白出生于碎叶城（今吉尔吉斯斯坦托克马克附近） </p> 
+             </div> 
+            </div> 
+            <div class="flex"> 
+             <div class="flex-shrink-0 w-8 text-right pr-3 relative"> 
+              <span class="inline-block w-3 h-3 bg-primary rounded-full absolute right-0 top-1/2 -translate-y-1/2"> </span> 
+              <span class="text-sm font-medium text-primary"> 724年 </span> 
+             </div> 
+             <div class="flex-grow border-l border-gray-200 pl-3 pb-4"> 
+              <p class="text-dark/80"> 李白开始漫游天下，离开蜀地 </p> 
+             </div> 
+            </div> 
+            <div class="flex"> 
+             <div class="flex-shrink-0 w-8 text-right pr-3 relative"> 
+              <span class="inline-block w-3 h-3 bg-primary rounded-full absolute right-0 top-1/2 -translate-y-1/2"> </span> 
+              <span class="text-sm font-medium text-primary"> 742年 </span> 
+             </div> 
+             <div class="flex-grow border-l border-gray-200 pl-3 pb-4"> 
+              <p class="text-dark/80"> 李白被召入长安，供奉翰林 </p> 
+             </div> 
+            </div> 
+            <div class="flex"> 
+             <div class="flex-shrink-0 w-8 text-right pr-3 relative"> 
+              <span class="inline-block w-3 h-3 bg-primary rounded-full absolute right-0 top-1/2 -translate-y-1/2"> </span> 
+              <span class="text-sm font-medium text-primary"> 762年 </span> 
+             </div> 
+             <div class="flex-grow border-l border-gray-200 pl-3"> 
+              <p class="text-dark/80"> 李白病逝于当涂，享年62岁 </p> 
+             </div> 
+            </div> 
+           </div> 
+          </div> 
+          <!-- 相关人物 --> 
+          <div class="bg-light p-5 rounded-xl border border-gray-100"> 
+           <h4 class="text-lg font-semibold text-primary mb-4 flex items-center"> <i class="fas fa-users mr-2"> </i> 相关人物 </h4> 
+           <div class="space-y-3"> 
+            <a class="flex items-center p-2 hover:bg-white rounded-md transition-custom" href="javascript:void(0);"> <img alt="杜甫" class="w-10 h-10 rounded-full object-cover mr-3" src="./1988595444078346240/c5563fad495044e567c91681d4896843.png"> 
+             <div> 
+              <p class="font-medium text-dark"> 杜甫 </p> 
+              <p class="text-xs text-dark/60"> 唐代诗人，与李白并称"李杜" </p> 
+             </div> </a> 
+            <a class="flex items-center p-2 hover:bg-white rounded-md transition-custom" href="javascript:void(0);"> <img alt="唐玄宗" class="w-10 h-10 rounded-full object-cover mr-3" src="./1988595444078346240/cc16ad06f3e695c84272a5c5dc909381.png"> 
+             <div> 
+              <p class="font-medium text-dark"> 唐玄宗 </p> 
+              <p class="text-xs text-dark/60"> 唐朝皇帝，开创开元盛世 </p> 
+             </div> </a> 
+            <a class="flex items-center p-2 hover:bg-white rounded-md transition-custom" href="javascript:void(0);"> <img alt="贺知章" class="w-10 h-10 rounded-full object-cover mr-3" src="./1988595444078346240/c9b9f164cc360b34ccf5fdb289cdc9f1.png"> 
+             <div> 
+              <p class="font-medium text-dark"> 贺知章 </p> 
+              <p class="text-xs text-dark/60"> 唐代诗人，称李白为"谪仙人" </p> 
+             </div> </a> 
+           </div> 
+          </div> 
+          <!-- 推荐阅读 --> 
+          <div class="bg-light p-5 rounded-xl border border-gray-100"> 
+           <h4 class="text-lg font-semibold text-primary mb-4 flex items-center"> <i class="fas fa-book mr-2"> </i> 推荐阅读 </h4> 
+           <div class="space-y-3"> 
+            <a class="block p-3 hover:bg-white rounded-md transition-custom" href="javascript:void(0);"> <p class="font-medium text-dark line-clamp-1"> 《李太白全集》 </p> <p class="text-xs text-dark/60"> 李白诗文集大成之作 </p> </a> 
+            <a class="block p-3 hover:bg-white rounded-md transition-custom" href="javascript:void(0);"> <p class="font-medium text-dark line-clamp-1"> 《唐才子传 · 李白传》 </p> <p class="text-xs text-dark/60"> 记录李白生平事迹的经典文献 </p> </a> 
+            <a class="block p-3 hover:bg-white rounded-md transition-custom" href="javascript:void(0);"> <p class="font-medium text-dark line-clamp-1"> 《李白诗歌的艺术特色》 </p> <p class="text-xs text-dark/60"> 现代学者对李白诗歌的研究 </p> </a> 
+           </div> 
+          </div> 
+         </div> 
+        </div> 
+       </div> 
+      </div> 
+     </div> 
+     <!-- [MODULE] 7a2_碑文识别页面:保存弹窗 --> 
+     <div class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center" id="save-epigraph-modal"> 
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden"> 
+       <div class="p-6 border-b border-gray-200"> 
+        <h3 class="text-xl font-semibold text-primary flex items-center"> <i class="fas fa-bookmark mr-2"> </i> 保存碑文 </h3> 
+       </div> 
+       <div class="p-6"> 
+        <div class="mb-4"> 
+         <label class="block text-sm font-medium text-dark mb-2" for="epigraph-title"> 碑文标题 <span class="text-red-500"> * </span> </label> 
+         <input type="text" id="epigraph-title" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="请输入碑文标题"> 
+        </div> 
+        <div class="mb-6"> 
+         <label class="block text-sm font-medium text-dark mb-2"> 选择标签 <span class="text-red-500"> * </span> </label> 
+         <div class="flex flex-wrap gap-2" id="tag-container"> 
+          <label class="inline-flex items-center px-3 py-1 rounded-full border border-gray-300 cursor-pointer hover:bg-primary/5 transition-custom"> <input type="checkbox" name="tags" value="历史" class="sr-only peer"> <span class="peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-custom" contenteditable="false" style="outline: none;"> 汉代碑文 </span> </label> 
+          <label class="inline-flex items-center px-3 py-1 rounded-full border border-gray-300 cursor-pointer hover:bg-primary/5 transition-custom"> <input type="checkbox" name="tags" value="文学" class="sr-only peer"> <span class="peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-custom" contenteditable="false" style="outline: none;"> 唐代碑文 </span> </label> 
+          <label class="inline-flex items-center px-3 py-1 rounded-full border border-gray-300 cursor-pointer hover:bg-primary/5 transition-custom"> <input type="checkbox" name="tags" value="书法" class="sr-only peer"> <span class="peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-custom" contenteditable="false" style="outline: none;"> 宋代碑文 </span> </label> 
+          <label class="inline-flex items-center px-3 py-1 rounded-full border border-gray-300 cursor-pointer hover:bg-primary/5 transition-custom"> <input type="checkbox" name="tags" value="考古" class="sr-only peer"> <span class="peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-custom" contenteditable="false" style="outline: none;"> 名人碑刻 </span> </label> 
+          <label class="inline-flex items-center px-3 py-1 rounded-full border border-gray-300 cursor-pointer hover:bg-primary/5 transition-custom"> <input type="checkbox" name="tags" value="唐代" class="sr-only peer"> <span class="peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-custom"> 地方历史 </span> </label> 
+          <label class="inline-flex items-center px-3 py-1 rounded-full border border-dashed border-gray-300 text-primary cursor-pointer hover:bg-primary/5 transition-custom"> <i class="fas fa-plus mr-1"> </i> 添加标签 </label> 
+         </div> 
+        </div> 
+        <div class="flex justify-end space-x-3"> 
+         <button class="px-4 py-2 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom" id="cancel-save"> 取消 </button> 
+         <button class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom" id="confirm-save"> 保存 </button> 
+        </div> 
+       </div> 
+      </div> 
+     </div> 
+     <!-- [/MODULE] 7a2_碑文识别页面:保存弹窗 -- 包含碑文标题输入框和标签选择功能，用于保存识别的碑文到个人收藏 --> 
+     <!-- [/MODULE] f6g_碑文识别页面:识别区域 -- 包含右侧识别结果区域，支持多标签结果展示 --> 
+     <!-- [MODULE] 7a2_碑文识别页面:兴趣推荐 --> 
+     <div class="mt-16"> 
+      <h3 class="text-2xl font-serif font-semibold text-primary mb-6 flex items-center"> <i class="fas fa-lightbulb mr-3 text-accent"> </i> 相关碑文推荐 </h3> 
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> 
+       <!-- 推荐碑文1 --> 
+       <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-custom border border-gray-100"> 
+        <div class="h-48 overflow-hidden"> 
+         <img alt="汉代隶书碑文" class="w-full h-full object-cover hover:scale-105 transition-custom" src="./1988595444078346240/726b3c1ba023f2bb873d5877c88624fc.png"> 
+        </div> 
+        <div class="p-5"> 
+         <h4 class="text-lg font-serif font-medium text-dark mb-2"> 汉代隶书碑文精选 </h4> 
+         <p class="text-gray-600 text-sm mb-4 line-clamp-2"> 此碑文展示了汉代隶书的典型特征，笔画浑厚有力，结构端庄稳重，是研究汉代书法艺术的重要资料。 </p> 
+         <a class="text-primary text-sm font-medium flex items-center hover:text-accent transition-custom" href="javascript:void(0);"> 查看详情 <i class="fas fa-arrow-right ml-2 text-xs"> </i> </a> 
+        </div> 
+       </div> 
+       <!-- 推荐碑文2 --> 
+       <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-custom border border-gray-100"> 
+        <div class="h-48 overflow-hidden"> 
+         <img alt="唐代楷书墓志铭" class="w-full h-full object-cover hover:scale-105 transition-custom" src="./1988595444078346240/a69d2bd63fa5803774ef9f2f5dffde04.png"> 
+        </div> 
+        <div class="p-5"> 
+         <h4 class="text-lg font-serif font-medium text-dark mb-2"> 唐代楷书墓志铭 </h4> 
+         <p class="text-gray-600 text-sm mb-4 line-clamp-2"> 该墓志铭采用标准的唐代楷书书写，字体端庄秀丽，结构严谨，体现了唐代书法的巅峰水平。 </p> 
+         <a class="text-primary text-sm font-medium flex items-center hover:text-accent transition-custom" href="javascript:void(0);"> 查看详情 <i class="fas fa-arrow-right ml-2 text-xs"> </i> </a> 
+        </div> 
+       </div> 
+       <!-- 推荐碑文3 --> 
+       <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-custom border border-gray-100"> 
+        <div class="h-48 overflow-hidden"> 
+         <img alt="魏晋时期碑文残片" class="w-full h-full object-cover hover:scale-105 transition-custom" src="./1988595444078346240/953ef8d03f26d8a3810e8b00c7ab6036.png"> 
+        </div> 
+        <div class="p-5"> 
+         <h4 class="text-lg font-serif font-medium text-dark mb-2"> 魏晋时期碑文残片 </h4> 
+         <p class="text-gray-600 text-sm mb-4 line-clamp-2"> 此残片保留了魏晋时期书法艺术的特点，字体介于隶书与楷书之间，展现了书法演变的重要阶段。 </p> 
+         <a class="text-primary text-sm font-medium flex items-center hover:text-accent transition-custom" href="javascript:void(0);"> 查看详情 <i class="fas fa-arrow-right ml-2 text-xs"> </i> </a> 
+        </div> 
+       </div> 
+      </div> 
+     </div> 
+     <!-- [/MODULE] 7a2_碑文识别页面:兴趣推荐 -- 展示相关碑文推荐列表，包含图片、标题和简介，点击可查看详情 --> 
+     <!-- [MODULE] i9j_碑文识别页面:识别历史 --> 
+     <div class="mt-12" data-ytindex="2" data-ytoriginindex="2"> 
+      <h2 class="text-xl font-semibold text-primary mb-6 flex items-center"> <i class="fas fa-history mr-2"> </i> 最近识别记录 </h2> 
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"> 
+       <div class="overflow-x-auto"> 
+        <table class="w-full"> 
+         <thead> 
+          <tr class="bg-gray-50 border-b border-gray-200"> 
+           <th class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider"> 图片 </th> 
+           <th class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider"> 识别内容 </th> 
+           <th class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider"> 时间 </th> 
+           <th class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider"> 置信度 </th> 
+           <th class="px-6 py-3 text-right text-xs font-medium text-dark/70 uppercase tracking-wider"> 操作 </th> 
+          </tr> 
+         </thead> 
+         <tbody class="divide-y divide-gray-200"> 
+          <tr class="hover:bg-gray-50 transition-custom"> 
+           <td class="px-6 py-4 whitespace-nowrap"> <img alt="碑文缩略图" class="w-12 h-12 rounded object-cover" src="./1988595444078346240/342e36325dbea4139927f6290c02e6f7.png"> </td> 
+           <td class="px-6 py-4"> 
+            <div class="text-sm text-dark line-clamp-2 max-w-xs">
+              维大唐开元二十有九年，岁次辛巳，秋八月丁丑朔，十三日己丑... 
+            </div> </td> 
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-dark/70"> 今天 14:30 </td> 
+           <td class="px-6 py-4 whitespace-nowrap"> <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full"> 98.7% </span> </td> 
+           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"> <button class="text-primary hover:text-accent mr-3"> 查看 </button> <button class="text-accent hover:text-primary mr-3"> 保存到我的碑文 </button> <button class="text-dark/70 hover:text-dark"> 删除 </button> </td> 
+          </tr> 
+          <tr class="hover:bg-gray-50 transition-custom"> 
+           <td class="px-6 py-4 whitespace-nowrap"> <img alt="碑文缩略图" class="w-12 h-12 rounded object-cover" src="./1988595444078346240/2807b3cc0d7a63f19665759b89b11bc4.png"> </td> 
+           <td class="px-6 py-4"> 
+            <div class="text-sm text-dark line-clamp-2 max-w-xs">
+              永和九年，岁在癸丑，暮春之初，会于会稽山阴之兰亭，修禊事也... 
+            </div> </td> 
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-dark/70"> 昨天 09:15 </td> 
+           <td class="px-6 py-4 whitespace-nowrap"> <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full"> 97.5% </span> </td> 
+           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"> <button class="text-primary hover:text-accent mr-3"> 查看 </button> <button class="text-accent hover:text-primary mr-3"> 保存到我的碑文 </button> <button class="text-dark/70 hover:text-dark"> 删除 </button> </td> 
+          </tr> 
+          <tr class="hover:bg-gray-50 transition-custom"> 
+           <td class="px-6 py-4 whitespace-nowrap"> <img alt="碑文缩略图" class="w-12 h-12 rounded object-cover" src="./1988595444078346240/c4c0e485736e4a220abcc5aa9c08d8bb.png"> </td> 
+           <td class="px-6 py-4"> 
+            <div class="text-sm text-dark line-clamp-2 max-w-xs">
+              天下第一行书《兰亭集序》，东晋王羲之书，被誉为"天下第一行书"... 
+            </div> </td> 
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-dark/70"> 2023-10-28 16:42 </td> 
+           <td class="px-6 py-4 whitespace-nowrap"> <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full"> 96.8% </span> </td> 
+           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"> <button class="text-primary hover:text-accent mr-3"> 查看 </button> <button class="text-accent hover:text-primary mr-3"> 保存到我的碑文 </button> <button class="text-dark/70 hover:text-dark"> 删除 </button> </td> 
+          </tr> 
+         </tbody> 
+        </table> 
+       </div> 
+       <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between"> 
+        <div class="text-sm text-dark/70">
+          显示 1 至 3，共 12 条记录 
+        </div> 
+        <div class="flex space-x-1"> 
+         <button class="px-3 py-1 border border-gray-300 rounded-md text-dark/50 hover:bg-gray-100 disabled:opacity-50" disabled> 上一页 </button> 
+         <button class="px-3 py-1 border border-primary bg-primary text-white rounded-md"> 1 </button> 
+         <button class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100"> 2 </button> 
+         <button class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100"> 3 </button> 
+         <button class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100"> 4 </button> 
+         <button class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100"> 下一页 </button> 
+        </div> 
+       </div> 
+      </div> 
+     </div> 
+     <!-- [/MODULE] i9j_碑文识别页面:识别历史 -- 展示用户最近的识别记录，包含图片缩略图、内容预览、时间、置信度和操作按钮 --> 
+    </div> 
+   </section> 
+   <!-- [/MODULE] d4e_碑文识别页面 -- 包含碑文识别功能的完整界面，包括上传区域、识别结果展示和历史记录 --> 
+  </main> 
+  <!-- [/MODULE] c3d_主内容区域 -- 包含碑文识别页面的所有内容模块 --> 
+  <!-- [MODULE] 7a2_上传图片弹窗 --> 
+  <div class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center" id="upload-modal"> 
+   <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4"> 
+    <div class="p-6 border-b border-gray-200 flex justify-between items-center"> 
+     <h3 class="text-xl font-semibold text-dark"> 上传碑文图片 </h3> 
+     <button class="text-dark/70 hover:text-dark transition-custom" id="close-modal"> <i class="fas fa-times text-xl"> </i> </button> 
+    </div> 
+    <div class="p-6"> 
+     <!-- 上传区域 --> 
+     <div class="upload-hover border-2 border-dashed border-gray-300 rounded-xl p-8 text-center transition-custom cursor-pointer mb-6 bg-gradient-to-b from-light to-white shadow-sm" id="modal-upload-area"> 
+      <div class="flex flex-col items-center"> 
+       <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4 transform hover:scale-105 transition-custom"> 
+        <i class="fas fa-camera text-primary text-3xl"> </i> 
+       </div> 
+       <h3 class="text-xl font-semibold text-dark mb-2"> 点击上传或拖放图片 </h3> 
+       <p class="text-sm text-dark/60 mb-6 max-w-md"> 支持 JPG、PNG、WEBP 格式，最大 10MB，建议图片清晰、文字端正以获得最佳识别效果 </p> 
+       <div class="flex flex-col sm:flex-row gap-3 w-full max-w-md"> 
+        <button class="px-6 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom shadow-md hover:shadow-lg flex-1 flex items-center justify-center"> <i class="fas fa-file-image mr-2"> </i> 选择图片文件 </button> 
+        <button class="px-6 py-3 bg-accent text-white rounded-md font-medium hover:bg-accent/90 transition-custom shadow-md hover:shadow-lg flex-1 flex items-center justify-center" id="take-photo-btn"> <i class="fas fa-camera mr-2"> </i> 拍照上传 </button> 
+       </div> 
+       <input accept="image/*" class="hidden" id="modal-image-upload" type="file"> 
+      </div> 
+     </div> 
+     <!-- 图片预览区域 --> 
+     <div class="hidden mb-6" id="modal-image-preview-container"> 
+      <div class="relative"> 
+       <img alt="预览图片" class="w-full h-64 object-contain border border-gray-200 rounded-lg" id="modal-preview-image" src> 
+       <button class="absolute top-2 right-2 bg-white/80 p-2 rounded-full shadow-md hover:bg-white transition-custom" id="modal-remove-image"> <i class="fas fa-times text-dark/70"> </i> </button> 
+      </div> 
+      <div class="mt-2 flex justify-between items-center"> 
+       <span class="text-sm text-dark/70 truncate" id="modal-image-name"> </span> 
+       <div class="flex items-center"> 
+        <div class="w-32 h-1.5 bg-gray-200 rounded-full overflow-hidden mr-2 hidden" id="modal-upload-progress-container"> 
+         <div class="h-full bg-primary rounded-full" id="modal-upload-progress" style="width: 0%"> 
+         </div> 
+        </div> 
+        <span class="text-sm text-dark/70 hidden" id="modal-upload-status"> </span> 
+       </div> 
+      </div> 
+     </div> 
+    </div> 
+    <div class="p-6 border-t border-gray-200 flex justify-end"> 
+     <button class="px-6 py-2 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom mr-3" id="confirm-upload"> 确认上传并识别 </button> 
+     <button class="px-6 py-2 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom" id="cancel-upload"> 取消 </button> 
+    </div> 
+   </div> 
+  </div> 
+  <!-- [/MODULE] 7a2_上传图片弹窗 -- 包含图片上传区域、预览功能和确认按钮 --> 
+  <!-- [MODULE] t2u_页脚 --> 
+  <footer class="bg-dark text-white pt-16 pb-8"> 
+   <div class="container mx-auto px-4 sm:px-6 lg:px-8"> 
+    <div class="grid md:grid-cols-4 gap-8 mb-12"> 
+     <!-- 关于我们 --> 
+     <div> 
+      <div class="flex items-center mb-4"> 
+       <i class="fas fa-monument text-accent text-2xl mr-2"> </i> 
+       <span class="text-xl font-serif font-bold"> 碑说 </span> 
+      </div> 
+      <p class="text-white/60 mb-4"> 碑说致力于通过AI技术，让古老碑文焕发新生，为历史文化传承贡献力量。 </p> 
+      <div class="flex space-x-4"> 
+       <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> <i class="fab fa-weibo"> </i> </a> 
+       <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> <i class="fab fa-weixin"> </i> </a> 
+       <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> <i class="fab fa-qq"> </i> </a> 
+       <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> <i class="fab fa-github"> </i> </a> 
+      </div> 
+     </div> 
+     <!-- 快速链接 --> 
+     <div> 
+      <h4 class="text-lg font-semibold mb-4"> 快速链接 </h4> 
+      <ul class="space-y-2"> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 首页 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 碑文识别 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> AI阐释 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 历史记录 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 兴趣推荐 </a> </li> 
+      </ul> 
+     </div> 
+     <!-- 帮助中心 --> 
+     <div> 
+      <h4 class="text-lg font-semibold mb-4"> 帮助中心 </h4> 
+      <ul class="space-y-2"> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 使用教程 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 常见问题 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 联系我们 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 意见反馈 </a> </li> 
+       <li> <a class="text-white/60 hover:text-accent transition-custom" href="javascript:void(0);"> 技术支持 </a> </li> 
+      </ul> 
+     </div> 
+     <!-- 联系我们 --> 
+     <div> 
+      <h4 class="text-lg font-semibold mb-4"> 联系我们 </h4> 
+      <ul class="space-y-3"> 
+       <li class="flex items-start"> <i class="fas fa-map-marker-alt text-accent mt-1 mr-3"> </i> <span class="text-white/60"> 北京市海淀区中关村南大街5号 </span> </li> 
+       <li class="flex items-center"> <i class="fas fa-phone text-accent mr-3"> </i> <span class="text-white/60"> 400-123-4567 </span> </li> 
+       <li class="flex items-center"> <i class="fas fa-envelope text-accent mr-3"> </i> <span class="text-white/60"> contact@beishuo.com </span> </li> 
+      </ul> 
+     </div> 
+    </div> 
+    <div class="border-t border-white/10 pt-8"> 
+     <div class="flex flex-col md:flex-row justify-between items-center"> 
+      <p class="text-white/40 text-sm mb-4 md:mb-0"> © 2023 碑说 AI 碑文识别与阐释平台. 保留所有权利. </p> 
+      <div class="flex space-x-6"> 
+       <a class="text-white/40 hover:text-white/70 text-sm transition-custom" href="javascript:void(0);"> 隐私政策 </a> 
+       <a class="text-white/40 hover:text-white/70 text-sm transition-custom" href="javascript:void(0);"> 服务条款 </a> 
+       <a class="text-white/40 hover:text-white/70 text-sm transition-custom" href="javascript:void(0);"> Cookie政策 </a> 
+      </div> 
+     </div> 
+    </div> 
+   </div> 
+  </footer> 
+  <!-- [/MODULE] t2u_页脚 -- 包含网站的底部信息，包括关于我们、快速链接、帮助中心、联系我们等栏目，以及版权信息和法律链接 --> 
+  <!-- [MODULE] v3w_登录模态框 --> 
+  <div class="fixed inset-0 z-50 flex items-center justify-center hidden" id="login-modal"> 
+   <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-overlay"> 
+   </div> 
+   <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden transform transition-all"> 
+    <div class="p-6 md:p-8"> 
+     <div class="flex justify-between items-center mb-6"> 
+      <h3 class="text-2xl font-serif font-bold text-primary"> 用户登录 </h3> 
+      <button class="text-dark/50 hover:text-dark transition-custom" id="close-login-modal"> <i class="fas fa-times text-xl"> </i> </button> 
+     </div> 
+     <form> 
+      <div class="mb-4"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="login-email"> 邮箱 </label> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-envelope text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="login-email" placeholder="请输入您的邮箱" type="email"> 
+       </div> 
+      </div> 
+      <div class="mb-6"> 
+       <div class="flex justify-between items-center mb-1"> 
+        <label class="block text-sm font-medium text-dark/70" for="login-password"> 密码 </label> 
+        <a class="text-sm text-primary hover:text-accent transition-custom" href="javascript:void(0);"> 忘记密码? </a> 
+       </div> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-lock text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="login-password" placeholder="请输入您的密码" type="password"> 
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center"> 
+         <button class="text-dark/40 hover:text-dark transition-custom" id="toggle-password" type="button"> <i class="fas fa-eye-slash"> </i> </button> 
+        </div> 
+       </div> 
+      </div> 
+      <button class="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-custom mb-4" type="submit"> 登录 </button> 
+      <div class="text-center text-sm text-dark/60"> 
+       <span> 还没有账号? </span> 
+       <button class="text-primary font-medium hover:text-accent transition-custom" id="switch-to-register" type="button"> 立即注册 </button> 
+      </div> 
+      <div class="mt-6 pt-6 border-t border-gray-100"> 
+       <p class="text-center text-sm text-dark/60 mb-4"> 或使用以下方式登录 </p> 
+       <div class="flex justify-center space-x-4"> 
+        <button class="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center text-dark/70 hover:bg-gray-50 transition-custom"> <i class="fab fa-weixin text-xl"> </i> </button> 
+        <button class="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center text-dark/70 hover:bg-gray-50 transition-custom"> <i class="fab fa-qq text-xl"> </i> </button> 
+        <button class="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center text-dark/70 hover:bg-gray-50 transition-custom"> <i class="fab fa-weibo text-xl"> </i> </button> 
+       </div> 
+      </div> 
+     </form> 
+    </div> 
+   </div> 
+  </div> 
+  <!-- [/MODULE] v3w_登录模态框 -- 用户登录弹窗，包含邮箱密码登录表单和第三方登录选项 --> 
+  <!-- [MODULE] x4y_注册模态框 --> 
+  <div class="fixed inset-0 z-50 flex items-center justify-center hidden" id="register-modal"> 
+   <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="register-modal-overlay"> 
+   </div> 
+   <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden transform transition-all"> 
+    <div class="p-6 md:p-8"> 
+     <div class="flex justify-between items-center mb-6"> 
+      <h3 class="text-2xl font-serif font-bold text-primary"> 用户注册 </h3> 
+      <button class="text-dark/50 hover:text-dark transition-custom" id="close-register-modal"> <i class="fas fa-times text-xl"> </i> </button> 
+     </div> 
+     <form> 
+      <div class="mb-4"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="register-name"> 姓名 </label> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-user text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="register-name" placeholder="请输入您的姓名" type="text"> 
+       </div> 
+      </div> 
+      <div class="mb-4"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="register-email"> 邮箱 </label> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-envelope text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="register-email" placeholder="请输入您的邮箱" type="email"> 
+       </div> 
+      </div> 
+      <div class="mb-4"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="register-password"> 密码 </label> 
+       <div class="relative"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+         <i class="fas fa-lock text-dark/40"> </i> 
+        </div> 
+        <input class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="register-password" placeholder="请设置密码" type="password"> 
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center"> 
+         <button class="text-dark/40 hover:text-dark transition-custom" id="toggle-register-password" type="button"> <i class="fas fa-eye-slash"> </i> </button> 
+        </div> 
+       </div> 
+      </div> 
+      <div class="mb-6"> 
+       <label class="block text-sm font-medium text-dark/70 mb-1" for="register-code"> 验证码 </label> 
+       <div class="flex space-x-3"> 
+        <div class="relative flex-grow"> 
+         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+          <i class="fas fa-shield-alt text-dark/40"> </i> 
+         </div> 
+         <input class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" id="register-code" placeholder="请输入验证码" type="text"> 
+        </div> 
+        <button class="whitespace-nowrap px-4 py-3 bg-gray-100 text-dark/70 rounded-lg hover:bg-gray-200 transition-custom" type="button"> 获取验证码 </button> 
+       </div> 
+      </div> 
+      <div class="mb-6"> 
+       <label class="flex items-start"> <input class="mt-1 text-primary focus:ring-primary/50 border-gray-300 rounded" type="checkbox"> <span class="ml-2 text-sm text-dark/70"> 我已阅读并同意 <a class="text-primary hover:text-accent transition-custom" href="javascript:void(0);"> 《用户协议》 </a> 和 <a class="text-primary hover:text-accent transition-custom" href="javascript:void(0);"> 《隐私政策》 </a> </span> </label> 
+      </div> 
+      <button class="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-custom" type="submit"> 注册账号 </button> 
+      <div class="text-center text-sm text-dark/60 mt-4"> 
+       <span> 已有账号? </span> 
+       <button class="text-primary font-medium hover:text-accent transition-custom" id="switch-to-login" type="button"> 立即登录 </button> 
+      </div> 
+     </form> 
+    </div> 
+   </div> 
+  </div> 
+  <!-- [/MODULE] x4y_注册模态框 -- 用户注册弹窗，包含注册表单和相关协议勾选框 --> 
+  <!-- [JSMOD] z9x_页面切换逻辑 --> 
+  <script id="page-switch-script">document.addEventListener('DOMContentLoaded', function () {
+  // 页面元素
+  var navLinks = document.querySelectorAll('.nav-link');
+  var pages = {
+    'home-page': document.getElementById('home-page') || document.querySelector('main > section:not([id])'),
+    'recognition-page': document.getElementById('recognition-page'),
+    'history-page': document.getElementById('history-page'),
+    'recommendation-page': document.getElementById('recommendation-page')
+  };
+  // 移动端菜单切换
+  var mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  var mobileMenu = document.getElementById('mobile-menu');
+  if (mobileMenuBtn && mobileMenu) {
+    mobileMenuBtn.addEventListener('click', function () {
+      mobileMenu.classList.toggle('hidden');
+    });
+  }
+  // 页面切换函数
+  function switchPage(pageId) {
+    // 隐藏所有页面
+    Object.values(pages).forEach(function (page) {
+      if (page) page.classList.add('hidden');
+    });
+
+    // 显示目标页面
+    var activePage = pages[pageId];
+    if (activePage) {
+      activePage.classList.remove('hidden');
+    }
+
+    // 更新导航链接状态
+    navLinks.forEach(function (link) {
+      if (link.dataset.page === pageId) {
+        link.classList.add('text-primary');
+        link.classList.remove('text-dark/70');
+      } else {
+        link.classList.remove('text-primary');
+        link.classList.add('text-dark/70');
+      }
+    });
+
+    // 关闭移动端菜单
+    if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+      mobileMenu.classList.add('hidden');
+    }
+  }
+  // 为导航链接添加点击事件
+  navLinks.forEach(function (link) {
+    link.addEventListener('click', function () {
+      var pageId = this.dataset.page;
+      if (pageId) {
+        switchPage(pageId);
+      }
+    });
+  });
+  // 初始化首页
+  if (!document.querySelector('.nav-link.text-primary[data-page]')) {
+    switchPage('home-page');
+  }
+});</script> 
+  <!-- [/JSMOD] z9x_页面切换逻辑 -- 处理导航菜单切换、页面显隐控制和碑文识别页面交互功能 --> 
+  <!-- [JSMOD] z5a_移动端菜单交互 --> 
+  <script id="mobile-menu-script">document.addEventListener('DOMContentLoaded', function () {
+  var mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  var mobileMenu = document.getElementById('mobile-menu');
+  if (mobileMenuBtn && mobileMenu) {
+    mobileMenuBtn.addEventListener('click', function () {
+      mobileMenu.classList.toggle('hidden');
+    });
+  }
+  // 点击其他区域关闭移动端菜单
+  document.addEventListener('click', function (e) {
+    if (mobileMenu && !mobileMenu.classList.contains('hidden') && !mobileMenuBtn.contains(e.target) && !mobileMenu.contains(e.target)) {
+      mobileMenu.classList.add('hidden');
+    }
+  });
+});</script> 
+  <!-- [/JSMOD] z5a_移动端菜单交互 -- 处理移动端菜单的显示和隐藏逻辑 --> 
+  <!-- [JSMOD] b6c_登录注册模态框交互 --> 
+  <script id="auth-modal-script">document.addEventListener('DOMContentLoaded', function () {
+  // 获取模态框相关元素
+  var loginBtn = document.getElementById('login-btn');
+  var registerBtn = document.getElementById('register-btn');
+  var mobileLoginBtn = document.getElementById('mobile-login-btn');
+  var mobileRegisterBtn = document.getElementById('mobile-register-btn');
+  var loginModal = document.getElementById('login-modal');
+  var registerModal = document.getElementById('register-modal');
+  var closeLoginModal = document.getElementById('close-login-modal');
+  var closeRegisterModal = document.getElementById('close-register-modal');
+  var modalOverlay = document.getElementById('modal-overlay');
+  var registerModalOverlay = document.getElementById('register-modal-overlay');
+  var switchToRegister = document.getElementById('switch-to-register');
+  var switchToLogin = document.getElementById('switch-to-login');
+
+  // 密码显示切换
+  var togglePassword = document.getElementById('toggle-password');
+  var loginPassword = document.getElementById('login-password');
+  var toggleRegisterPassword = document.getElementById('toggle-register-password');
+  var registerPassword = document.getElementById('register-password');
+  // 打开登录模态框
+  function openLoginModal() {
+    if (loginModal) {
+      loginModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+  if (loginBtn) loginBtn.addEventListener('click', openLoginModal);
+  if (mobileLoginBtn) mobileLoginBtn.addEventListener('click', openLoginModal);
+  // 打开注册模态框
+  function openRegisterModal() {
+    if (registerModal) {
+      registerModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+  if (registerBtn) registerBtn.addEventListener('click', openRegisterModal);
+  if (mobileRegisterBtn) mobileRegisterBtn.addEventListener('click', openRegisterModal);
+  // 关闭登录模态框
+  var closeLogin = function closeLogin() {
+    if (loginModal) {
+      loginModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+  };
+  if (closeLoginModal) closeLoginModal.addEventListener('click', closeLogin);
+  if (modalOverlay) modalOverlay.addEventListener('click', closeLogin);
+  // 关闭注册模态框
+  var closeRegister = function closeRegister() {
+    if (registerModal) {
+      registerModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+  };
+  if (closeRegisterModal) closeRegisterModal.addEventListener('click', closeRegister);
+  if (registerModalOverlay) registerModalOverlay.addEventListener('click', closeRegister);
+  // 切换到注册
+  if (switchToRegister) {
+    switchToRegister.addEventListener('click', function () {
+      closeLogin();
+      openRegisterModal();
+    });
+  }
+  // 切换到登录
+  if (switchToLogin) {
+    switchToLogin.addEventListener('click', function () {
+      closeRegister();
+      openLoginModal();
+    });
+  }
+  // 切换登录密码显示
+  if (togglePassword && loginPassword) {
+    togglePassword.addEventListener('click', function () {
+      var type = loginPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+      loginPassword.setAttribute('type', type);
+      togglePassword.querySelector('i').classList.toggle('fa-eye');
+      togglePassword.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+  }
+  // 切换注册密码显示
+  if (toggleRegisterPassword && registerPassword) {
+    toggleRegisterPassword.addEventListener('click', function () {
+      var type = registerPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+      registerPassword.setAttribute('type', type);
+      toggleRegisterPassword.querySelector('i').classList.toggle('fa-eye');
+      toggleRegisterPassword.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+  }
+  // 点击ESC键关闭模态框
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      closeLogin();
+      closeRegister();
+    }
+  });
+});</script> 
+  <!-- [/JSMOD] b6c_登录注册模态框交互 -- 处理登录和注册模态框的显示、隐藏和切换逻辑，以及密码显示切换功能 --> 
+  <!-- [JSMOD] d7e_页面滚动效果 --> 
+  <script id="scroll-effect-script">document.addEventListener('DOMContentLoaded', function () {
+  var header = document.querySelector('header');
+  var lastScrollTop = 0;
+  // 监听滚动事件，添加导航栏滚动效果
+  window.addEventListener('scroll', function () {
+    if (!header) return;
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+    // 滚动超过50px添加阴影和背景变化
+    if (scrollTop > 50) {
+      header.classList.add('shadow-md');
+      header.classList.add('bg-white/95');
+    } else {
+      header.classList.remove('shadow-md');
+      header.classList.remove('bg-white/95');
+    }
+    lastScrollTop = scrollTop;
+  });
+  // 平滑滚动
+  document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      var targetId = this.getAttribute('href');
+      if (targetId === '#') return;
+      var targetElement = document.querySelector(targetId);
+      if (targetElement) {
+        window.scrollTo({
+          top: targetElement.offsetTop - 80,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+});</script> 
+  <!-- [/JSMOD] d7e_页面滚动效果 -- 处理页面滚动时导航栏样式变化和平滑滚动效果 --> 
+  <!-- [JSMOD] r9s_碑文识别交互 --> 
+  <script id="recognition-script">document.addEventListener('DOMContentLoaded', function () {
+  // 获取识别页面相关元素
+  var uploadArea = document.getElementById('upload-area');
+  var imageUpload = document.getElementById('image-upload');
+  var startRecognitionBtn = document.getElementById('start-recognition');
+  var statusTab = document.getElementById('status-tab');
+  var proofreadTab = document.getElementById('proofread-tab');
+  var resultTab = document.getElementById('result-tab');
+  var interpretationTab = document.getElementById('interpretation-tab');
+  var statusContent = document.getElementById('status-content');
+  var proofreadContent = document.getElementById('proofread-content');
+  var resultContent = document.getElementById('result-content');
+  var interpretationContent = document.getElementById('interpretation-content');
+  var exampleImages = document.querySelectorAll('.example-image');
+  var viewResultsBtn = document.getElementById('view-results-btn');
+
+  // 列切换控制
+  var prevColumnBtn = document.getElementById('prev-column');
+  var nextColumnBtn = document.getElementById('next-column');
+  var currentColumnEl = document.getElementById('current-column');
+  var totalColumnsEl = document.getElementById('total-columns');
+
+  // 校对弹窗相关元素
+  var correctionWords = document.querySelectorAll('.correction-word');
+  var correctionPopup = document.getElementById('correction-popup');
+  var candidatesContainer = document.getElementById('candidates-container');
+  var customWordInput = document.getElementById('custom-word');
+  var confirmCorrectionBtn = document.getElementById('confirm-correction');
+
+  // 上传区域点击触发文件选择
+  if (uploadArea && imageUpload) {
+    uploadArea.addEventListener('click', function (e) {
+      if (!e.target.closest('button')) {
+        imageUpload.click();
+      }
+    });
+
+    // 拖放功能
+    uploadArea.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      uploadArea.classList.add('border-primary', 'bg-primary/5', 'text-primary');
+    });
+    uploadArea.addEventListener('dragleave', function () {
+      uploadArea.classList.remove('border-primary', 'bg-primary/5', 'text-primary');
+    });
+    uploadArea.addEventListener('drop', function (e) {
+      e.preventDefault();
+      uploadArea.classList.remove('border-primary', 'bg-primary/5', 'text-primary');
+      if (e.dataTransfer.files.length) {
+        handleImageUpload(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  // 处理图片上传
+  function handleImageUpload(file) {
+    // 检查文件类型和大小
+    var validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('请上传JPG、PNG或WEBP格式的图片');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('图片大小不能超过10MB');
+      return;
+    }
+
+    // 启用开始识别按钮
+    if (startRecognitionBtn) {
+      startRecognitionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      startRecognitionBtn.disabled = false;
+    }
+
+    // 显示上传的图片预览（实际应用中实现）
+    console.log('图片已上传:', file.name);
+  }
+
+  // 图片选择后处理
+  if (imageUpload) {
+    imageUpload.addEventListener('change', function (e) {
+      if (e.target.files && e.target.files[0]) {
+        handleImageUpload(e.target.files[0]);
+      }
+    });
+  }
+
+  // 示例图片点击事件
+  if (exampleImages.length) {
+    exampleImages.forEach(function (img) {
+      img.addEventListener('click', function () {
+        // 移除其他示例的选中状态
+        exampleImages.forEach(function (i) {
+          return i.classList.remove('example-active');
+        });
+        // 添加当前示例的选中状态
+        this.classList.add('example-active');
+
+        // 启用开始识别按钮
+        if (startRecognitionBtn) {
+          startRecognitionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          startRecognitionBtn.disabled = false;
+        }
+      });
+    });
+  }
+
+  // 开始识别按钮点击事件
+  if (startRecognitionBtn) {
+    startRecognitionBtn.addEventListener('click', function () {
+      var _this = this;
+      // 模拟识别过程
+      this.disabled = true;
+      this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>识别中...';
+
+      // 切换到处理状态
+      var waitingState = document.getElementById('waiting-state');
+      var processingState = document.getElementById('processing-state');
+      if (waitingState && processingState) {
+        waitingState.classList.add('hidden');
+        processingState.classList.remove('hidden');
+      }
+
+      // 模拟识别进度
+      var progress = 0;
+      var recognitionProgress = document.getElementById('recognition-progress');
+      var processingStatus = document.getElementById('processing-status');
+      var interval = setInterval(function () {
+        progress += Math.random() * 10;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+
+          // 识别完成，切换到完成状态
+          var completedState = document.getElementById('completed-state');
+          if (processingState && completedState) {
+            processingState.classList.add('hidden');
+            completedState.classList.remove('hidden');
+          }
+
+          // 恢复按钮状态
+          _this.disabled = false;
+          _this.innerHTML = '<i class="fas fa-magic mr-2"></i>开始识别';
+          return;
+        }
+
+        // 更新进度条和状态文本
+        if (recognitionProgress) recognitionProgress.style.width = "".concat(progress, "%");
+        var statusText = '';
+        if (progress < 30) statusText = '正在分析碑文文字结构';else if (progress < 60) statusText = '识别文字内容';else if (progress < 80) statusText = '进行文字校正';else statusText = '生成识别结果';
+        if (processingStatus) processingStatus.textContent = "".concat(statusText, "(").concat(Math.round(progress), "%)");
+      }, 500);
+    });
+  }
+
+  // 查看结果按钮点击事件
+  if (viewResultsBtn) {
+    viewResultsBtn.addEventListener('click', function () {
+      switchTab('result');
+      resultContent.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    });
+  }
+
+  // 标签切换功能
+  function switchTab(tabName) {
+    // 重置所有标签和内容
+    statusTab.classList.remove('text-primary', 'border-primary');
+    proofreadTab.classList.remove('text-primary', 'border-primary');
+    resultTab.classList.remove('text-primary', 'border-primary');
+    interpretationTab.classList.remove('text-primary', 'border-primary');
+    statusTab.classList.add('text-dark/50', 'border-transparent');
+    proofreadTab.classList.add('text-dark/50', 'border-transparent');
+    resultTab.classList.add('text-dark/50', 'border-transparent');
+    interpretationTab.classList.add('text-dark/50', 'border-transparent');
+    statusContent.classList.add('hidden');
+    proofreadContent.classList.add('hidden');
+    resultContent.classList.add('hidden');
+    interpretationContent.classList.add('hidden');
+
+    // 激活选中的标签和内容
+    if (tabName === 'status') {
+      statusTab.classList.remove('text-dark/50', 'border-transparent');
+      statusTab.classList.add('text-primary', 'border-primary');
+      statusContent.classList.remove('hidden');
+    } else if (tabName === 'proofread') {
+      proofreadTab.classList.remove('text-dark/50', 'border-transparent');
+      proofreadTab.classList.add('text-primary', 'border-primary');
+      proofreadContent.classList.remove('hidden');
+    } else if (tabName === 'result') {
+      resultTab.classList.remove('text-dark/50', 'border-transparent');
+      resultTab.classList.add('text-primary', 'border-primary');
+      resultContent.classList.remove('hidden');
+    } else if (tabName === 'interpretation') {
+      interpretationTab.classList.remove('text-dark/50', 'border-transparent');
+      interpretationTab.classList.add('text-primary', 'border-primary');
+      interpretationContent.classList.remove('hidden');
+    }
+  }
+
+  // 为标签添加点击事件
+  if (statusTab) statusTab.addEventListener('click', function () {
+    return switchTab('status');
+  });
+  if (proofreadTab) proofreadTab.addEventListener('click', function () {
+    return switchTab('proofread');
+  });
+  if (resultTab) resultTab.addEventListener('click', function () {
+    return switchTab('result');
+  });
+  if (interpretationTab) interpretationTab.addEventListener('click', function () {
+    return switchTab('interpretation');
+  });
+
+  // 列切换功能
+  if (prevColumnBtn && nextColumnBtn && currentColumnEl && totalColumnsEl) {
+    var currentColumn = 1;
+    var totalColumns = 12; // 假设总共有12列
+
+    currentColumnEl.textContent = currentColumn;
+    totalColumnsEl.textContent = totalColumns;
+    prevColumnBtn.addEventListener('click', function () {
+      if (currentColumn > 1) {
+        currentColumn--;
+        currentColumnEl.textContent = currentColumn;
+        // 在实际应用中，这里会加载对应列的图片和文字数据
+      }
+    });
+    nextColumnBtn.addEventListener('click', function () {
+      if (currentColumn < totalColumns) {
+        currentColumn++;
+        currentColumnEl.textContent = currentColumn;
+        // 在实际应用中，这里会加载对应列的图片和文字数据
+      }
+    });
+  }
+
+  // 校对文字点击事件
+  if (correctionWords.length && correctionPopup && candidatesContainer && confirmCorrectionBtn) {
+    correctionWords.forEach(function (word) {
+      word.addEventListener('click', function (e) {
+        e.stopPropagation();
+
+        // 获取当前文字位置
+        var rect = this.getBoundingClientRect();
+        correctionPopup.style.top = "".concat(rect.bottom + window.scrollY + 5, "px");
+        correctionPopup.style.left = "".concat(rect.left + window.scrollX, "px");
+        correctionPopup.classList.remove('hidden');
+
+        // 存储当前点击的文字元素ID
+        correctionPopup.dataset.targetId = this.id || "temp-".concat(Date.now());
+        if (!this.id) this.id = correctionPopup.dataset.targetId;
+
+        // 更新候选词
+        var candidates = this.dataset.candidates ? this.dataset.candidates.split(',') : [];
+        var candidatesHTML = '';
+        candidates.forEach(function (c) {
+          candidatesHTML += "<button class=\"candidate-btn px-2 py-1 border border-gray-200 rounded hover:bg-primary/10 hover:text-primary\">".concat(c, "</button>");
+        });
+        candidatesContainer.innerHTML = candidatesHTML;
+
+        // 清空自定义输入框
+        customWordInput.value = '';
+
+        // 为候选词添加点击事件
+        document.querySelectorAll('.candidate-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            customWordInput.value = this.textContent;
+          });
+        });
+      });
+    });
+
+    // 点击空白处关闭弹窗
+    document.addEventListener('click', function () {
+      correctionPopup.classList.add('hidden');
+    });
+
+    // 确认校正按钮点击事件
+    confirmCorrectionBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var targetId = correctionPopup.dataset.targetId;
+      var targetElement = document.getElementById(targetId);
+      var newWord = customWordInput.value.trim();
+      if (targetElement && newWord) {
+        // 更新文字内容
+        targetElement.textContent = newWord;
+
+        // 关闭弹窗
+        correctionPopup.classList.add('hidden');
+      }
+    });
+
+    // 阻止弹窗内部点击事件冒泡
+    correctionPopup.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+  }
+
+  // 复制结果功能
+  var copyBtn = resultContent ? resultContent.querySelector('.fa-copy').parentElement : null;
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      var _this2 = this;
+      var resultText = document.getElementById('recognition-result').innerText;
+      navigator.clipboard.writeText(resultText).then(function () {
+        // 显示复制成功的反馈
+        var originalIcon = _this2.innerHTML;
+        _this2.innerHTML = '<i class="fas fa-check text-green-500"></i>';
+        setTimeout(function () {
+          _this2.innerHTML = originalIcon;
+        }, 2000);
+      });
+    });
+  }
+
+  // 查看AI阐释按钮功能
+  var viewInterpretationBtn = resultContent ? resultContent.querySelector('button') : null;
+  if (viewInterpretationBtn) {
+    viewInterpretationBtn.addEventListener('click', function () {
+      switchTab('interpretation');
+      interpretationContent.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    });
+  }
+});</script> 
+  <!-- [/JSMOD] r9s_碑文识别交互 -- 处理碑文识别页面的上传、识别、标签切换等交互功能 --> 
+  <!-- [JSMOD] f8g_图片懒加载 --> 
+  <script id="image-lazy-load-script">document.addEventListener('DOMContentLoaded', function () {
+  // 图片懒加载实现
+  if ('IntersectionObserver' in window) {
+    var imageObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          var image = entry.target;
+          image.classList.add('opacity-100');
+          image.classList.remove('opacity-0');
+          imageObserver.unobserve(image);
+        }
+      });
+    });
+
+    // 为所有图片添加淡入效果
+    document.querySelectorAll('img').forEach(function (img) {
+      img.classList.add('transition-opacity', 'duration-500', 'opacity-0');
+      imageObserver.observe(img);
+    });
+  }
+});</script> 
+  <!-- [/JSMOD] f8g_图片懒加载 -- 使用IntersectionObserver实现图片懒加载和淡入效果 -->   
+  <!-- [JSMOD] 8b3_上传弹窗逻辑 --> 
+  <script id="upload-modal-script">document.addEventListener('DOMContentLoaded', function () {
+  // 获取DOM元素
+  var startRecognitionBtn = document.getElementById('start-recognition');
+  var uploadModal = document.getElementById('upload-modal');
+  var closeModalBtn = document.getElementById('close-modal');
+  var cancelUploadBtn = document.getElementById('cancel-upload');
+  var modalUploadArea = document.getElementById('modal-upload-area');
+  var modalImageUpload = document.getElementById('modal-image-upload');
+  var modalImagePreviewContainer = document.getElementById('modal-image-preview-container');
+  var modalPreviewImage = document.getElementById('modal-preview-image');
+  var modalImageName = document.getElementById('modal-image-name');
+  var modalRemoveImage = document.getElementById('modal-remove-image');
+  var confirmUploadBtn = document.getElementById('confirm-upload');
+
+  // 打开上传弹窗
+  startRecognitionBtn.addEventListener('click', function () {
+    uploadModal.classList.remove('hidden');
+    uploadModal.classList.add('flex');
+    document.body.style.overflow = 'hidden'; // 防止背景滚动
+  });
+
+  // 关闭上传弹窗
+  function closeModal() {
+    uploadModal.classList.add('hidden');
+    uploadModal.classList.remove('flex');
+    document.body.style.overflow = ''; // 恢复背景滚动
+  }
+  closeModalBtn.addEventListener('click', closeModal);
+  cancelUploadBtn.addEventListener('click', closeModal);
+
+  // 点击模态框外部关闭
+  uploadModal.addEventListener('click', function (e) {
+    if (e.target === uploadModal) {
+      closeModal();
+    }
+  });
+
+  // 触发文件选择
+  modalUploadArea.addEventListener('click', function () {
+    modalImageUpload.click();
+  });
+
+  // 处理文件选择
+  modalImageUpload.addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (file) {
+      displayImagePreview(file);
+    }
+  });
+
+  // 拖放功能
+  modalUploadArea.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    modalUploadArea.classList.add('border-primary');
+    modalUploadArea.classList.add('bg-primary/5');
+  });
+  modalUploadArea.addEventListener('dragleave', function () {
+    modalUploadArea.classList.remove('border-primary');
+    modalUploadArea.classList.remove('bg-primary/5');
+  });
+  modalUploadArea.addEventListener('drop', function (e) {
+    e.preventDefault();
+    modalUploadArea.classList.remove('border-primary');
+    modalUploadArea.classList.remove('bg-primary/5');
+    var file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      displayImagePreview(file);
+    }
+  });
+
+  // 显示图片预览
+  function displayImagePreview(file) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      modalPreviewImage.src = e.target.result;
+      modalImageName.textContent = file.name;
+      modalImagePreviewContainer.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // 移除预览图片
+  modalRemoveImage.addEventListener('click', function () {
+    modalImagePreviewContainer.classList.add('hidden');
+    modalImageUpload.value = '';
+  });
+
+  // 确认上传
+  confirmUploadBtn.addEventListener('click', function () {
+    if (modalImageUpload.files.length > 0) {
+      // 这里可以添加实际的上传和识别逻辑
+      alert('图片上传成功，开始识别...');
+      closeModal();
+
+      // 模拟识别进度
+      var processingState = document.getElementById('processing-state');
+      var waitingState = document.getElementById('waiting-state');
+      var recognitionProgress = document.getElementById('recognition-progress');
+      var processingStatus = document.getElementById('processing-status');
+      waitingState.classList.add('hidden');
+      processingState.classList.remove('hidden');
+      var progress = 0;
+      var interval = setInterval(function () {
+        progress += Math.random() * 10;
+        if (progress > 100) progress = 100;
+        recognitionProgress.style.width = "".concat(progress, "%");
+        processingStatus.textContent = "\u6B63\u5728\u5206\u6790\u7891\u6587\u6587\u5B57\u7ED3\u6784 (".concat(Math.round(progress), "%)");
+        if (progress === 100) {
+          clearInterval(interval);
+          setTimeout(function () {
+            processingState.classList.add('hidden');
+            document.getElementById('completed-state').classList.remove('hidden');
+          }, 1000);
+        }
+      }, 500);
+    } else {
+      alert('请先选择图片');
+    }
+  });
+});</script> 
+  <!-- [/JSMOD] 8b3_上传弹窗逻辑 --> 
+  <!-- [JSMOD] 2d9_保存碑文弹窗逻辑 --> 
+  <script id="save-epigraph-script">document.addEventListener('DOMContentLoaded', function () {
+  // 获取DOM元素
+  var saveButton = document.getElementById('save-to-my-epigraphs');
+  var saveModal = document.getElementById('save-epigraph-modal');
+  var cancelSaveButton = document.getElementById('cancel-save');
+  var confirmSaveButton = document.getElementById('confirm-save');
+  var epigraphTitle = document.getElementById('epigraph-title');
+
+  // 打开保存弹窗
+  saveButton.addEventListener('click', function () {
+    saveModal.classList.remove('hidden');
+    saveModal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+    epigraphTitle.focus();
+  });
+
+  // 关闭保存弹窗
+  function closeSaveModal() {
+    saveModal.classList.add('hidden');
+    saveModal.classList.remove('flex');
+    document.body.style.overflow = '';
+  }
+  cancelSaveButton.addEventListener('click', closeSaveModal);
+
+  // 点击模态框外部关闭
+  saveModal.addEventListener('click', function (e) {
+    if (e.target === saveModal) {
+      closeSaveModal();
+    }
+  });
+
+  // 确认保存
+  confirmSaveButton.addEventListener('click', function () {
+    var title = epigraphTitle.value.trim();
+    var selectedTags = Array.from(document.querySelectorAll('input[name="tags"]:checked')).map(function (cb) {
+      return cb.value;
+    });
+    if (!title) {
+      alert('请输入碑文标题');
+      epigraphTitle.focus();
+      return;
+    }
+    if (selectedTags.length === 0) {
+      alert('请至少选择一个标签');
+      return;
+    }
+
+    // 模拟保存成功
+    alert("\u6210\u529F\u4FDD\u5B58\u7891\u6587: \"".concat(title, "\"\n\u6807\u7B7E:").concat(selectedTags.join(",")));
+    closeSaveModal();
+
+    // 这里可以添加实际保存到服务器的逻辑
+  });
+
+  // 点击ESC键关闭弹窗
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !saveModal.classList.contains('hidden')) {
+      closeSaveModal();
+    }
+  });
+});</script> 
+  <!-- [/JSMOD] 2d9_保存碑文弹窗逻辑 -- 处理保存碑文弹窗的显示、隐藏及表单验证提交功能 -->
+ </body>
+</html>
