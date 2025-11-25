@@ -1,0 +1,93 @@
+<svg viewBox="0 0 1000 800" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="1000" height="800" fill="#f8fafc"/>
+  
+  <!-- 标题 -->
+  <text x="500" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#1e293b">碑文识别与阐释平台 - 用户主流程图</text>
+  
+  <!-- 用户入口 -->
+  <rect x="400" y="60" width="200" height="50" rx="8" fill="#3b82f6" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="500" y="90" text-anchor="middle" font-size="14" font-weight="bold" fill="white">用户访问平台</text>
+  
+  <!-- 核心流程 -->
+  <rect x="150" y="150" width="700" height="500" rx="10" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="500" y="180" text-anchor="middle" font-size="16" font-weight="bold" fill="#1e293b">核心业务流程</text>
+  
+  <!-- 步骤1: 上传图片 -->
+  <rect x="200" y="220" width="180" height="50" rx="8" fill="#6366f1" stroke="#4f46e5" stroke-width="2"/>
+  <text x="290" y="250" text-anchor="middle" font-size="12" font-weight="bold" fill="white">1. 上传碑文图片</text>
+  
+  <!-- 步骤2: OCR识别 -->
+  <rect x="420" y="220" width="180" height="50" rx="8" fill="#8b5cf6" stroke="#7c3aed" stroke-width="2"/>
+  <text x="510" y="250" text-anchor="middle" font-size="12" font-weight="bold" fill="white">2. AI文字识别</text>
+  
+  <!-- 步骤3: 校对修正 -->
+  <rect x="640" y="220" width="180" height="50" rx="8" fill="#06b6d4" stroke="#0891b2" stroke-width="2"/>
+  <text x="730" y="250" text-anchor="middle" font-size="12" font-weight="bold" fill="white">3. 人工校对</text>
+  
+  <!-- 步骤4: 智能阐释 -->
+  <rect x="200" y="320" width="180" height="50" rx="8" fill="#84cc16" stroke="#65a30d" stroke-width="2"/>
+  <text x="290" y="350" text-anchor="middle" font-size="12" font-weight="bold" fill="white">4. AI智能阐释</text>
+  
+  <!-- 步骤5: 知识关联 -->
+  <rect x="420" y="320" width="180" height="50" rx="8" fill="#f59e0b" stroke="#d97706" stroke-width="2"/>
+  <text x="510" y="350" text-anchor="middle" font-size="12" font-weight="bold" fill="white">5. 关联知识库</text>
+  
+  <!-- 步骤6: 结果展示 -->
+  <rect x="640" y="320" width="180" height="50" rx="8" fill="#ec4899" stroke="#db2777" stroke-width="2"/>
+  <text x="730" y="350" text-anchor="middle" font-size="12" font-weight="bold" fill="white">6. 展示识别结果</text>
+  
+  <!-- 用户类型分支 -->
+  <rect x="200" y="420" width="150" height="40" rx="6" fill="#10b981" stroke="#059669" stroke-width="2"/>
+  <text x="275" y="445" text-anchor="middle" font-size="11" fill="white">学生/初学者</text>
+  
+  <rect x="425" y="420" width="150" height="40" rx="6" fill="#f59e0b" stroke="#d97706" stroke-width="2"/>
+  <text x="500" y="445" text-anchor="middle" font-size="11" fill="white">专业研究者</text>
+  
+  <rect x="650" y="420" width="150" height="40" rx="6" fill="#ef4444" stroke="#dc2626" stroke-width="2"/>
+  <text x="725" y="445" text-anchor="middle" font-size="11" fill="white">游客群体</text>
+  
+  <!-- 对应功能 -->
+  <rect x="200" y="500" width="150" height="40" rx="6" fill="#06b6d4" stroke="#0891b2" stroke-width="2"/>
+  <text x="275" y="525" text-anchor="middle" font-size="11" fill="white">学习路径</text>
+  
+  <rect x="425" y="500" width="150" height="40" rx="6" fill="#8b5cf6" stroke="#7c3aed" stroke-width="2"/>
+  <text x="500" y="525" text-anchor="middle" font-size="11" fill="white">高级研究工具</text>
+  
+  <rect x="650" y="500" width="150" height="40" rx="6" fill="#ef4444" stroke="#dc2626" stroke-width="2"/>
+  <text x="725" y="525" text-anchor="middle" font-size="11" fill="white">快速体验模式</text>
+  
+  <!-- 结束 -->
+  <rect x="400" y="580" width="200" height="50" rx="8" fill="#1f2937" stroke="#111827" stroke-width="2"/>
+  <text x="500" y="610" text-anchor="middle" font-size="14" font-weight="bold" fill="white">完成体验</text>
+  
+  <!-- 连接箭头 -->
+  <path d="M 500 110 L 290 220" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 290 270 L 510 270" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 510 270 L 730 270" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 730 270 L 730 320" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 730 270 L 510 320" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 730 270 L 290 320" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 290 370 L 290 420" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 510 370 L 510 420" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 730 370 L 730 420" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 275 460 L 275 500" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 500 460 L 500 500" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 725 460 L 725 500" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 275 540 L 500 580" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 500 540 L 500 580" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M 725 540 L 500 580" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  
+  <!-- 图例 -->
+  <rect x="50" y="700" width="900" height="80" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="100" y="720" font-size="12" font-weight="bold" fill="#1e293b">流程说明：</text>
+  <text x="100" y="740" font-size="10" fill="#64748b">用户上传碑文图片后，经过AI识别、人工校对、智能阐释、知识关联，最终获得完整的碑文解读结果。</text>
+  <text x="100" y="755" font-size="10" fill="#64748b">不同用户类型在核心流程后有不同的延伸路径：学生用户进入学习模式，专业用户使用高级研究工具，游客用户享受快速体验。</text>
+  
+  <!-- 箭头标记定义 -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>
