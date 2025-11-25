@@ -22,16 +22,16 @@ async def upload_image(
     # 验证文件类型
     file_ext = image.filename.split('.')[-1].lower() if image.filename else ''
     if file_ext not in settings.file_upload_allowed_types:
-        return Result.error(
-            ResultCode.BAD_REQUEST, 
+        return Result.fail(
+            ResultCode.BAD_REQUEST,
             f"不支持的文件类型，支持的类型: {', '.join(settings.file_upload_allowed_types)}"
         )
     
     # 验证文件大小
     content = await image.read()
     if len(content) > settings.file_upload_max_size:
-        return Result.error(
-            ResultCode.BAD_REQUEST, 
+        return Result.fail(
+            ResultCode.BAD_REQUEST,
             f"文件大小超过限制，最大{settings.file_upload_max_size / 1024 / 1024}MB"
         )
     
@@ -67,5 +67,5 @@ async def upload_image(
         "upload_time": datetime.now(timezone.utc).isoformat()
     }
     
-    return Result.success("图片上传成功", result)
+    return Result.ok(result, "图片上传成功")
 

@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     file_upload_max_size: int = 10485760  # 10MB
     file_upload_allowed_types: List[str] = ["jpg", "jpeg", "png", "webp"]
     file_upload_url_prefix: str = "/uploads"
+
+    # 看典古籍OCR配置
+    kandianguji_ocr_token: str = ""
+    kandianguji_ocr_email: str = ""
+    kandianguji_ocr_timeout: int = 15000
     
     # CORS配置
     cors_allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:8080", "http://localhost:5173"]

@@ -8,6 +8,7 @@ from app.LLM.models import Message, MessageStatus
 class ContextManager:
     def __init__(self):
         self.redis = RedisClient()
+        self.mem = {}
 
     def _key_messages(self, conversation_id: str) -> str:
         return f"chat:{conversation_id}:messages"
@@ -18,7 +19,11 @@ class ContextManager:
         messages = await self.get_messages(conversation_id)
         messages.append(message)
         data = json.dumps([m.model_dump() for m in messages], ensure_ascii=False)
-        await self.redis.set(key, data, ttl)
+        self.mem[key] = data
+        try:
+            await self.redis.set(key, data, ttl)
+        except Exception:
+            pass
 
     async def update_message_status(self, conversation_id: str, message_id: str, status: MessageStatus) -> None:
         key = self._key_messages(conversation_id)
@@ -27,11 +32,21 @@ class ContextManager:
             if m.id == message_id:
                 m.status = status
         data = json.dumps([m.model_dump() for m in messages], ensure_ascii=False)
-        await self.redis.set(key, data, settings.cache_user_info_ttl)
+        self.mem[key] = data
+        try:
+            await self.redis.set(key, data, settings.cache_user_info_ttl)
+        except Exception:
+            pass
 
     async def get_messages(self, conversation_id: str) -> List[Message]:
         key = self._key_messages(conversation_id)
-        raw = await self.redis.get_value(key)
+        raw = None
+        try:
+            raw = await self.redis.get_value(key)
+        except Exception:
+            raw = None
+        if not raw:
+            raw = self.mem.get(key)
         if raw:
             try:
                 arr = json.loads(raw)
@@ -42,7 +57,11 @@ class ContextManager:
 
     async def reset_context(self, conversation_id: str) -> None:
         key = self._key_messages(conversation_id)
-        await self.redis.delete_key(key)
+        self.mem.pop(key, None)
+        try:
+            await self.redis.delete_key(key)
+        except Exception:
+            pass
 
     async def build_context_snippets(self, conversation_id: str, max_chars: int) -> Optional[str]:
         messages = await self.get_messages(conversation_id)

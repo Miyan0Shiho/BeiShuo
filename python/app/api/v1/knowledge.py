@@ -21,7 +21,7 @@ async def get_knowledge_home(
             "featured": [],
             "recent_articles": []
         }
-        return Result.success(result)
+        return Result.ok(result)
     finally:
         await service.close()
 
@@ -44,7 +44,7 @@ async def get_article_detail(
             "stats": {},
             "related_articles": []
         }
-        return Result.success(result)
+        return Result.ok(result)
     finally:
         await service.close()
 
@@ -71,7 +71,7 @@ async def search_knowledge(
                 "dynasties": []
             }
         }
-        return Result.success(result)
+        return Result.ok(result)
     finally:
         await service.close()
 

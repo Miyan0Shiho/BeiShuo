@@ -21,12 +21,12 @@ async def upload_image(
     # 验证文件类型
     file_ext = file.filename.split('.')[-1].lower() if file.filename else ''
     if file_ext not in settings.file_upload_allowed_types:
-        return Result.error(ResultCode.BAD_REQUEST, f"不支持的文件类型，支持的类型: {', '.join(settings.file_upload_allowed_types)}")
+        return Result.fail(ResultCode.BAD_REQUEST, f"不支持的文件类型，支持的类型: {', '.join(settings.file_upload_allowed_types)}")
     
     # 验证文件大小
     content = await file.read()
     if len(content) > settings.file_upload_max_size:
-        return Result.error(ResultCode.BAD_REQUEST, f"文件大小超过限制，最大{settings.file_upload_max_size / 1024 / 1024}MB")
+        return Result.fail(ResultCode.BAD_REQUEST, f"文件大小超过限制，最大{settings.file_upload_max_size / 1024 / 1024}MB")
     
     # 保存文件
     upload_dir = settings.file_upload_path
@@ -40,7 +40,7 @@ async def upload_image(
     file_url = f"{settings.file_upload_url_prefix}/{file.filename}"
     
     logger.info(f"文件上传成功: {file_url}, user_id={user_id}")
-    return Result.success({"url": file_url})
+    return Result.ok({"url": file_url})
 
 @router.post("/recognize")
 async def recognize(
@@ -49,7 +49,7 @@ async def recognize(
 ):
     """提交识别任务"""
     # TODO: 实现识别任务提交
-    return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "识别功能待实现")
+    return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, "识别功能待实现")
 
 @router.get("/list", response_model=Result[PageResult])
 async def get_inscription_list(
@@ -63,7 +63,7 @@ async def get_inscription_list(
     service = InscriptionService()
     try:
         result = await service.get_list(user_id, page, size, sort, keyword)
-        return Result.success(result)
+        return Result.ok(result)
     finally:
         await service.close()
 
@@ -77,8 +77,8 @@ async def get_inscription_by_id(
     try:
         inscription = await service.get_by_id(id)
         if not inscription:
-            return Result.error(ResultCode.INSCRIPTION_NOT_FOUND)
-        return Result.success(inscription)
+            return Result.fail(ResultCode.INSCRIPTION_NOT_FOUND)
+        return Result.ok(inscription)
     finally:
         await service.close()
 
@@ -91,7 +91,7 @@ async def create_inscription(
     service = InscriptionService()
     try:
         inscription = await service.create(user_id, request.dict(exclude_unset=True))
-        return Result.success(inscription)
+        return Result.ok(inscription)
     finally:
         await service.close()
 
@@ -118,7 +118,7 @@ async def delete_inscription(
     service = InscriptionService()
     try:
         await service.delete(id, user_id)
-        return Result.success()
+        return Result.ok()
     finally:
         await service.close()
 
@@ -130,7 +130,7 @@ async def search_inscriptions(
     service = InscriptionService()
     try:
         results = await service.search(keyword)
-        return Result.success(results)
+        return Result.ok(results)
     finally:
         await service.close()
 

@@ -42,7 +42,7 @@ async def register(request: RegisterRequest):
             }
         }
         
-        return Result.success("注册成功", response_data)
+        return Result.ok(response_data, "注册成功")
     finally:
         await service.close()
 
@@ -75,7 +75,7 @@ async def login(request: LoginRequest):
             }
         }
         
-        return Result.success("登录成功", response_data)
+        return Result.ok(response_data, "登录成功")
     finally:
         await service.close()
 
@@ -83,7 +83,7 @@ async def login(request: LoginRequest):
 async def logout():
     """用户登出"""
     # TODO: 实现登出逻辑（如将Token加入黑名单等）
-    return Result.success("已成功登出", None)
+    return Result.ok(None, "已成功登出")
 
 @router.get("/profile", response_model=Result[UserInfoResponse])
 async def get_current_user_info(user_id: int = Depends(get_current_user_id)):
@@ -108,7 +108,7 @@ async def get_current_user_info(user_id: int = Depends(get_current_user_id)):
             "stats": stats,
             "created_at": user.get("created_at", datetime.now(timezone.utc).isoformat())
         }
-        return Result.success(user_info)
+        return Result.ok(user_info)
     finally:
         await service.close()
 
@@ -134,7 +134,7 @@ async def refresh_token(authorization: Optional[str] = Header(None)):
     expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
     expires_at_str = expires_at.isoformat()
     
-    return Result.success({
+    return Result.ok({
         "token": new_token,
         "expires_at": expires_at_str
     })

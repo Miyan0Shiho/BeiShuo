@@ -65,3 +65,34 @@ export async function postInterpretationSections({ baseUrl, token, text, recogni
   const msg = data && data.message ? data.message : '生成失败'
   throw new Error(msg)
 }
+
+export async function uploadImage({ baseUrl, token, file }) {
+  const url = `${baseUrl}/upload/image`
+  const headers = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const form = new FormData()
+  form.append('image', file)
+  const res = await fetch(url, { method: 'POST', headers, body: form })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = await res.json()
+  if (data && data.success) return data.data
+  const msg = data && data.message ? data.message : '上传失败'
+  throw new Error(msg)
+}
+
+export async function startRecognition({ baseUrl, token, imageUrl, imageBase64, options }) {
+  const url = `${baseUrl}/recognition/start`
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const body = {
+    image_url: imageUrl || undefined,
+    image_base64: imageBase64 || undefined,
+    options: options || {}
+  }
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = await res.json()
+  if (data && data.success) return data.data
+  const msg = data && data.message ? data.message : '识别失败'
+  throw new Error(msg)
+}

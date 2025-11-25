@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from app.config import settings
 from app.api.v1.router import router as v1_router
@@ -65,6 +66,9 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 # 注册路由
 app.include_router(v1_router, prefix="/api/v1")
+
+# 静态文件挂载（用于前端裁剪原图：/uploads/*）
+app.mount("/uploads", StaticFiles(directory=settings.file_upload_path), name="uploads")
 
 @app.get("/health")
 async def health_check():

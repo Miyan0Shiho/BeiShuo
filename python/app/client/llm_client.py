@@ -58,18 +58,17 @@ class LLMClient(BaseHTTPClient):
     async def chat(self, question: str, context: Optional[List[str]] = None) -> Optional[str]:
         """AI对话"""
         messages = []
-        
+        system_prompt = (
+            "你是碑文与书法助手。必须严格围绕用户当前问题的主题与会话上下文回答；"
+            "若检索到的背景文本与问题主题不一致，必须忽略该背景文本；不得从无关素材引入人物或信息；"
+            "使用简体中文；不确定则直接说明不确定并停止臆测；"
+            "保持实体指称一致：若问题涉及某人物，则回答中不得更换为其他人物，除非用户明确切换主题。"
+        )
+        messages.append({"role": "system", "content": system_prompt})
         if context:
             context_text = "\n".join(context)
-            messages.append({
-                "role": "system",
-                "content": f"相关背景知识：\n{context_text}"
-            })
-        
-        messages.append({
-            "role": "user",
-            "content": question
-        })
+            messages.append({"role": "system", "content": f"可能相关背景（若与问题主题不符请忽略）：\n{context_text}"})
+        messages.append({"role": "user", "content": question})
         
         data = {
             "model": settings.llm_model,
@@ -95,9 +94,16 @@ class LLMClient(BaseHTTPClient):
 
     async def chat_stream(self, question: str, context: Optional[List[str]] = None):
         messages = []
+        system_prompt = (
+            "你是碑文与书法助手。必须严格围绕用户当前问题的主题与会话上下文回答；"
+            "若检索到的背景文本与问题主题不一致，必须忽略该背景文本；不得从无关素材引入人物或信息；"
+            "使用简体中文；不确定则直接说明不确定并停止臆测；"
+            "保持实体指称一致：若问题涉及某人物，则回答中不得更换为其他人物，除非用户明确切换主题。"
+        )
+        messages.append({"role": "system", "content": system_prompt})
         if context:
             context_text = "\n".join(context)
-            messages.append({"role": "system", "content": f"相关背景知识：\n{context_text}"})
+            messages.append({"role": "system", "content": f"可能相关背景（若与问题主题不符请忽略）：\n{context_text}"})
         messages.append({"role": "user", "content": question})
 
         data = {

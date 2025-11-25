@@ -33,4 +33,9 @@ async def llm_stream_generator(
 
 
 def sse_response(generator: AsyncGenerator[bytes, None]) -> StreamingResponse:
-    return StreamingResponse(generator, media_type="text/event-stream")
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    }
+    return StreamingResponse(generator, media_type="text/event-stream", headers=headers)

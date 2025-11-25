@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue'
-import { postChat, streamChatFetch, postInterpretationSections } from '../api/ai'
+import { ref, computed, watch } from 'vue'
+import { postChat, streamChatFetch, postInterpretationSections, uploadImage, startRecognition as startRecognitionApi } from '../api/ai'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
 
@@ -41,9 +41,183 @@ const recognitionResult = ref({
     time: '刚刚'
 })
 
+const recognitionId = ref('')
+const textLines = ref([])
+const recognitionOptions = ref({
+  det_mode: 'sp',
+  return_position: true,
+  return_choices: true,
+  version: 'beta',
+  det_layout: false,
+  only_plain_text: false,
+  return_layout: false,
+  hp_line_words_angel: 'left2right',
+  sp_line_words_angel: 'top2bottom'
+})
+const originalImageUrl = ref('')
+const originalImageSize = ref({ width: 0, height: 0 })
+const lineStripUrls = ref([])
+const lineStripRects = ref([])
+const lineStripDims = ref([])
+const lineConfidences = ref([])
+const stripContainerRef = ref(null)
+const stripHighlight = ref({ visible: false, left: 0, top: 0, width: 0, height: 0 })
+const stripOverlayStyle = computed(() => ({
+  position: 'absolute',
+  left: stripHighlight.value.left + 'px',
+  top: stripHighlight.value.top + 'px',
+  width: stripHighlight.value.width + 'px',
+  height: stripHighlight.value.height + 'px',
+  display: stripHighlight.value.visible ? 'block' : 'none',
+  border: '2px solid rgba(255,165,0,0.9)',
+  background: 'rgba(255,165,0,0.25)',
+}))
+const detModeSelection = ref('sp')
+const directionSelection = ref('top2bottom')
+const previewModeSelection = ref('vertical')
+const directionOptions = computed(() => detModeSelection.value === 'sp'
+  ? [
+    { id: 'top2bottom', label: '从上到下' },
+    { id: 'bottom2top', label: '从下到上' }
+  ]
+  : [
+    { id: 'left2right', label: '从左到右' },
+    { id: 'right2left', label: '从右到左' }
+  ]
+)
+watch(detModeSelection, (v) => {
+  directionSelection.value = v === 'sp' ? 'top2bottom' : 'left2right'
+  previewModeSelection.value = v === 'hp' ? 'horizontal' : 'vertical'
+})
+
+// 原图裁剪与置信度工具
+const loadImage = (src) => new Promise((resolve, reject) => {
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.onload = () => resolve(img)
+  img.onerror = reject
+  img.src = src
+})
+
+const buildStripForLineVertical = async (img, line, targetWidth = 80) => {
+  const words = Array.isArray(line.words) ? line.words : []
+  if (!words.length) return { url: '', rects: [] }
+  const strips = []
+  const rects = []
+  let totalHeight = 0
+  for (const w of words) {
+    const pos = w.position || []
+    const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
+    const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
+    const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
+    const scale = targetWidth / wWidth
+    const h = Math.round(wHeight * scale)
+    strips.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dh: h, scale })
+    rects.push({ left: 0, top: totalHeight, width: targetWidth, height: h })
+    totalHeight += h
+  }
+  const canvas = document.createElement('canvas')
+  canvas.width = targetWidth
+  canvas.height = totalHeight
+  const ctx = canvas.getContext('2d')
+  let y = 0
+  for (const s of strips) {
+    ctx.drawImage(img, s.x, s.y, s.w, s.h, 0, y, targetWidth, s.dh)
+    y += s.dh
+  }
+  return { url: canvas.toDataURL('image/png'), rects, baseW: targetWidth, baseH: totalHeight }
+}
+
+const buildStripForLineHorizontal = async (img, line, targetHeight = 80) => {
+  const words = Array.isArray(line.words) ? line.words : []
+  if (!words.length) return { url: '', rects: [] }
+  const pieces = []
+  const rects = []
+  let totalWidth = 0
+  for (const w of words) {
+    const pos = w.position || []
+    const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
+    const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
+    const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
+    const scale = targetHeight / wHeight
+    const wScaled = Math.round(wWidth * scale)
+    pieces.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dw: wScaled, scale })
+    rects.push({ left: totalWidth, top: 0, width: wScaled, height: targetHeight })
+    totalWidth += wScaled
+  }
+  const canvas = document.createElement('canvas')
+  canvas.width = totalWidth
+  canvas.height = targetHeight
+  const ctx = canvas.getContext('2d')
+  let x = 0
+  for (const p of pieces) {
+    ctx.drawImage(img, p.x, p.y, p.w, p.h, x, 0, p.dw, targetHeight)
+    x += p.dw
+  }
+  return { url: canvas.toDataURL('image/png'), rects, baseW: totalWidth, baseH: targetHeight }
+}
+
+const buildStripForLine = async (img, line, mode) => {
+  if (mode === 'horizontal') return buildStripForLineHorizontal(img, line)
+  return buildStripForLineVertical(img, line)
+}
+
+const computeLineConfidence = (line) => {
+  const words = Array.isArray(line.words) ? line.words : []
+  let sum = 0, n = 0
+  for (const w of words) {
+    let c = typeof w.confidence === 'number' ? w.confidence : (typeof w.det_confidence === 'number' ? w.det_confidence : null)
+    if (c !== null) { sum += c; n++ }
+  }
+  return n ? Math.round((sum / n) * 100) : 0
+}
+
+const formatWordConfidence = (w) => {
+  const c = typeof w.confidence === 'number' ? w.confidence : (typeof w.det_confidence === 'number' ? w.det_confidence : 0)
+  return Math.round(c * 100)
+}
+
+const onWordEnter = (li, wi) => {
+  if (typeof li !== 'number' || typeof wi !== 'number') {
+    stripHighlight.value.visible = false
+    return
+  }
+  currentColumn.value = li + 1
+  const rects = lineStripRects.value[li] || []
+  const r = rects[wi]
+  if (!r || !stripContainerRef.value) {
+    stripHighlight.value.visible = false
+    return
+  }
+  const cw = stripContainerRef.value.clientWidth || 0
+  const ch = stripContainerRef.value.clientHeight || 0
+  const dims = (lineStripDims.value[li]) || { baseW: 80, baseH: (rects.length ? rects.reduce((acc, it) => acc + it.height, 0) : 0) }
+  const imgW = dims.baseW
+  const imgH = dims.baseH
+  const scale = Math.min(cw / imgW, ch / imgH)
+  const rw = Math.round(imgW * scale)
+  const rh = Math.round(imgH * scale)
+  const offsetX = Math.floor((cw - rw) / 2)
+  const offsetY = Math.floor((ch - rh) / 2)
+  const left = offsetX + Math.round(r.left * scale)
+  const top = offsetY + Math.round(r.top * scale)
+  const width = Math.max(1, Math.round(r.width * scale))
+  const height = Math.max(1, Math.round(r.height * scale))
+  stripHighlight.value = { visible: true, left, top, width, height }
+}
+
+const onWordLeave = () => {
+  stripHighlight.value.visible = false
+}
+
 // 校对数据
 const currentColumn = ref(1)
 const totalColumns = ref(12)
+const currentLine = computed(() => {
+  const idx = currentColumn.value - 1
+  return (Array.isArray(textLines.value) && textLines.value[idx]) ? textLines.value[idx] : { words: [] }
+})
+const currentWords = computed(() => Array.isArray(currentLine.value.words) ? currentLine.value.words : [])
 
 // 校对弹窗
 const correctionPopup = ref({
@@ -291,32 +465,86 @@ const confirmUpload = () => {
         return
     }
 
-    closeUploadModal()
+    uploadModalOpen.value = false
     startRecognition()
 }
 
-const startRecognition = () => {
+const startRecognition = async () => {
     recognitionState.value = 'processing'
     processingProgress.value = 0
+    const baseUrl = 'http://localhost:8080/api/v1'
+    const token = localStorage.getItem('token') || ''
+    try {
+        // 上传图片
+        const uploadRes = await uploadImage({ baseUrl, token, file: selectedFile.value })
+        const imageUrl = uploadRes.image_url
+        originalImageUrl.value = `${baseUrl.replace('/api/v1','')}${imageUrl.startsWith('/') ? imageUrl : ('/' + imageUrl)}`
 
-    const interval = setInterval(() => {
-        processingProgress.value += 10
-
-        if (processingProgress.value <= 30) {
-            processingStatus.value = '正在分析碑文文字结构'
-        } else if (processingProgress.value <= 60) {
-            processingStatus.value = '识别文字内容'
-        } else if (processingProgress.value <= 80) {
-            processingStatus.value = '进行文字校正'
+        // 识别
+        const timer = setInterval(() => {
+            processingProgress.value = Math.min(processingProgress.value + 8, 95)
+            if (processingProgress.value <= 30) processingStatus.value = '正在分析碑文文字结构'
+            else if (processingProgress.value <= 60) processingStatus.value = '识别文字内容'
+            else if (processingProgress.value <= 80) processingStatus.value = '进行文字校正'
+            else processingStatus.value = '生成识别结果'
+        }, 300)
+        const opts = { ...recognitionOptions.value }
+        if (detModeSelection.value === 'sp') {
+            opts.det_mode = 'sp'
+            opts.sp_line_words_angel = directionSelection.value
         } else {
-            processingStatus.value = '生成识别结果'
+            opts.det_mode = 'hp'
+            opts.hp_line_words_angel = directionSelection.value
         }
+        const rec = await startRecognitionApi({ baseUrl, token, imageUrl, options: opts })
+        clearInterval(timer)
+        processingProgress.value = 100
 
-        if (processingProgress.value >= 100) {
-            clearInterval(interval)
-            recognitionState.value = 'completed'
+        const r = rec.result || {}
+        recognitionId.value = r.recognition_id || ''
+        textLines.value = Array.isArray(r.text_lines) ? r.text_lines : []
+        let txt = typeof r.text === 'string' ? r.text : ''
+        if (!txt && Array.isArray(r.texts) && r.texts.length) {
+            txt = r.texts.join('\n')
         }
-    }, 300)
+        originalImageSize.value = { width: r.width || 0, height: r.height || 0 }
+        lineConfidences.value = (textLines.value || []).map(computeLineConfidence)
+        totalColumns.value = Array.isArray(textLines.value) ? textLines.value.length : 0
+        try {
+            if (originalImageUrl.value && textLines.value.length) {
+                const img = await loadImage(originalImageUrl.value)
+                const urls = []
+                const rectsAll = []
+                const dimsAll = []
+                for (const line of textLines.value) {
+                    const out = await buildStripForLine(img, line, previewModeSelection.value)
+                    urls.push(out.url)
+                    rectsAll.push(out.rects)
+                    dimsAll.push({ baseW: out.baseW, baseH: out.baseH })
+                }
+                lineStripUrls.value = urls
+                lineStripRects.value = rectsAll
+                lineStripDims.value = dimsAll
+            }
+        } catch {}
+        const conf = typeof r.confidence === 'number' ? r.confidence : 0
+        const now = new Date()
+        recognitionResult.value = {
+            text: txt,
+            wordCount: (r.word_count || txt.length || 0),
+            confidence: conf,
+            dynasty: '',
+            year: '',
+            location: '',
+            time: now.toLocaleString()
+        }
+        recognitionState.value = 'completed'
+        activeTab.value = 'result'
+        appStore.addNotification({ type: 'success', message: '识别完成', duration: 2000 })
+    } catch (e) {
+        appStore.addNotification({ type: 'error', message: '识别失败，请稍后重试', duration: 3000 })
+        recognitionState.value = 'waiting'
+    }
 }
 
 const viewResults = () => {
@@ -376,7 +604,7 @@ const showCorrectionPopup = (event, word) => {
         visible: true,
         x: rect.left,
         y: rect.bottom + window.scrollY + 5,
-        candidates: word.candidates || ['维', '惟', '唯'],
+        candidates: Array.isArray(word.choices) ? word.choices : (word.candidates || []),
         selectedWord: word,
         customInput: ''
     }
@@ -393,9 +621,33 @@ const selectCandidate = (candidate) => {
 const confirmCorrection = () => {
     const newWord = correctionPopup.value.customInput.trim()
     if (newWord && correctionPopup.value.selectedWord) {
-        correctionPopup.value.selectedWord.char = newWord
+        if (typeof correctionPopup.value.selectedWord.text === 'string') {
+            correctionPopup.value.selectedWord.text = newWord
+        } else {
+            correctionPopup.value.selectedWord.char = newWord
+        }
     }
     hideCorrectionPopup()
+}
+
+const saveCorrections = async () => {
+    const baseUrl = 'http://localhost:8080/api/v1'
+    const token = localStorage.getItem('token') || ''
+    const correctedText = (textLines.value || []).map(tl => tl.text || '').join('\n') || recognitionResult.value.text || ''
+    const corrections = []
+    try {
+        const url = `${baseUrl}/recognition/${recognitionId.value || 'rec_local'}/correct`
+        const headers = { 'Content-Type': 'application/json' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        const body = { corrected_text: correctedText, corrections }
+        const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        if (!data || !data.success) throw new Error(data && data.message ? data.message : '保存失败')
+        appStore.addNotification({ type: 'success', message: '校对结果已保存', duration: 2000 })
+    } catch (e) {
+        appStore.addNotification({ type: 'error', message: '保存失败，请稍后重试', duration: 3000 })
+    }
 }
 
 const copyResult = () => {
@@ -681,44 +933,62 @@ const triggerFileInput = () => {
                             <!-- 列对比展示 -->
                             <div class="relative overflow-x-auto pb-4">
                                 <div class="flex space-x-4 min-w-max">
-                                    <!-- 原始图片列 -->
-                                    <div class="w-24 flex-shrink-0">
-                                        <div
-                                            class="bg-gray-100 rounded-lg overflow-hidden border border-gray-200 h-[400px]">
-                                            <div class="w-full h-full flex items-center justify-center text-gray-300">
-                                                <i class="fas fa-image text-5xl"></i>
+                                    <!-- 原始图片列（按当前行拼接裁剪条） -->
+                                    <div class="w-40 flex-shrink-0">
+                                        <div ref="stripContainerRef" class="relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 h-[400px] flex items-start justify-center">
+                                            <img v-if="lineStripUrls[currentColumn - 1]" :src="lineStripUrls[currentColumn - 1]" class="w-full h-full object-contain" alt="拼接图" />
+                                            <div :style="stripOverlayStyle"></div>
+                                        </div>
+                                        <div class="text-center text-xs text-dark/60 mt-2">
+                                            拼接图高亮
+                                            <div class="mt-2 flex items-center justify-center gap-2">
+                                                <label class="inline-flex items-center gap-1 cursor-pointer text-xs">
+                                                    <input type="radio" value="vertical" v-model="previewModeSelection" class="sr-only">
+                                                    <span :class="['px-2 py-1 rounded-full', previewModeSelection==='vertical' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">竖向拼接</span>
+                                                </label>
+                                                <label class="inline-flex items-center gap-1 cursor-pointer text-xs">
+                                                    <input type="radio" value="horizontal" v-model="previewModeSelection" class="sr-only">
+                                                    <span :class="['px-2 py-1 rounded-full', previewModeSelection==='horizontal' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">横向拼接</span>
+                                                </label>
                                             </div>
                                         </div>
-                                        <div class="text-center text-xs text-dark/60 mt-2">原始碑文</div>
                                     </div>
 
                                     <!-- 识别文字列 -->
                                     <div class="w-24 flex-shrink-0">
-                                        <div
-                                            class="bg-gray-50 rounded-lg border border-gray-200 h-[400px] p-2 overflow-y-auto">
+                                        <div class="bg-gray-50 rounded-lg border border-gray-200 h-[400px] p-2 overflow-y-auto">
                                             <div class="space-y-1 text-center">
-                                                <span
-                                                    class="block py-2 hover:bg-yellow-100 cursor-pointer rounded">维</span>
-                                                <span
-                                                    class="block py-2 hover:bg-yellow-100 cursor-pointer rounded">大</span>
-                                                <span
-                                                    class="block py-2 hover:bg-yellow-100 cursor-pointer rounded">唐</span>
+                                                <div class="mb-2">
+                                                    <span v-for="(w, wi) in currentWords" :key="wi"
+                                                          class="block py-2 hover:bg-yellow-100 cursor-pointer rounded"
+                                                          @mouseenter="onWordEnter(currentColumn-1, wi)" @mouseleave="onWordLeave" @click="showCorrectionPopup($event, w)">
+                                                        {{ w.text || w.char || '' }}
+                                                        <span class="text-[10px] text-dark/50 ml-1">{{ formatWordConfidence(w) }}%</span>
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="text-center text-xs text-dark/60 mt-2">识别文字</div>
+                                        <div class="text-center text-xs text-dark/60 mt-2">识别文字（第 {{ currentColumn }} 列 / 共 {{ totalColumns }} 列）</div>
                                     </div>
 
                                     <!-- 校正结果列 -->
                                     <div class="w-24 flex-shrink-0">
-                                        <div
-                                            class="bg-primary/5 rounded-lg border border-primary/20 h-[400px] p-2 overflow-y-auto">
-                                            <div class="space-y-1 text-center font-medium">
-                                                <span class="block py-2">维</span>
-                                                <span class="block py-2">大</span>
-                                                <span class="block py-2">唐</span>
+                                        <div class="bg-primary/5 rounded-lg border border-primary/20 h-[400px] p-2 overflow-y-auto">
+                                            <div class="space-y-2 text-center">
+                                                <div v-if="correctionPopup.visible">
+                                                    <div class="text-xs text-dark/60 mb-1">候选字</div>
+                                                    <span v-for="(c, ci) in correctionPopup.candidates" :key="ci"
+                                                          class="block py-2 hover:bg-primary/10 cursor-pointer rounded"
+                                                          @click="selectCandidate(c)">{{ c }}</span>
+                                                    <div class="mt-2 flex items-center gap-2">
+                                                        <input v-model="correctionPopup.customInput" class="w-full px-2 py-1 border border-gray-300 rounded text-xs" placeholder="自定义" />
+                                                        <button @click="confirmCorrection" class="px-2 py-1 bg-primary text-white rounded text-xs">确定</button>
+                                                    </div>
+                                                </div>
+                                                <div v-else class="text-dark/60 text-xs">点击左侧文字以选择候选字</div>
                                             </div>
                                         </div>
-                                        <div class="text-center text-xs text-primary mt-2">校正结果</div>
+                                        <div class="text-center text-xs text-primary mt-2">校正候选</div>
                                     </div>
                                 </div>
                             </div>
@@ -726,16 +996,16 @@ const triggerFileInput = () => {
 
                         <!-- 底部操作 -->
                         <div class="flex justify-between">
-                            <button
+                            <button @click="prevColumn"
                                 class="px-4 py-2 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom">
                                 <i class="fas fa-arrow-left mr-1"></i>
                                 上一页
                             </button>
-                            <button
+                            <button @click="saveCorrections"
                                 class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
                                 保存校对结果
                             </button>
-                            <button
+                            <button @click="nextColumn"
                                 class="px-4 py-2 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom">
                                 下一页
                                 <i class="fas fa-arrow-right ml-1"></i>
@@ -1059,32 +1329,52 @@ const triggerFileInput = () => {
                                 <i class="fas fa-times text-xl"></i>
                             </button>
                         </div>
-                        <div class="p-6">
-                            <!-- 上传区域 -->
-                            <div @dragover="handleDragOver" @dragleave="handleDragLeave" @drop="handleDrop"
-                                @click="triggerFileInput" :class="[
-                                    'border-2 border-dashed rounded-xl p-8 text-center transition-custom cursor-pointer mb-6',
-                                    'bg-gradient-to-b from-light to-white shadow-sm',
-                                    dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary hover:bg-primary/5'
-                                ]">
-                                <input ref="modalFileInput" type="file" accept="image/*" @change="handleFileSelect"
-                                    class="hidden" />
-                                <div class="flex flex-col items-center">
-                                    <div
-                                        class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4 transform hover:scale-105 transition-custom">
-                                        <i class="fas fa-camera text-primary text-3xl"></i>
-                                    </div>
-                                    <h3 class="text-xl font-semibold text-dark mb-2">点击上传或拖放图片</h3>
-                                    <p class="text-sm text-dark/60 mb-6 max-w-md">
-                                        支持 JPG、PNG、WEBP 格式，最大 10MB，建议图片清晰、文字端正以获得最佳识别效果
-                                    </p>
-                                </div>
-                            </div>
+            <div class="p-6">
+                <!-- 上传区域 -->
+                <div @dragover="handleDragOver" @dragleave="handleDragLeave" @drop="handleDrop"
+                    @click="triggerFileInput" :class="[
+                        'border-2 border-dashed rounded-xl p-8 text-center transition-custom cursor-pointer mb-6',
+                        'bg-gradient-to-b from-light to-white shadow-sm',
+                        dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary hover:bg-primary/5'
+                    ]">
+                    <input ref="modalFileInput" type="file" accept="image/*" @change="handleFileSelect"
+                        class="hidden" />
+                    <div class="flex flex-col items-center">
+                        <div
+                            class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4 transform hover:scale-105 transition-custom">
+                            <i class="fas fa-camera text-primary text-3xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-dark mb-2">点击上传或拖放图片</h3>
+                        <p class="text-sm text-dark/60 mb-6 max-w-md">
+                            支持 JPG、PNG、WEBP 格式，最大 10MB，建议图片清晰、文字端正以获得最佳识别效果
+                        </p>
+                    </div>
+                </div>
 
-                            <!-- 图片预览区域 -->
-                            <div v-if="previewUrl" class="mb-6">
-                                <div class="relative">
-                                    <img :src="previewUrl" alt="预览图片"
+                <div class="mb-6">
+                    <div class="flex items-center gap-4 mb-3">
+                        <span class="text-sm text-dark/70">排版样式</span>
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            <input type="radio" value="sp" v-model="detModeSelection" class="sr-only">
+                            <span :class="['px-3 py-1 rounded-full text-sm', detModeSelection === 'sp' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">竖排</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            <input type="radio" value="hp" v-model="detModeSelection" class="sr-only">
+                            <span :class="['px-3 py-1 rounded-full text-sm', detModeSelection === 'hp' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">横排</span>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-dark/70">文字排序方向</span>
+                        <select v-model="directionSelection" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                            <option v-for="opt in directionOptions" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 图片预览区域 -->
+                <div v-if="previewUrl" class="mb-6">
+                    <div class="relative">
+                        <img :src="previewUrl" alt="预览图片"
                                         class="w-full h-64 object-contain border border-gray-200 rounded-lg" />
                                     <button @click.stop="removePreviewImage"
                                         class="absolute top-2 right-2 bg-white/80 p-2 rounded-full shadow-md hover:bg-white transition-custom">

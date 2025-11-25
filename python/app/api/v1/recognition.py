@@ -6,34 +6,146 @@ from app.common.result_code import ResultCode
 from app.core.dependencies import get_current_user_id
 from app.services.inscription_service import InscriptionService
 from app.utils.logger import logger
+from app.config import settings
+from app.client.kandianguji_ocr_client import KandiangujiOCRClient
+import base64
+import os
 import uuid
 
 router = APIRouter(prefix="/recognition", tags=["识别"])
+
+def _normalize_ocr(data: Dict[str, Any]) -> Dict[str, Any]:
+    width = data.get("width") or 0
+    height = data.get("height") or 0
+    text_angel = data.get("text_angel")
+    texts: List[str] = data.get("texts") or []
+    text_lines: List[Dict[str, Any]] = data.get("text_lines") or []
+    full_text = "\n".join(texts) if texts else ("\n".join([tl.get("text") or "" for tl in text_lines]) if text_lines else (data.get("text") or ""))
+    word_count = 0
+    confidences: List[float] = []
+    for tl in text_lines or []:
+        words = tl.get("words") or []
+        word_count += len(words)
+        for w in words:
+            c = w.get("confidence")
+            if c is None:
+                c = w.get("det_confidence")
+            if isinstance(c, (int, float)):
+                confidences.append(float(c))
+    if word_count == 0 and full_text:
+        word_count = len(full_text)
+    avg_conf = 0.0
+    if confidences:
+        avg_conf = round(sum(confidences) / len(confidences), 2)
+    elif isinstance(data.get("text_angel_confidence"), (int, float)):
+        avg_conf = float(data.get("text_angel_confidence"))
+    return {
+        "width": width,
+        "height": height,
+        "text_angel": text_angel,
+        "texts": texts,
+        "text_lines": text_lines,
+        "full_text": full_text or "",
+        "word_count": word_count,
+        "confidence": avg_conf,
+        "layout": data.get("layout") or None,
+    }
 
 @router.post("/start")
 async def start_recognition(
     request: Dict[str, Any] = Body(...),
     user_id: int = Depends(get_current_user_id)
 ):
-    """开始碑文识别"""
-    image_id = request.get("image_id")
-    language = request.get("language", "classical")
+    """开始碑文识别（接入看典古籍OCR）"""
+    image_url = request.get("image_url")
+    image_base64 = request.get("image_base64")
     options = request.get("options", {})
-    
-    if not image_id:
-        return Result.error(ResultCode.BAD_REQUEST, "image_id不能为空")
-    
-    # TODO: 实现识别任务提交
-    task_id = f"task_{int(datetime.now().timestamp() * 1000)}"
-    
-    result = {
-        "task_id": task_id,
-        "status": "processing",
-        "estimated_time": 30,
-        "progress": 0
-    }
-    
-    return Result.success("识别任务已开始", result)
+
+    if not image_url and not image_base64:
+        return Result.fail(ResultCode.BAD_REQUEST, "image_url或image_base64至少提供一个")
+
+    try:
+        if not image_base64:
+            if not isinstance(image_url, str) or not image_url.startswith(settings.file_upload_url_prefix):
+                return Result.fail(ResultCode.BAD_REQUEST, "无效的image_url")
+            filename = image_url.replace(settings.file_upload_url_prefix + "/", "")
+            file_path = os.path.join(settings.file_upload_path, filename)
+            if not os.path.exists(file_path):
+                return Result.fail(ResultCode.BAD_REQUEST, "文件不存在或未上传")
+            with open(file_path, "rb") as f:
+                content = f.read()
+            image_base64 = base64.b64encode(content).decode("utf-8")
+
+        # 默认选项
+        default_options = {
+            "version": options.get("version", "v2"),
+            "det_mode": options.get("det_mode", "auto"),
+            "return_position": options.get("return_position", True),
+            "return_choices": options.get("return_choices", False),
+            "det_layout": options.get("det_layout", False),
+            "only_plain_text": options.get("only_plain_text", False),
+            "return_layout": options.get("return_layout", False),
+            "auto_insert_space": options.get("auto_insert_space", False),
+            "hp_line_words_angel": options.get("hp_line_words_angel", "left2right"),
+            "sp_line_words_angel": options.get("sp_line_words_angel", "top2bottom"),
+        }
+
+        client = KandiangujiOCRClient()
+        primary_options = {**default_options, "return_position": True}
+        ocr_resp = await client.recognize(image_base64, primary_options)
+        data = ocr_resp.get("data") or {}
+        norm = _normalize_ocr(data)
+        if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
+            fallback_sp = {**primary_options, "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
+            try:
+                ocr_resp = await client.recognize(image_base64, fallback_sp)
+                norm = _normalize_ocr(ocr_resp.get("data") or {})
+            except Exception:
+                pass
+        if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
+            fallback_hp = {**primary_options, "det_mode": "hp", "hp_line_words_angel": primary_options.get("hp_line_words_angel", "left2right")}
+            try:
+                ocr_resp = await client.recognize(image_base64, fallback_hp)
+                norm = _normalize_ocr(ocr_resp.get("data") or {})
+            except Exception:
+                pass
+        # 尝试版本回退（beta + sp）
+        if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
+            fallback_beta_sp = {**primary_options, "version": "beta", "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
+            try:
+                ocr_resp = await client.recognize(image_base64, fallback_beta_sp)
+                norm = _normalize_ocr(ocr_resp.get("data") or {})
+            except Exception:
+                pass
+
+        recognition_id = f"rec_{int(datetime.now().timestamp() * 1000)}"
+        task_id = f"task_{int(datetime.now().timestamp() * 1000)}"
+
+        result = {
+            "task_id": task_id,
+            "status": "completed",
+            "progress": 100,
+            "estimated_time": 0,
+            "result": {
+                "recognition_id": recognition_id,
+                "text": norm["full_text"],
+                "word_count": norm["word_count"],
+                "confidence": norm["confidence"],
+                "width": norm["width"],
+                "height": norm["height"],
+                "text_angel": norm["text_angel"],
+                "text_lines": norm["text_lines"],
+                "texts": norm["texts"],
+                "layout": norm["layout"],
+            }
+        }
+
+        return Result.ok(result, "识别完成")
+    except Exception as e:
+        # 打印堆栈，便于定位
+        logger.exception(f"识别失败: {e}")
+        msg = str(e).strip() or repr(e)
+        return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, f"识别失败: {msg}")
 
 @router.get("/progress/{task_id}")
 async def get_recognition_progress(
@@ -61,7 +173,7 @@ async def get_recognition_progress(
         }
     }
     
-    return Result.success(result)
+    return Result.ok(result)
 
 @router.get("/history")
 async def get_recognition_history(
@@ -125,14 +237,14 @@ async def correct_recognition(
     notes = request.get("notes")
     
     if not corrected_text:
-        return Result.error(ResultCode.BAD_REQUEST, "corrected_text不能为空")
+        return Result.fail(ResultCode.BAD_REQUEST, "corrected_text不能为空")
     
     # 尝试从recognition_id中提取数字ID
     try:
         id_str = recognition_id.replace("rec_", "")
         inscription_id = int(id_str)
     except (ValueError, AttributeError):
-        return Result.error(ResultCode.BAD_REQUEST, "无效的识别ID")
+        return Result.fail(ResultCode.BAD_REQUEST, "无效的识别ID")
     
     service = InscriptionService()
     try:
@@ -148,7 +260,7 @@ async def correct_recognition(
             "correction_count": len(corrections) if corrections else 0
         }
         
-        return Result.success("校对结果已保存", result)
+        return Result.ok(result, "校对结果已保存")
     finally:
         await service.close()
 
@@ -163,7 +275,7 @@ async def get_suggestions(
         "suggestions": []
     }
     
-    return Result.success(result)
+    return Result.ok(result)
 
 @router.post("/{recognition_id}/history")
 async def save_correction_history(
@@ -173,5 +285,5 @@ async def save_correction_history(
 ):
     """保存校对记录"""
     # TODO: 实现校对记录保存
-    return Result.success("校对记录已保存", None)
+    return Result.ok(None, "校对记录已保存")
 
