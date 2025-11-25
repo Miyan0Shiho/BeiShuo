@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { postChat, streamChatFetch, postInterpretationSections } from '../api/ai'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
 
@@ -57,6 +58,88 @@ const correctionPopup = ref({
 // AI阐释标签页
 const interpretationTab = ref('history')
 const aiQuestion = ref('')
+const aiAnswer = ref('')
+const aiSources = ref([])
+const conversationId = ref('')
+const aiLoading = ref(false)
+const messages = ref([])
+const sectionsHistory = ref('')
+const sectionsCulture = ref('')
+const sectionsFigures = ref([])
+const sectionsSources = ref([])
+const sectionsLoading = ref(false)
+
+const escapeHtml = (str) => {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+}
+
+const renderMarkdown = (md) => {
+    if (!md) return ''
+    const lines = md.split('\n')
+    let html = ''
+    let inUl = false
+    let inOl = false
+    let inCode = false
+    let codeBuf = []
+
+    const closeLists = () => {
+        if (inUl) { html += '</ul>'; inUl = false }
+        if (inOl) { html += '</ol>'; inOl = false }
+    }
+
+    const formatInline = (text) => {
+        let s = escapeHtml(text)
+        s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        s = s.replace(/`([^`]+)`/g, '<code>$1</code>')
+        return s
+    }
+
+    for (let raw of lines) {
+        const line = raw.replace(/\r$/, '')
+        if (line.trim().startsWith('```')) {
+            if (!inCode) {
+                inCode = true
+                codeBuf = []
+                closeLists()
+            } else {
+                inCode = false
+                html += `<pre class="code"><code>${escapeHtml(codeBuf.join('\n'))}</code></pre>`
+                codeBuf = []
+            }
+            continue
+        }
+        if (inCode) { codeBuf.push(line); continue }
+        if (!line.trim()) { closeLists(); html += '<br/>' ; continue }
+
+        const h3 = line.match(/^###\s+(.*)/)
+        if (h3) { closeLists(); html += `<h3>${formatInline(h3[1])}</h3>`; continue }
+        const h4 = line.match(/^##\s+(.*)/)
+        if (h4) { closeLists(); html += `<h4>${formatInline(h4[1])}</h4>`; continue }
+
+        if (/^(-|\*)\s+/.test(line)) {
+            if (!inUl) { closeLists(); html += '<ul>'; inUl = true }
+            html += `<li>${formatInline(line.replace(/^(-|\*)\s+/, ''))}</li>`
+            continue
+        }
+        const ol = line.match(/^\d+\.\s+(.*)/)
+        if (ol) {
+            if (!inOl) { closeLists(); html += '<ol>'; inOl = true }
+            html += `<li>${formatInline(ol[1])}</li>`
+            continue
+        }
+        closeLists()
+        html += `<p>${formatInline(line)}</p>`
+    }
+    closeLists()
+    if (inCode) {
+        html += `<pre class="code"><code>${escapeHtml(codeBuf.join('\n'))}</code></pre>`
+    }
+    return html
+}
 
 // 保存表单
 const saveForm = ref({
@@ -248,6 +331,33 @@ const switchInterpretationTab = (tab) => {
     interpretationTab.value = tab
 }
 
+const showInterpretation = async () => {
+    activeTab.value = 'interpretation'
+    if (!sectionsHistory.value && recognitionResult.value?.text) {
+        const baseUrl = 'http://localhost:8080/api/v1'
+        const token = localStorage.getItem('token') || ''
+        try {
+            sectionsLoading.value = true
+            appStore.addNotification({ type: 'info', message: '正在生成AI阐释...', duration: 2000 })
+            const data = await postInterpretationSections({ baseUrl, token, text: recognitionResult.value.text })
+            const s = data.sections || {}
+            sectionsHistory.value = s.history_markdown || ''
+            sectionsCulture.value = s.culture_markdown || ''
+            sectionsFigures.value = s.figures || []
+            sectionsSources.value = data.sources || []
+            if (Array.isArray(s.timeline)) {
+                timeline.value = s.timeline.map(t => ({ year: t.year, event: (t.title ? t.title + '：' : '') + (t.description || '') }))
+            } else {
+                timeline.value = []
+            }
+        } catch (e) {
+            appStore.addNotification({ type: 'error', message: 'AI阐释生成失败', duration: 3000 })
+        } finally {
+            sectionsLoading.value = false
+        }
+    }
+}
+
 const prevColumn = () => {
     if (currentColumn.value > 1) {
         currentColumn.value--
@@ -355,16 +465,49 @@ const confirmSave = () => {
     closeSaveModal()
 }
 
-const sendAiQuestion = () => {
-    if (!aiQuestion.value.trim()) return
-
-    // 模拟AI回答
-    appStore.addNotification({
-        type: 'info',
-        message: 'AI正在思考您的问题...',
-        duration: 2000
-    })
+const sendAiQuestion = async () => {
+    const q = aiQuestion.value.trim()
+    if (!q) return
+    const baseUrl = 'http://localhost:8080/api/v1'
+    const token = localStorage.getItem('token') || ''
+    const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
+    messages.value.push(userMsg)
     aiQuestion.value = ''
+    const assistantMsg = { id: Date.now() + '-a', role: 'assistant', content: '', status: 'sending', references: [], created_at: new Date().toISOString() }
+    messages.value.push(assistantMsg)
+    aiLoading.value = true
+    try {
+        await streamChatFetch({
+            baseUrl,
+            token,
+            recognitionId: 'rec_local',
+            message: q,
+            conversationId: conversationId.value,
+            onEvent: (evt) => {
+                if (!evt || !evt.event) return
+                if (evt.event === 'status') {
+                    if (evt.data && evt.data.status === 'success') assistantMsg.status = 'success'
+                } else if (evt.event === 'references') {
+                    assistantMsg.references = evt.data || []
+                } else if (evt.event === 'delta') {
+                    if (evt.data && typeof evt.data.text === 'string') assistantMsg.content += evt.data.text
+                }
+            }
+        })
+    } catch (e) {
+        try {
+            const data = await postChat({ baseUrl, token, recognitionId: 'rec_local', message: q, conversationId: conversationId.value })
+            conversationId.value = data.conversation_id || conversationId.value
+            assistantMsg.content = (data.reply && data.reply.content) || ''
+            assistantMsg.references = (data.reply && data.reply.sources) || []
+            assistantMsg.status = 'success'
+        } catch (err) {
+            assistantMsg.status = 'failed'
+            appStore.addNotification({ type: 'error', message: 'AI对话失败', duration: 3000 })
+        }
+    } finally {
+        aiLoading.value = false
+    }
 }
 
 const triggerFileInput = () => {
@@ -645,9 +788,11 @@ const triggerFileInput = () => {
                         </div>
 
                         <div class="flex space-x-3">
-                            <button @click="switchTab('interpretation')"
-                                class="flex-1 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom">
-                                <i class="fas fa-book-reader mr-2"></i>
+                            <button @click="showInterpretation"
+                                class="flex-1 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center justify-center"
+                                :disabled="sectionsLoading">
+                                <i v-if="sectionsLoading" class="fas fa-spinner fa-spin mr-2"></i>
+                                <i v-else class="fas fa-book-reader mr-2"></i>
                                 查看AI阐释
                             </button>
                             <button
@@ -666,6 +811,10 @@ const triggerFileInput = () => {
                                 <i class="fas fa-bookmark mr-2"></i>
                                 保存到我的碑文
                             </button>
+                        </div>
+                        <div v-if="sectionsLoading" class="mb-4 flex items-center text-dark/70 text-sm">
+                            <i class="fas fa-spinner fa-spin mr-2 text-primary"></i>
+                            AI阐释生成中...
                         </div>
 
                         <!-- 阐释标签页 -->
@@ -691,20 +840,20 @@ const triggerFileInput = () => {
                         <div class="grid md:grid-cols-3 gap-8">
                             <!-- 左侧：主要阐释内容 -->
                             <div class="md:col-span-2">
-                                <h3 class="text-2xl font-serif font-semibold text-primary mb-4">李白墓碑文历史背景分析</h3>
-                                <div class="prose max-w-none text-dark/90 leading-relaxed mb-6">
-                                    <p class="mb-4">
-                                        李白墓碑文撰写于大唐开元二十九年（公元741年），正值盛唐时期，这是中国历史上政治稳定、经济繁荣、文化昌盛的黄金时代。
-                                    </p>
-                                    <p class="mb-4">
-                                        开元年间，唐玄宗李隆基励精图治，任用贤能，开创了"开元盛世"。这一时期，文化艺术得到极大发展，诗歌创作达到顶峰，出现了李白、杜甫、王维等一大批杰出诗人。
-                                    </p>
-                                    <p class="mb-4">
-                                        李白（701年－762年），字太白，号青莲居士，是唐代最伟大的浪漫主义诗人之一，被后人誉为"诗仙"。他的一生历经坎坷，曾供奉翰林，后因得罪权贵而离开长安，开始漫游四方。安史之乱爆发后，他因参与永王李璘幕府而被流放夜郎，途中遇赦。晚年漂泊东南一带，最终病逝于当涂（今属安徽）。
-                                    </p>
-                                    <p>
-                                        此碑文撰写于李白去世前一年，反映了当时文人对李白文学成就的高度评价，也体现了盛唐时期文人的精神风貌和价值取向。
-                                    </p>
+                                <div v-show="interpretationTab === 'history'" class="prose max-w-none text-dark/90 leading-relaxed mb-6" v-html="renderMarkdown(sectionsHistory || (sectionsLoading ? '### 正在生成历史背景...\n- 请稍候' : ''))"></div>
+                                <div v-show="interpretationTab === 'culture'" class="prose max-w-none text-dark/90 leading-relaxed mb-6" v-html="renderMarkdown(sectionsCulture || (sectionsLoading ? '### 正在生成文化意义...\n- 请稍候' : ''))"></div>
+                                <div v-show="interpretationTab === 'people'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
+                                    <div v-if="sectionsLoading && (!sectionsFigures || !sectionsFigures.length)" class="text-sm text-dark/60">正在生成相关人物...</div>
+                                    <div v-for="p in sectionsFigures" :key="p.name" class="mb-3">
+                                        <div class="font-semibold">{{ p.name }} <span class="text-dark/60 text-xs">{{ p.role }}</span></div>
+                                        <div class="text-sm">{{ p.description }}</div>
+                                    </div>
+                                </div>
+                                <div v-show="interpretationTab === 'reading'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
+                                    <div class="text-sm text-dark/60 mb-2">引用来源</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span v-for="(s, i) in sectionsSources" :key="i" class="text-xs px-2 py-1 bg-secondary/30 text-primary rounded">{{ (s.snippet || '').slice(0, 32) }}</span>
+                                    </div>
                                 </div>
 
                                 <!-- AI对话入口 -->
@@ -714,16 +863,28 @@ const triggerFileInput = () => {
                                             <i class="fas fa-robot text-primary text-xl"></i>
                                         </div>
                                         <div class="flex-grow">
-                                            <p class="text-dark/80 mb-3">对这段阐释有疑问？我可以为您解答更多细节</p>
+                                            <div class="space-y-3 mb-3 max-h-80 overflow-auto">
+                                                <div v-for="m in messages" :key="m.id" :class="m.role === 'user' ? 'text-right' : 'text-left'">
+                                                    <div :class="m.role === 'user' ? 'inline-block px-3 py-2 rounded-lg bg-primary text-white' : 'inline-block px-3 py-2 rounded-lg bg-white border border-gray-200 text-dark'">
+                                                        <span v-if="m.role === 'user'" class="whitespace-pre-line text-sm">{{ m.content }}</span>
+                                                        <div v-else class="prose text-sm" v-html="renderMarkdown(m.content)"></div>
+                                                        <i v-if="m.role === 'assistant' && m.status === 'sending'" class="fas fa-spinner fa-spin ml-2 text-primary"></i>
+                                                    </div>
+                                                    <div v-if="m.role === 'assistant' && m.references && m.references.length" class="mt-1">
+                                                        <span v-for="(s, i) in m.references" :key="i" class="inline-block mr-1 mb-1 text-xs px-2 py-1 bg-secondary/30 text-primary rounded">{{ (s.snippet || '').slice(0, 24) }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <div class="flex">
                                                 <input v-model="aiQuestion" type="text" placeholder="请输入您的问题..."
                                                     @keyup.enter="sendAiQuestion"
                                                     class="flex-grow px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" />
                                                 <button @click="sendAiQuestion"
-                                                    class="bg-primary text-white px-4 py-2 rounded-r-md hover:bg-primary/90 transition-custom">
+                                                    class="bg-primary text-white px-4 py-2 rounded-r-md hover:bg-primary/90 transition-custom" :disabled="aiLoading">
                                                     <i class="fas fa-paper-plane"></i>
                                                 </button>
                                             </div>
+                                            <div v-if="aiLoading" class="mt-3 text-sm text-dark/60">正在生成...</div>
                                         </div>
                                     </div>
                                 </div>
@@ -737,7 +898,7 @@ const triggerFileInput = () => {
                                         <i class="fas fa-history mr-2"></i>
                                         相关时间线
                                     </h4>
-                                    <div class="space-y-4">
+                                    <div v-if="timeline && timeline.length" class="space-y-4">
                                         <div v-for="(item, index) in timeline" :key="index" class="flex">
                                             <div class="flex-shrink-0 w-20 text-right pr-3 relative">
                                                 <span
@@ -750,27 +911,30 @@ const triggerFileInput = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    <div v-else class="text-sm text-dark/60">暂无时间线，稍后重试或完善识别文本。</div>
                                 </div>
 
-                                <!-- 相关人物 -->
+                                <!-- 相关人物（AI生成） -->
                                 <div class="bg-light p-5 rounded-xl border border-gray-100">
                                     <h4 class="text-lg font-semibold text-primary mb-4 flex items-center">
                                         <i class="fas fa-users mr-2"></i>
                                         相关人物
                                     </h4>
-                                    <div class="space-y-3">
-                                        <div v-for="figure in relatedFigures" :key="figure.name"
+                                    <div v-if="sectionsFigures && sectionsFigures.length" class="space-y-3">
+                                        <div v-for="p in sectionsFigures" :key="p.name"
                                             class="flex items-center p-2 hover:bg-white rounded-md transition-custom cursor-pointer">
                                             <div
                                                 class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
                                                 <i class="fas fa-user text-primary"></i>
                                             </div>
                                             <div>
-                                                <p class="font-medium text-dark">{{ figure.name }}</p>
-                                                <p class="text-xs text-dark/60">{{ figure.role }}</p>
+                                                <p class="font-medium text-dark">{{ p.name }}</p>
+                                                <p class="text-xs text-dark/60">{{ p.role }}</p>
+                                                <p class="text-xs text-dark/60 mt-1" v-if="p.description">{{ p.description }}</p>
                                             </div>
                                         </div>
                                     </div>
+                                    <div v-else class="text-sm text-dark/60">暂无人物信息，稍后重试或完善识别文本。</div>
                                 </div>
                             </div>
                         </div>

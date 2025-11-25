@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
 import { inscriptionsData } from '../data/inscriptionsData'
+import { postChat, streamChatFetch, postInterpretationSections } from '../api/ai'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +14,75 @@ const article = ref(null)
 const loading = ref(true)
 const isFavorited = ref(false)
 const activeTab = ref('history') // history, culture, figures, reading
+const chatQuestion = ref('')
+const chatLoading = ref(false)
+const chatMessages = ref([])
+const chatConversationId = ref('')
+const sectionsHistory = ref('')
+const sectionsCulture = ref('')
+const sectionsFigures = ref([])
+const sectionsSources = ref([])
+const sectionsLoading = ref(false)
+
+const escapeHtml = (str) => {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+const renderMarkdown = (md) => {
+  if (!md) return ''
+  const lines = md.split('\n')
+  let html = ''
+  let inUl = false
+  let inOl = false
+  let inCode = false
+  let codeBuf = []
+
+  const closeLists = () => {
+    if (inUl) { html += '</ul>'; inUl = false }
+    if (inOl) { html += '</ol>'; inOl = false }
+  }
+  const formatInline = (text) => {
+    let s = escapeHtml(text)
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>')
+    return s
+  }
+
+  for (let raw of lines) {
+    const line = raw.replace(/\r$/, '')
+    if (line.trim().startsWith('```')) {
+      if (!inCode) { inCode = true; codeBuf = []; closeLists() }
+      else { inCode = false; html += `<pre class=\"code\"><code>${escapeHtml(codeBuf.join('\n'))}</code></pre>`; codeBuf = [] }
+      continue
+    }
+    if (inCode) { codeBuf.push(line); continue }
+    if (!line.trim()) { closeLists(); html += '<br/>'; continue }
+    const h3 = line.match(/^###\s+(.*)/)
+    if (h3) { closeLists(); html += `<h3>${formatInline(h3[1])}</h3>`; continue }
+    const h4 = line.match(/^##\s+(.*)/)
+    if (h4) { closeLists(); html += `<h4>${formatInline(h4[1])}</h4>`; continue }
+    if (/^(-|\*)\s+/.test(line)) {
+      if (!inUl) { closeLists(); html += '<ul>'; inUl = true }
+      html += `<li>${formatInline(line.replace(/^(-|\*)\s+/, ''))}</li>`
+      continue
+    }
+    const ol = line.match(/^\d+\.\s+(.*)/)
+    if (ol) {
+      if (!inOl) { closeLists(); html += '<ol>'; inOl = true }
+      html += `<li>${formatInline(ol[1])}</li>`
+      continue
+    }
+    closeLists()
+    html += `<p>${formatInline(line)}</p>`
+  }
+  closeLists()
+  if (inCode) { html += `<pre class=\"code\"><code>${escapeHtml(codeBuf.join('\n'))}</code></pre>` }
+  return html
+}
 
 // 计算属性
 const articleId = computed(() => route.params.id)
@@ -94,9 +164,83 @@ const shareArticle = () => {
   }
 }
 
+const sendChatQuestion = async () => {
+  const q = chatQuestion.value.trim()
+  if (!q) return
+  const baseUrl = 'http://localhost:8080/api/v1'
+  const token = localStorage.getItem('token') || ''
+  const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
+  chatMessages.value.push(userMsg)
+  chatQuestion.value = ''
+  const assistantMsg = { id: Date.now() + '-a', role: 'assistant', content: '', status: 'sending', references: [], created_at: new Date().toISOString() }
+  chatMessages.value.push(assistantMsg)
+  chatLoading.value = true
+  try {
+    await streamChatFetch({
+      baseUrl,
+      token,
+      recognitionId: 'rec_local',
+      message: q,
+      conversationId: chatConversationId.value,
+      onEvent: (evt) => {
+        if (!evt || !evt.event) return
+        if (evt.event === 'status') {
+          if (evt.data && evt.data.status === 'success') assistantMsg.status = 'success'
+        } else if (evt.event === 'references') {
+          assistantMsg.references = evt.data || []
+        } else if (evt.event === 'delta') {
+          if (evt.data && typeof evt.data.text === 'string') assistantMsg.content += evt.data.text
+        }
+      }
+    })
+  } catch (e) {
+    try {
+      const data = await postChat({ baseUrl, token, recognitionId: 'rec_local', message: q, conversationId: chatConversationId.value })
+      chatConversationId.value = data.conversation_id || chatConversationId.value
+      assistantMsg.content = (data.reply && data.reply.content) || ''
+      assistantMsg.references = (data.reply && data.reply.sources) || []
+      assistantMsg.status = 'success'
+    } catch (err) {
+      assistantMsg.status = 'failed'
+      appStore.addNotification({ type: 'error', message: 'AI对话失败', duration: 3000 })
+    }
+  } finally {
+    chatLoading.value = false
+  }
+}
+
+const fetchArticleInterpretation = async () => {
+  if (!sectionsHistory.value && article.value) {
+    const baseUrl = 'http://localhost:8080/api/v1'
+    const token = localStorage.getItem('token') || ''
+    const text = `${article.value.title} ${article.value.year || ''} ${article.value.dynasty || ''}`.trim()
+    try {
+      sectionsLoading.value = true
+      const data = await postInterpretationSections({ baseUrl, token, text })
+      const s = data.sections || {}
+      sectionsHistory.value = s.history_markdown || ''
+      sectionsCulture.value = s.culture_markdown || ''
+      sectionsFigures.value = s.figures || []
+      sectionsSources.value = data.sources || []
+      // 覆盖右侧时间线
+      // 将简化的 timeline 映射为 {year,event}
+      // 如果包含 title/description，则合并
+      if (Array.isArray(s.timeline)) {
+        // eslint-disable-next-line no-unused-vars
+        timeline.value = s.timeline.map(t => ({ year: t.year, event: (t.title ? t.title + '：' : '') + (t.description || '') }))
+      }
+    } catch (e) {
+      appStore.addNotification({ type: 'error', message: 'AI阐释生成失败', duration: 3000 })
+    } finally {
+      sectionsLoading.value = false
+    }
+  }
+}
+
 // 生命周期钩子
 onMounted(() => {
   loadArticle()
+  fetchArticleInterpretation()
 })
 </script>
 
@@ -304,31 +448,10 @@ onMounted(() => {
                   <h3 class="text-2xl font-serif font-semibold text-primary mb-4">{{ article.title }}历史背景分析</h3>
                   
                   <!-- 历史背景内容 -->
-                  <div v-show="activeTab === 'history'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
-                    <p class="mb-4">
-                      《{{ article.title }}》撰写于{{ article.year }}，是{{ article.dynasty }}时期的重要碑刻作品。
-                      此碑由魏征撰文，欧阳询书丹，记录了唐太宗在九成宫避暑时发现甘泉的事迹。
-                    </p>
-                    <p class="mb-4">
-                      贞观六年(632年)，正值"贞观之治"的黄金时期，唐太宗励精图治，国家繁荣昌盛。
-                      欧阳询作为初唐四大书法家之一，此时已年近古稀，其书法艺术达到炉火纯青的境界。
-                    </p>
-                    <p class="mb-4">
-                      碑文歌颂了唐太宗的德政，将醴泉的出现归功于皇帝的贤明统治。
-                      魏征的文章气势恢宏，欧阳询的楷书笔法严谨，二者珠联璧合，成就了这一传世名碑。
-                    </p>
-                  </div>
+                  <div v-show="activeTab === 'history'" class="prose max-w-none text-dark/90 leading-relaxed mb-6" v-html="renderMarkdown(sectionsHistory || (sectionsLoading ? '### 正在生成历史背景...\n- 请稍候' : ''))"></div>
 
                   <!-- 文化意义内容 -->
-                  <div v-show="activeTab === 'culture'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
-                    <p class="mb-4">
-                      《九成宫醴泉铭》不仅是一篇优秀的骈文，更是楷书艺术的巅峰之作。欧阳询的书法严谨工整，笔力遒劲，
-                      被誉为"楷书第一"。此碑对后世书法影响深远，历代书法家无不临摹学习。
-                    </p>
-                    <p>
-                      碑文内容体现了{{ article.dynasty }}时期的政治理念和文化价值观，是研究唐代历史文化的重要文献资料。
-                    </p>
-                  </div>
+                  <div v-show="activeTab === 'culture'" class="prose max-w-none text-dark/90 leading-relaxed mb-6" v-html="renderMarkdown(sectionsCulture || (sectionsLoading ? '### 正在生成文化意义...\n- 请稍候' : ''))"></div>
 
                   <!-- 相关人物内容 -->
                   <div v-show="activeTab === 'figures'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
@@ -366,13 +489,25 @@ onMounted(() => {
                         <i class="fas fa-robot text-primary text-xl"></i>
                       </div>
                       <div class="flex-grow">
-                        <p class="text-dark/80 mb-3">对这段阐释有疑问？我可以为您解答更多细节</p>
+                        <div class="space-y-3 mb-3 max-h-80 overflow-auto">
+                          <div v-for="m in chatMessages" :key="m.id" :class="m.role === 'user' ? 'text-right' : 'text-left'">
+                            <div :class="m.role === 'user' ? 'inline-block px-3 py-2 rounded-lg bg-primary text-white' : 'inline-block px-3 py-2 rounded-lg bg-white border border-gray-200 text-dark'">
+                              <span v-if="m.role === 'user'" class="whitespace-pre-line text-sm">{{ m.content }}</span>
+                              <div v-else class="prose text-sm" v-html="renderMarkdown(m.content)"></div>
+                              <i v-if="m.role === 'assistant' && m.status === 'sending'" class="fas fa-spinner fa-spin ml-2 text-primary"></i>
+                            </div>
+                            <div v-if="m.role === 'assistant' && m.references && m.references.length" class="mt-1">
+                              <span v-for="(s, i) in m.references" :key="i" class="inline-block mr-1 mb-1 text-xs px-2 py-1 bg-secondary/30 text-primary rounded">{{ (s.snippet || '').slice(0, 24) }}</span>
+                            </div>
+                          </div>
+                        </div>
                         <div class="flex">
-                          <input class="flex-grow px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="请输入您的问题..." type="text">
-                          <button class="bg-primary text-white px-4 py-2 rounded-r-md hover:bg-primary/90 transition-custom">
+                          <input v-model="chatQuestion" class="flex-grow px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="请输入您的问题..." type="text" @keyup.enter="sendChatQuestion">
+                          <button @click="sendChatQuestion" class="bg-primary text-white px-4 py-2 rounded-r-md hover:bg-primary/90 transition-custom" :disabled="chatLoading">
                             <i class="fas fa-paper-plane"></i>
                           </button>
                         </div>
+                        <div v-if="chatLoading" class="mt-3 text-sm text-dark/60">正在生成...</div>
                       </div>
                     </div>
                   </div>
@@ -426,35 +561,25 @@ onMounted(() => {
                     </div>
                   </div>
 
-                  <!-- 相关人物 -->
+                  <!-- 相关人物（AI生成） -->
                   <div class="bg-light p-5 rounded-xl border border-gray-100">
                     <h4 class="text-lg font-semibold text-primary mb-4 flex items-center">
                       <i class="fas fa-users mr-2"></i>
                       相关人物
                     </h4>
-                    <div class="space-y-3">
-                      <a class="flex items-center p-2 hover:bg-white rounded-md transition-custom" href="javascript:void(0);">
-                        <div class="w-10 h-10 bg-gray-200 rounded-full object-cover mr-3"></div>
-                        <div>
-                          <p class="font-medium text-dark">欧阳询</p>
-                          <p class="text-xs text-dark/60">初唐四大书法家之一</p>
+                    <div v-if="sectionsFigures && sectionsFigures.length" class="space-y-3">
+                      <div v-for="p in sectionsFigures" :key="p.name" class="flex items-center p-2 hover:bg-white rounded-md transition-custom">
+                        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                          <i class="fas fa-user text-primary"></i>
                         </div>
-                      </a>
-                      <a class="flex items-center p-2 hover:bg-white rounded-md transition-custom" href="javascript:void(0);">
-                        <div class="w-10 h-10 bg-gray-200 rounded-full object-cover mr-3"></div>
                         <div>
-                          <p class="font-medium text-dark">魏征</p>
-                          <p class="text-xs text-dark/60">唐代名臣，贞观之治功臣</p>
+                          <p class="font-medium text-dark">{{ p.name }}</p>
+                          <p class="text-xs text-dark/60">{{ p.role }}</p>
+                          <p v-if="p.description" class="text-xs text-dark/60 mt-1">{{ p.description }}</p>
                         </div>
-                      </a>
-                      <a class="flex items-center p-2 hover:bg-white rounded-md transition-custom" href="javascript:void(0);">
-                        <div class="w-10 h-10 bg-gray-200 rounded-full object-cover mr-3"></div>
-                        <div>
-                          <p class="font-medium text-dark">唐太宗</p>
-                          <p class="text-xs text-dark/60">唐朝第二位皇帝，开创贞观之治</p>
-                        </div>
-                      </a>
+                      </div>
                     </div>
+                    <div v-else class="text-sm text-dark/60">暂无人物信息，稍后重试或完善文本。</div>
                   </div>
 
                   <!-- 推荐阅读 -->

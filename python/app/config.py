@@ -22,9 +22,9 @@ class Settings(BaseSettings):
     redis_api_retry_times: int = 3
     
     # LLM服务配置
-    llm_api_base_url: str = "https://api.openai.com/v1"
+    llm_api_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     llm_api_key: str = ""
-    llm_model: str = "gpt-4"
+    llm_model: str = "qwen-flash"
     llm_temperature: float = 0.7
     llm_max_tokens: int = 2000
     llm_timeout: int = 30000
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     file_upload_url_prefix: str = "/uploads"
     
     # CORS配置
-    cors_allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:8080"]
+    cors_allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:8080", "http://localhost:5173"]
     cors_allowed_methods: List[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     cors_allowed_headers: List[str] = ["*"]
     cors_allow_credentials: bool = True

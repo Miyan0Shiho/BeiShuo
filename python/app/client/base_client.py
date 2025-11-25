@@ -20,7 +20,7 @@ class BaseHTTPClient:
         
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
-            timeout=httpx.Timeout(connect=self.connect_timeout, read=self.read_timeout)
+            timeout=httpx.Timeout(timeout=self.read_timeout, connect=self.connect_timeout, read=self.read_timeout, write=self.read_timeout)
         )
     
     async def get(

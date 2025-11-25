@@ -43,7 +43,7 @@ async def business_exception_handler(request: Request, exc: BusinessException):
     """处理业务异常"""
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=Result.error_with_code(exc.code, exc.message).dict()
+        content=Result.fail_with_code(exc.code, exc.message).model_dump()
     )
 
 @app.exception_handler(UnauthorizedException)
@@ -51,7 +51,7 @@ async def unauthorized_exception_handler(request: Request, exc: UnauthorizedExce
     """处理未授权异常"""
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        content=Result.error(ResultCode.UNAUTHORIZED, exc.message).dict()
+        content=Result.fail(ResultCode.UNAUTHORIZED, exc.message).model_dump()
     )
 
 @app.exception_handler(Exception)
@@ -60,7 +60,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     logger.exception(f"系统异常: {exc}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=Result.error(ResultCode.INTERNAL_SERVER_ERROR, "系统异常，请稍后重试").dict()
+        content=Result.fail(ResultCode.INTERNAL_SERVER_ERROR, "系统异常，请稍后重试").model_dump()
     )
 
 # 注册路由

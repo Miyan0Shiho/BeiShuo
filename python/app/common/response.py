@@ -20,7 +20,7 @@ class Result(BaseModel, Generic[T]):
     timestamp: str
     
     @classmethod
-    def success(cls, data: Optional[T] = None, message: str = "操作成功") -> "Result[T]":
+    def ok(cls, data: Optional[T] = None, message: str = "操作成功") -> "Result[T]":
         """成功响应"""
         return cls(
             success=True,
@@ -30,7 +30,7 @@ class Result(BaseModel, Generic[T]):
         )
     
     @classmethod
-    def error(cls, result_code: ResultCode, message: Optional[str] = None, details: Optional[Dict[str, Any]] = None) -> "Result[None]":
+    def fail(cls, result_code: ResultCode, message: Optional[str] = None, details: Optional[Dict[str, Any]] = None) -> "Result[None]":
         """错误响应"""
         error_info = ErrorInfo(
             code=str(result_code.code),
@@ -45,7 +45,7 @@ class Result(BaseModel, Generic[T]):
         )
     
     @classmethod
-    def error_with_code(cls, code: int, message: str, details: Optional[Dict[str, Any]] = None) -> "Result[None]":
+    def fail_with_code(cls, code: int, message: str, details: Optional[Dict[str, Any]] = None) -> "Result[None]":
         """自定义错误响应"""
         error_info = ErrorInfo(
             code=str(code),

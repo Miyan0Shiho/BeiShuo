@@ -21,26 +21,26 @@ class RedisClient(BaseHTTPClient):
             "timeout": timeout
         }
         try:
-            result = await self.post("/cache/set", json=data)
+            result = await super().post("/cache/set", json=data)
             return result is not None
         except Exception:
             return False
     
-    async def get(self, key: str) -> Optional[Any]:
+    async def get_value(self, key: str) -> Optional[Any]:
         """获取缓存"""
-        return await self.get("/cache/get", params={"key": key})
+        return await super().get("/cache/get", params={"key": key})
     
-    async def delete(self, key: str) -> bool:
+    async def delete_key(self, key: str) -> bool:
         """删除缓存"""
-        return await self.delete("/cache/delete", params={"key": key})
+        return await super().delete("/cache/delete", params={"key": key})
     
     async def exists(self, key: str) -> bool:
         """检查key是否存在"""
-        result = await self.get("/cache/exists", params={"key": key})
+        result = await super().get("/cache/exists", params={"key": key})
         return result if isinstance(result, bool) else False
     
     async def search_keys(self, pattern: str) -> list:
         """模糊搜索key"""
-        result = await self.get("/cache/search", params={"pattern": pattern})
+        result = await super().get("/cache/search", params={"pattern": pattern})
         return result if isinstance(result, list) else []
 
