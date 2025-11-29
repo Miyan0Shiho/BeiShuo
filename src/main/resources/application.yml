@@ -11,7 +11,8 @@ spring:
       file-size-threshold: 2KB
 
 server:
-  port: 8000
+  port: 8080
+  host: 0.0.0.0
   servlet:
     context-path: /api/v1
   compression:
@@ -96,4 +97,3 @@ business:
   interpretation:
     max-context-length: 5000
     enable-stream: false
-

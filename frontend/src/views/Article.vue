@@ -521,43 +521,10 @@ onMounted(() => {
                       <i class="fas fa-history mr-2"></i>
                       相关时间线
                     </h4>
-                    <div class="space-y-4">
-                      <div class="flex">
-                        <div class="flex-shrink-0 w-8 text-right pr-3 relative">
-                          <span class="inline-block w-3 h-3 bg-primary rounded-full absolute right-0 top-1/2 -translate-y-1/2"></span>
-                          <span class="text-sm font-medium text-primary">632年</span>
-                        </div>
-                        <div class="flex-grow border-l border-gray-200 pl-3 pb-4">
-                          <p class="text-dark/80">唐太宗在九成宫避暑，发现醴泉，魏征撰文，欧阳询书丹</p>
-                        </div>
-                      </div>
-                      <div class="flex">
-                        <div class="flex-shrink-0 w-8 text-right pr-3 relative">
-                          <span class="inline-block w-3 h-3 bg-primary rounded-full absolute right-0 top-1/2 -translate-y-1/2"></span>
-                          <span class="text-sm font-medium text-primary">627年</span>
-                        </div>
-                        <div class="flex-grow border-l border-gray-200 pl-3 pb-4">
-                          <p class="text-dark/80">唐太宗开始"贞观之治"，励精图治</p>
-                        </div>
-                      </div>
-                      <div class="flex">
-                        <div class="flex-shrink-0 w-8 text-right pr-3 relative">
-                          <span class="inline-block w-3 h-3 bg-primary rounded-full absolute right-0 top-1/2 -translate-y-1/2"></span>
-                          <span class="text-sm font-medium text-primary">557年</span>
-                        </div>
-                        <div class="flex-grow border-l border-gray-200 pl-3 pb-4">
-                          <p class="text-dark/80">欧阳询出生于衡州(今湖南衡阳)</p>
-                        </div>
-                      </div>
-                      <div class="flex">
-                        <div class="flex-shrink-0 w-8 text-right pr-3 relative">
-                          <span class="inline-block w-3 h-3 bg-primary rounded-full absolute right-0 top-1/2 -translate-y-1/2"></span>
-                          <span class="text-sm font-medium text-primary">641年</span>
-                        </div>
-                        <div class="flex-grow border-l border-gray-200 pl-3">
-                          <p class="text-dark/80">欧阳询去世，享年85岁</p>
-                        </div>
-                      </div>
+                    <!-- TODO: 待接入AI生成的时间线数据 -->
+                    <div class="text-sm text-dark/60 flex items-center">
+                      <i class="fas fa-hourglass-half mr-2"></i>
+                      等待生成...
                     </div>
                   </div>
 
@@ -588,19 +555,10 @@ onMounted(() => {
                       <i class="fas fa-book mr-2"></i>
                       推荐阅读
                     </h4>
-                    <div class="space-y-3">
-                      <a class="block p-3 hover:bg-white rounded-md transition-custom" href="javascript:void(0);">
-                        <p class="font-medium text-dark line-clamp-1">《欧阳询楷书技法解析》</p>
-                        <p class="text-xs text-dark/60">深入剖析欧阳询楷书的笔法特点和艺术风格</p>
-                      </a>
-                      <a class="block p-3 hover:bg-white rounded-md transition-custom" href="javascript:void(0);">
-                        <p class="font-medium text-dark line-clamp-1">《贞观之治与唐代文化》</p>
-                        <p class="text-xs text-dark/60">全面介绍贞观时期的政治、经济和文化发展</p>
-                      </a>
-                      <a class="block p-3 hover:bg-white rounded-md transition-custom" href="javascript:void(0);">
-                        <p class="font-medium text-dark line-clamp-1">《魏征传》</p>
-                        <p class="text-xs text-dark/60">记录魏征生平事迹的经典文献</p>
-                      </a>
+                    <!-- TODO: 待接入AI生成的推荐阅读数据 -->
+                    <div class="text-sm text-dark/60 flex items-center">
+                      <i class="fas fa-hourglass-half mr-2"></i>
+                      等待生成...
                     </div>
                   </div>
                 </div>
@@ -616,65 +574,11 @@ onMounted(() => {
           <i class="fas fa-th-large mr-2 text-accent"></i>
           相关碑刻推荐
         </h2>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- 推荐碑刻1 -->
-          <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-custom group">
-            <div class="relative">
-              <img src="/gemdesign/assets/page/1988860433636786176/c53f7991b2f9c09e1ca46e2afc9db054.png" alt="化度寺碑" class="w-full h-48 object-cover group-hover:scale-105 transition-custom duration-500">
-              <div class="absolute top-3 left-3 bg-primary text-white text-xs font-medium px-2 py-1 rounded">唐代</div>
-            </div>
-            <div class="p-5">
-              <h3 class="font-semibold text-xl text-primary group-hover:text-accent transition-custom mb-2">《化度寺碑》</h3>
-              <p class="text-dark/70 text-sm mb-4 line-clamp-2">欧阳询楷书代表作之一，全称《化度寺故僧邕禅师舍利塔铭》，贞观五年立，书法严谨工整，被称为"欧体第一"。</p>
-              <div class="flex flex-wrap gap-2 mb-4">
-                <span class="bg-secondary/30 text-primary text-xs px-2 py-1 rounded-full">欧阳询</span>
-                <span class="bg-secondary/30 text-primary text-xs px-2 py-1 rounded-full">楷书</span>
-                <span class="bg-secondary/30 text-primary text-xs px-2 py-1 rounded-full">唐代</span>
-              </div>
-              <a class="text-primary font-medium text-sm hover:text-accent transition-custom inline-flex items-center" href="javascript:void(0);">
-                查看详情 <i class="fas fa-arrow-right ml-1 text-xs"></i>
-              </a>
-            </div>
-          </div>
-
-          <!-- 推荐碑刻2 -->
-          <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-custom group">
-            <div class="relative">
-              <img src="/gemdesign/assets/page/1988860433636786176/6f86806d06975a8d8781f788396a0b16.png" alt="皇甫诞碑" class="w-full h-48 object-cover group-hover:scale-105 transition-custom duration-500">
-              <div class="absolute top-3 left-3 bg-primary text-white text-xs font-medium px-2 py-1 rounded">唐代</div>
-            </div>
-            <div class="p-5">
-              <h3 class="font-semibold text-xl text-primary group-hover:text-accent transition-custom mb-2">《皇甫诞碑》</h3>
-              <p class="text-dark/70 text-sm mb-4 line-clamp-2">全称《隋柱国左光禄大夫宏议明公皇甫府君之碑》，欧阳询中年时期作品，书法用笔紧密内敛，刚劲不挠。</p>
-              <div class="flex flex-wrap gap-2 mb-4">
-                <span class="bg-secondary/30 text-primary text-xs px-2 py-1 rounded-full">欧阳询</span>
-                <span class="bg-secondary/30 text-primary text-xs px-2 py-1 rounded-full">楷书</span>
-                <span class="bg-secondary/30 text-primary text-xs px-2 py-1 rounded-full">唐代</span>
-              </div>
-              <a class="text-primary font-medium text-sm hover:text-accent transition-custom inline-flex items-center" href="javascript:void(0);">
-                查看详情 <i class="fas fa-arrow-right ml-1 text-xs"></i>
-              </a>
-            </div>
-          </div>
-
-          <!-- 推荐碑刻3 -->
-          <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-custom group">
-            <div class="relative">
-              <img src="/gemdesign/assets/page/1988860433636786176/5a4eed5849bb5a3675bd5f4e49486d4b.png" alt="雁塔圣教序" class="w-full h-48 object-cover group-hover:scale-105 transition-custom duration-500">
-              <div class="absolute top-3 left-3 bg-primary text-white text-xs font-medium px-2 py-1 rounded">唐代</div>
-            </div>
-            <div class="p-5">
-              <h3 class="font-semibold text-xl text-primary group-hover:text-accent transition-custom mb-2">《雁塔圣教序》</h3>
-              <p class="text-dark/70 text-sm mb-4 line-clamp-2">褚遂良楷书代表作，亦称《慈恩寺圣教序》，唐代楷书精品，字体清丽刚劲，笔法娴熟老成，是初唐书法艺术的杰作。</p>
-              <div class="flex flex-wrap gap-2 mb-4">
-                <span class="bg-secondary/30 text-primary text-xs px-2 py-1 rounded-full">褚遂良</span>
-                <span class="bg-secondary/30 text-primary text-xs px-2 py-1 rounded-full">楷书</span>
-                <span class="bg-secondary/30 text-primary text-xs px-2 py-1 rounded-full">唐代</span>
-              </div>
-              <a class="text-primary font-medium text-sm hover:text-accent transition-custom inline-flex items-center" href="javascript:void(0);">
-                查看详情 <i class="fas fa-arrow-right ml-1 text-xs"></i>
-              </a>
-            </div>
+        <!-- TODO: 待接入AI生成的相关碑刻推荐数据 -->
+        <div class="bg-white rounded-xl p-8 shadow-sm text-center">
+          <div class="text-dark/60 flex items-center justify-center">
+            <i class="fas fa-hourglass-half mr-2"></i>
+            等待生成...
           </div>
         </div>
       </div>
