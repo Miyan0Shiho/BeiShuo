@@ -1,46 +1,70 @@
 from typing import Optional, Any
-from app.client.base_client import BaseHTTPClient
+import asyncio
 from app.config import settings
+from app.utils.logger import logger
 
-class RedisClient(BaseHTTPClient):
-    """Redis服务客户端"""
+class RedisClient:
+    """内存缓存客户端 - 临时替代Redis服务"""
     
     def __init__(self):
-        super().__init__(
-            base_url=settings.redis_api_base_url,
-            connect_timeout=settings.redis_api_connect_timeout,
-            read_timeout=settings.redis_api_read_timeout,
-            retry_times=settings.redis_api_retry_times
-        )
+        self._cache = {}
+        self._expire_times = {}
+        self._lock = asyncio.Lock()
+        logger.info("使用内存缓存替代Redis服务")
     
     async def set(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
         """设置缓存"""
-        data = {
-            "key": key,
-            "value": value,
-            "timeout": timeout
-        }
         try:
-            result = await super().post("/cache/set", json=data)
-            return result is not None
-        except Exception:
+            async with self._lock:
+                self._cache[key] = value
+                if timeout is not None:
+                    self._expire_times[key] = asyncio.get_event_loop().time() + timeout
+                else:
+                    self._expire_times.pop(key, None)
+            logger.debug(f"缓存设置成功: {key}")
+            return True
+        except Exception as e:
+            logger.error(f"缓存设置失败: {e}")
             return False
     
-    async def get_value(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Optional[Any]:
         """获取缓存"""
-        return await super().get("/cache/get", params={"key": key})
+        try:
+            # 检查是否过期
+            current_time = asyncio.get_event_loop().time()
+            if key in self._expire_times and current_time > self._expire_times[key]:
+                async with self._lock:
+                    self._cache.pop(key, None)
+                    self._expire_times.pop(key, None)
+                return None
+            
+            value = self._cache.get(key)
+            if value:
+                logger.debug(f"缓存命中: {key}")
+            return value
+        except Exception as e:
+            logger.error(f"缓存获取失败: {e}")
+            return None
     
-    async def delete_key(self, key: str) -> bool:
+    async def delete(self, key: str) -> bool:
         """删除缓存"""
-        return await super().delete("/cache/delete", params={"key": key})
+        try:
+            async with self._lock:
+                self._cache.pop(key, None)
+                self._expire_times.pop(key, None)
+            return True
+        except Exception as e:
+            logger.error(f"缓存删除失败: {e}")
+            return False
     
     async def exists(self, key: str) -> bool:
         """检查key是否存在"""
-        result = await super().get("/cache/exists", params={"key": key})
-        return result if isinstance(result, bool) else False
+        return await self.get(key) is not None
     
-    async def search_keys(self, pattern: str) -> list:
-        """模糊搜索key"""
-        result = await super().get("/cache/search", params={"pattern": pattern})
-        return result if isinstance(result, list) else []
+    async def close(self):
+        """关闭缓存客户端"""
+        async with self._lock:
+            self._cache.clear()
+            self._expire_times.clear()
+        logger.info("内存缓存已清空")
 

@@ -1,5 +1,7 @@
 from typing import Any, Dict, Optional
 import httpx
+import asyncio
+import json
 from app.config import settings
 
 
@@ -27,10 +29,26 @@ class KandiangujiOCRClient:
             payload.update(options)
 
         timeout = httpx.Timeout(self.timeout_ms / 1000.0)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.post(self.base_url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
+        attempt_error: Optional[Exception] = None
+        for attempt in range(3):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    resp = await client.post(self.base_url, json=payload)
+                    if resp.status_code == 405:
+                        # 尝试使用表单方式重试
+                        resp = await client.post(self.base_url, data=payload)
+                    resp.raise_for_status()
+                    data = resp.json()
+                break
+            except (httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+                attempt_error = e
+                await asyncio.sleep(0.8 * (attempt + 1))
+                continue
+            except Exception as e:
+                attempt_error = e
+                break
+        else:
+            raise attempt_error or RuntimeError("OCR请求失败：网络超时")
 
         if not isinstance(data, dict):
             raise RuntimeError("OCR响应解析失败：返回非JSON对象")
@@ -38,13 +56,17 @@ class KandiangujiOCRClient:
         message = data.get("message")
         if message != "success":
             info = data.get("info")
-            # 尽最大努力提供可读错误信息
             if not info or not str(info).strip():
-                # 尝试拼接返回体摘要
                 try:
                     info = json.dumps({k: data.get(k) for k in ("message", "id", "info") if k in data}, ensure_ascii=False)
                 except Exception:
                     info = "服务返回错误"
-            raise RuntimeError(f"OCR识别失败：{info}")
+            
+            # 返回完整的响应数据，而不是抛出异常
+            print(f"⚠️ OCR服务返回非成功状态: {message}, info: {info}")
+            print(f"📋 完整响应数据: {json.dumps(data, ensure_ascii=False, indent=2)}")
+            
+            # 返回响应数据，让调用方处理
+            return data
 
         return data

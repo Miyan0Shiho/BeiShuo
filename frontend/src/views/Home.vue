@@ -118,9 +118,9 @@ const timeline = ref([
 
 // 相关人物
 const relatedPeople = ref([
-  { name: '杜甫', role: '唐代诗人，与李白并称"李杜"', avatar: '/images/dufu.jpg' },
-  { name: '唐玄宗', role: '唐朝皇帝，开创开元盛世', avatar: '/images/xuanzong.jpg' },
-  { name: '杨贵妃', role: '唐玄宗贵妃，唐代宫廷音乐家', avatar: '/images/yanggufei.jpg' }
+  { name: '杜甫', role: '唐代诗人，与李白并称"李杜"' },
+  { name: '唐玄宗', role: '唐朝皇帝，开创开元盛世' },
+  { name: '杨贵妃', role: '唐玄宗贵妃，唐代宫廷音乐家' }
 ])
 
 // 标签页状态

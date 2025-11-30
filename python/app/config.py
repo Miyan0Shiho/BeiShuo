@@ -15,6 +15,15 @@ class Settings(BaseSettings):
     database_api_read_timeout: int = 10000
     database_api_retry_times: int = 3
     
+    # MySQL直接连接配置
+    mysql_host: str = "rm-cn-zky4j31d100068po.rwlb.rds.aliyuncs.com"
+    mysql_port: int = 3306
+    mysql_user: str = "lmx"
+    mysql_password: str = "lmx123456+"
+    mysql_database: str = "beishuo"
+    mysql_pool_size: int = 10
+    mysql_max_overflow: int = 20
+    
     # Redis服务配置
     redis_api_base_url: str = "http://localhost:8082/api/redis"
     redis_api_connect_timeout: int = 3000
@@ -52,13 +61,13 @@ class Settings(BaseSettings):
     # 文件上传配置
     file_upload_path: str = "./uploads"
     file_upload_max_size: int = 10485760  # 10MB
-    file_upload_allowed_types: List[str] = ["jpg", "jpeg", "png", "webp"]
+    file_upload_allowed_types: str = "jpg,jpeg,png,webp"  # 逗号分隔的字符串
     file_upload_url_prefix: str = "/uploads"
 
     # 看典古籍OCR配置
     kandianguji_ocr_token: str = ""
     kandianguji_ocr_email: str = ""
-    kandianguji_ocr_timeout: int = 15000
+    kandianguji_ocr_timeout: int = 45000
     
     # CORS配置
     cors_allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:8080", "http://localhost:5173"]

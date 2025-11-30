@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { postChat, streamChatFetch, postInterpretationSections, uploadImage, startRecognition as startRecognitionApi } from '../api/ai'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -58,7 +59,6 @@ const originalImageUrl = ref('')
 const originalImageSize = ref({ width: 0, height: 0 })
 const lineStripUrls = ref([])
 const lineStripRects = ref([])
-const lineStripDims = ref([])
 const lineConfidences = ref([])
 const stripContainerRef = ref(null)
 const stripHighlight = ref({ visible: false, left: 0, top: 0, width: 0, height: 0 })
@@ -74,7 +74,6 @@ const stripOverlayStyle = computed(() => ({
 }))
 const detModeSelection = ref('sp')
 const directionSelection = ref('top2bottom')
-const previewModeSelection = ref('vertical')
 const directionOptions = computed(() => detModeSelection.value === 'sp'
   ? [
     { id: 'top2bottom', label: '从上到下' },
@@ -87,7 +86,6 @@ const directionOptions = computed(() => detModeSelection.value === 'sp'
 )
 watch(detModeSelection, (v) => {
   directionSelection.value = v === 'sp' ? 'top2bottom' : 'left2right'
-  previewModeSelection.value = v === 'hp' ? 'horizontal' : 'vertical'
 })
 
 // 原图裁剪与置信度工具
@@ -99,7 +97,7 @@ const loadImage = (src) => new Promise((resolve, reject) => {
   img.src = src
 })
 
-const buildStripForLineVertical = async (img, line, targetWidth = 80) => {
+const buildStripForLine = async (img, line, layout, targetWidth = 80) => {
   const words = Array.isArray(line.words) ? line.words : []
   if (!words.length) return { url: '', rects: [] }
   const strips = []
@@ -125,41 +123,7 @@ const buildStripForLineVertical = async (img, line, targetWidth = 80) => {
     ctx.drawImage(img, s.x, s.y, s.w, s.h, 0, y, targetWidth, s.dh)
     y += s.dh
   }
-  return { url: canvas.toDataURL('image/png'), rects, baseW: targetWidth, baseH: totalHeight }
-}
-
-const buildStripForLineHorizontal = async (img, line, targetHeight = 80) => {
-  const words = Array.isArray(line.words) ? line.words : []
-  if (!words.length) return { url: '', rects: [] }
-  const pieces = []
-  const rects = []
-  let totalWidth = 0
-  for (const w of words) {
-    const pos = w.position || []
-    const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
-    const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
-    const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
-    const scale = targetHeight / wHeight
-    const wScaled = Math.round(wWidth * scale)
-    pieces.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dw: wScaled, scale })
-    rects.push({ left: totalWidth, top: 0, width: wScaled, height: targetHeight })
-    totalWidth += wScaled
-  }
-  const canvas = document.createElement('canvas')
-  canvas.width = totalWidth
-  canvas.height = targetHeight
-  const ctx = canvas.getContext('2d')
-  let x = 0
-  for (const p of pieces) {
-    ctx.drawImage(img, p.x, p.y, p.w, p.h, x, 0, p.dw, targetHeight)
-    x += p.dw
-  }
-  return { url: canvas.toDataURL('image/png'), rects, baseW: totalWidth, baseH: targetHeight }
-}
-
-const buildStripForLine = async (img, line, mode) => {
-  if (mode === 'horizontal') return buildStripForLineHorizontal(img, line)
-  return buildStripForLineVertical(img, line)
+  return { url: canvas.toDataURL('image/png'), rects }
 }
 
 const computeLineConfidence = (line) => {
@@ -191,9 +155,8 @@ const onWordEnter = (li, wi) => {
   }
   const cw = stripContainerRef.value.clientWidth || 0
   const ch = stripContainerRef.value.clientHeight || 0
-  const dims = (lineStripDims.value[li]) || { baseW: 80, baseH: (rects.length ? rects.reduce((acc, it) => acc + it.height, 0) : 0) }
-  const imgW = dims.baseW
-  const imgH = dims.baseH
+  const imgW = 80
+  const imgH = rects.length ? rects.reduce((acc, it) => acc + it.height, 0) : 0
   const scale = Math.min(cw / imgW, ch / imgH)
   const rw = Math.round(imgW * scale)
   const rh = Math.round(imgH * scale)
@@ -473,7 +436,16 @@ const startRecognition = async () => {
     recognitionState.value = 'processing'
     processingProgress.value = 0
     const baseUrl = 'http://localhost:8080/api/v1'
-    const token = localStorage.getItem('token') || ''
+    
+    // 检查用户是否已登录
+    const userStore = useUserStore()
+    if (!userStore.isLoggedIn) {
+        appStore.addNotification({ type: 'error', message: '请先登录后再进行识别', duration: 3000 })
+        recognitionState.value = 'waiting'
+        return
+    }
+    
+    const token = userStore.token
     try {
         // 上传图片
         const uploadRes = await uploadImage({ baseUrl, token, file: selectedFile.value })
@@ -515,16 +487,13 @@ const startRecognition = async () => {
                 const img = await loadImage(originalImageUrl.value)
                 const urls = []
                 const rectsAll = []
-                const dimsAll = []
                 for (const line of textLines.value) {
-                    const out = await buildStripForLine(img, line, previewModeSelection.value)
+                    const out = await buildStripForLine(img, line, opts.det_mode)
                     urls.push(out.url)
                     rectsAll.push(out.rects)
-                    dimsAll.push({ baseW: out.baseW, baseH: out.baseH })
                 }
                 lineStripUrls.value = urls
                 lineStripRects.value = rectsAll
-                lineStripDims.value = dimsAll
             }
         } catch {}
         const conf = typeof r.confidence === 'number' ? r.confidence : 0
@@ -720,8 +689,16 @@ const confirmSave = () => {
 const sendAiQuestion = async () => {
     const q = aiQuestion.value.trim()
     if (!q) return
+    
+    // 检查用户是否已登录
+    const userStore = useUserStore()
+    if (!userStore.isLoggedIn) {
+        appStore.addNotification({ type: 'error', message: '请先登录后再进行AI对话', duration: 3000 })
+        return
+    }
+    
     const baseUrl = 'http://localhost:8080/api/v1'
-    const token = localStorage.getItem('token') || ''
+    const token = userStore.token
     const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
     messages.value.push(userMsg)
     aiQuestion.value = ''
@@ -939,19 +916,7 @@ const triggerFileInput = () => {
                                             <img v-if="lineStripUrls[currentColumn - 1]" :src="lineStripUrls[currentColumn - 1]" class="w-full h-full object-contain" alt="拼接图" />
                                             <div :style="stripOverlayStyle"></div>
                                         </div>
-                                        <div class="text-center text-xs text-dark/60 mt-2">
-                                            拼接图高亮
-                                            <div class="mt-2 flex items-center justify-center gap-2">
-                                                <label class="inline-flex items-center gap-1 cursor-pointer text-xs">
-                                                    <input type="radio" value="vertical" v-model="previewModeSelection" class="sr-only">
-                                                    <span :class="['px-2 py-1 rounded-full', previewModeSelection==='vertical' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">竖向拼接</span>
-                                                </label>
-                                                <label class="inline-flex items-center gap-1 cursor-pointer text-xs">
-                                                    <input type="radio" value="horizontal" v-model="previewModeSelection" class="sr-only">
-                                                    <span :class="['px-2 py-1 rounded-full', previewModeSelection==='horizontal' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">横向拼接</span>
-                                                </label>
-                                            </div>
-                                        </div>
+                                        <div class="text-center text-xs text-dark/60 mt-2">拼接图高亮</div>
                                     </div>
 
                                     <!-- 识别文字列 -->

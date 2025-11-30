@@ -1,7 +1,5 @@
-from passlib.context import CryptContext
+import bcrypt
 from app.utils.logger import logger
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class PasswordUtil:
     """密码工具类"""
@@ -9,13 +7,20 @@ class PasswordUtil:
     @staticmethod
     def hash_password(password: str) -> str:
         """加密密码"""
-        return pwd_context.hash(password)
+        try:
+            # 使用bcrypt直接加密密码
+            hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+            return hashed.decode('utf-8')
+        except Exception as e:
+            logger.error(f"密码哈希失败: {e}")
+            raise
     
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         """验证密码"""
         try:
-            return pwd_context.verify(plain_password, hashed_password)
+            # 使用bcrypt直接验证密码
+            return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
         except Exception as e:
             logger.error(f"密码验证失败: {e}")
             return False

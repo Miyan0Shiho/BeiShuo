@@ -167,8 +167,15 @@ const shareArticle = () => {
 const sendChatQuestion = async () => {
   const q = chatQuestion.value.trim()
   if (!q) return
+  
+  // 检查用户登录状态
+  if (!userStore.isLoggedIn) {
+    appStore.addNotification({ type: 'error', message: '请先登录后再进行AI对话', duration: 3000 })
+    return
+  }
+  
   const baseUrl = 'http://localhost:8080/api/v1'
-  const token = localStorage.getItem('token') || ''
+  const token = userStore.token || ''
   const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
   chatMessages.value.push(userMsg)
   chatQuestion.value = ''
@@ -211,8 +218,14 @@ const sendChatQuestion = async () => {
 
 const fetchArticleInterpretation = async () => {
   if (!sectionsHistory.value && article.value) {
+    // 检查用户登录状态
+    if (!userStore.isLoggedIn) {
+      appStore.addNotification({ type: 'error', message: '请先登录后再获取AI阐释', duration: 3000 })
+      return
+    }
+    
     const baseUrl = 'http://localhost:8080/api/v1'
-    const token = localStorage.getItem('token') || ''
+    const token = userStore.token || ''
     const text = `${article.value.title} ${article.value.year || ''} ${article.value.dynasty || ''}`.trim()
     try {
       sectionsLoading.value = true

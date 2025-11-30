@@ -71,24 +71,59 @@ const closeModals = () => {
 }
 
 // 表单提交
-const handleLogin = () => {
-  // TODO: 实现登录逻辑
-  appStore.addNotification({
-    type: 'success',
-    message: '登录成功!',
-    duration: 3000
-  })
-  closeModals()
+const handleLogin = async () => {
+  try {
+    const result = await userStore.login(loginForm.value)
+    
+    if (result.success) {
+      appStore.addNotification({
+        type: 'success',
+        message: '登录成功!',
+        duration: 3000
+      })
+      closeModals()
+    } else {
+      appStore.addNotification({
+        type: 'error',
+        message: result.error || '登录失败',
+        duration: 5000
+      })
+    }
+  } catch (error) {
+    appStore.addNotification({
+      type: 'error',
+      message: error.message || '登录失败',
+      duration: 5000
+    })
+  }
 }
 
-const handleRegister = () => {
-  // TODO: 实现注册逻辑
-  appStore.addNotification({
-    type: 'success',
-    message: '注册成功!',
-    duration: 3000
-  })
-  closeModals()
+const handleRegister = async () => {
+  try {
+    const result = await userStore.register(registerForm.value)
+    
+    if (result.success) {
+      appStore.addNotification({
+        type: 'success',
+        message: '注册成功! 请登录',
+        duration: 3000
+      })
+      // 注册成功后自动切换到登录界面
+      openLoginModal()
+    } else {
+      appStore.addNotification({
+        type: 'error',
+        message: result.error || '注册失败',
+        duration: 5000
+      })
+    }
+  } catch (error) {
+    appStore.addNotification({
+      type: 'error',
+      message: error.message || '注册失败',
+      duration: 5000
+    })
+  }
 }
 
 const handleLogout = () => {
@@ -147,9 +182,7 @@ onUnmounted(() => {
         <div class="flex items-center space-x-4">
           <template v-if="userStore.isLoggedIn">
             <div class="flex items-center space-x-3">
-              <img :src="userStore.user?.avatar || '/images/default-avatar.png'" :alt="userStore.user?.name"
-                class="w-8 h-8 rounded-full object-cover">
-              <span class="hidden sm:block text-sm font-medium">{{ userStore.user?.name }}</span>
+              <span class="text-sm font-medium">{{ userStore.user?.name }}</span>
             </div>
             <button @click="handleLogout" class="text-sm text-red-600 hover:text-red-700 font-medium">
               退出

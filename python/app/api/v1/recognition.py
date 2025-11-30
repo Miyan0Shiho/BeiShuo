@@ -8,9 +8,12 @@ from app.services.inscription_service import InscriptionService
 from app.utils.logger import logger
 from app.config import settings
 from app.client.kandianguji_ocr_client import KandiangujiOCRClient
+from app.cache.ocr_cache_service import ocr_cache_service
+from app.cache.cache_manager import cache_manager
 import base64
 import os
 import uuid
+import hashlib
 
 router = APIRouter(prefix="/recognition", tags=["识别"])
 
@@ -65,6 +68,17 @@ async def start_recognition(
         return Result.fail(ResultCode.BAD_REQUEST, "image_url或image_base64至少提供一个")
 
     try:
+        # 初始化缓存管理器
+        if not cache_manager.is_initialized:
+            await cache_manager.initialize()
+
+        # 调试输出：接收到的参数
+        logger.info(f"=== OCR识别开始 ===")
+        logger.info(f"用户ID: {user_id}")
+        logger.info(f"图片URL: {image_url}")
+        logger.info(f"图片Base64长度: {len(image_base64) if image_base64 else 0}")
+        logger.info(f"识别选项: {options}")
+
         if not image_base64:
             if not isinstance(image_url, str) or not image_url.startswith(settings.file_upload_url_prefix):
                 return Result.fail(ResultCode.BAD_REQUEST, "无效的image_url")
@@ -75,48 +89,128 @@ async def start_recognition(
             with open(file_path, "rb") as f:
                 content = f.read()
             image_base64 = base64.b64encode(content).decode("utf-8")
+            logger.info(f"从文件读取图片: {file_path}, 大小: {len(content)}字节")
 
-        # 默认选项
-        default_options = {
-            "version": options.get("version", "v2"),
-            "det_mode": options.get("det_mode", "auto"),
-            "return_position": options.get("return_position", True),
-            "return_choices": options.get("return_choices", False),
-            "det_layout": options.get("det_layout", False),
-            "only_plain_text": options.get("only_plain_text", False),
-            "return_layout": options.get("return_layout", False),
-            "auto_insert_space": options.get("auto_insert_space", False),
-            "hp_line_words_angel": options.get("hp_line_words_angel", "left2right"),
-            "sp_line_words_angel": options.get("sp_line_words_angel", "top2bottom"),
-        }
+        # 生成图片哈希用于缓存
+        image_hash = hashlib.sha256(image_base64.encode('utf-8')).hexdigest()[:16]
+        vendor = "kandianguji"
+        
+        # 检查缓存
+        logger.info(f"检查缓存: 图片哈希={image_hash}, 供应商={vendor}")
+        cached_result = await ocr_cache_service.get_cached_ocr(image_hash, vendor)
+        
+        if cached_result:
+            logger.info(f"✅ 缓存命中! 缓存ID: {cached_result.get('id')}")
+            logger.info(f"缓存置信度: {cached_result.get('confidence', 0)}")
+            logger.info(f"缓存处理时间: {cached_result.get('duration_ms', 0)}ms")
+            
+            # 从缓存中获取OCR结果
+            norm = {
+                "full_text": cached_result.get('text', ''),
+                "word_count": cached_result.get('word_count', 0),
+                "confidence": cached_result.get('confidence', 0.0),
+                "width": cached_result.get('width', 0),
+                "height": cached_result.get('height', 0),
+                "text_angel": cached_result.get('text_angel', 0),
+                "text_lines": cached_result.get('text_lines', []),
+                "texts": cached_result.get('texts', []),
+                "layout": cached_result.get('layout', None)
+            }
+            cache_hit = True
+        else:
+            logger.info("❌ 缓存未命中，需要调用OCR服务")
+            cache_hit = False
+            
+            # 默认选项
+            default_options = {
+                "version": options.get("version", "v2"),
+                "det_mode": options.get("det_mode", "auto"),
+                "return_position": options.get("return_position", True),
+                "return_choices": options.get("return_choices", False),
+                "det_layout": options.get("det_layout", False),
+                "only_plain_text": options.get("only_plain_text", False),
+                "return_layout": options.get("return_layout", False),
+                "auto_insert_space": options.get("auto_insert_space", False),
+                "hp_line_words_angel": options.get("hp_line_words_angel", "left2right"),
+                "sp_line_words_angel": options.get("sp_line_words_angel", "top2bottom"),
+                "image_size": options.get("image_size", 2000),
+            }
 
-        client = KandiangujiOCRClient()
-        primary_options = {**default_options, "return_position": True}
-        ocr_resp = await client.recognize(image_base64, primary_options)
-        data = ocr_resp.get("data") or {}
-        norm = _normalize_ocr(data)
-        if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
-            fallback_sp = {**primary_options, "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
-            try:
-                ocr_resp = await client.recognize(image_base64, fallback_sp)
-                norm = _normalize_ocr(ocr_resp.get("data") or {})
-            except Exception:
-                pass
-        if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
-            fallback_hp = {**primary_options, "det_mode": "hp", "hp_line_words_angel": primary_options.get("hp_line_words_angel", "left2right")}
-            try:
-                ocr_resp = await client.recognize(image_base64, fallback_hp)
-                norm = _normalize_ocr(ocr_resp.get("data") or {})
-            except Exception:
-                pass
-        # 尝试版本回退（beta + sp）
-        if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
-            fallback_beta_sp = {**primary_options, "version": "beta", "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
-            try:
-                ocr_resp = await client.recognize(image_base64, fallback_beta_sp)
-                norm = _normalize_ocr(ocr_resp.get("data") or {})
-            except Exception:
-                pass
+            client = KandiangujiOCRClient()
+            primary_options = {**default_options, "return_position": True}
+            logger.info(f"调用OCR服务，选项: {primary_options}")
+            
+            ocr_resp = await client.recognize(image_base64, primary_options)
+            data = ocr_resp.get("data") or {}
+            norm = _normalize_ocr(data)
+            
+            # 详细调试输出OCR结果（JSON格式）
+            logger.info("=== OCR原始响应（JSON格式） ===")
+            logger.info(f"{ocr_resp}")
+            
+            logger.info("=== 归一化OCR结果（JSON格式） ===")
+            logger.info(f"{norm}")
+            
+            logger.info("=== OCR识别详情 ===")
+            logger.info(f"主模式结果 - 文字长度: {len(norm['full_text'])}, 置信度: {norm['confidence']}")
+            
+            # 如果识别结果为空，尝试备用模式
+            if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
+                logger.warning("主模式识别失败，尝试SP模式")
+                fallback_sp = {**primary_options, "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
+                try:
+                    ocr_resp = await client.recognize(image_base64, fallback_sp)
+                    norm = _normalize_ocr(ocr_resp.get("data") or {})
+                    
+                    logger.info("=== SP模式原始响应（JSON格式） ===")
+                    logger.info(f"{ocr_resp}")
+                    logger.info("=== SP模式归一化结果（JSON格式） ===")
+                    logger.info(f"{norm}")
+                    logger.info(f"SP模式结果 - 文字长度: {len(norm['full_text'])}, 置信度: {norm['confidence']}")
+                except Exception as e:
+                    logger.error(f"SP模式失败: {e}")
+                    pass
+            
+            if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
+                logger.warning("SP模式识别失败，尝试HP模式")
+                fallback_hp = {**primary_options, "det_mode": "hp", "hp_line_words_angel": primary_options.get("hp_line_words_angel", "left2right")}
+                try:
+                    ocr_resp = await client.recognize(image_base64, fallback_hp)
+                    norm = _normalize_ocr(ocr_resp.get("data") or {})
+                    
+                    logger.info("=== HP模式原始响应（JSON格式） ===")
+                    logger.info(f"{ocr_resp}")
+                    logger.info("=== HP模式归一化结果（JSON格式） ===")
+                    logger.info(f"{norm}")
+                    logger.info(f"HP模式结果 - 文字长度: {len(norm['full_text'])}, 置信度: {norm['confidence']}")
+                except Exception as e:
+                    logger.error(f"HP模式失败: {e}")
+                    pass
+            
+            # 尝试版本回退（beta + sp）
+            if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
+                logger.warning("HP模式识别失败，尝试Beta+SP模式")
+                fallback_beta_sp = {**primary_options, "version": "beta", "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
+                try:
+                    ocr_resp = await client.recognize(image_base64, fallback_beta_sp)
+                    norm = _normalize_ocr(ocr_resp.get("data") or {})
+                    
+                    logger.info("=== Beta+SP模式原始响应（JSON格式） ===")
+                    logger.info(f"{ocr_resp}")
+                    logger.info("=== Beta+SP模式归一化结果（JSON格式） ===")
+                    logger.info(f"{norm}")
+                    logger.info(f"Beta+SP模式结果 - 文字长度: {len(norm['full_text'])}, 置信度: {norm['confidence']}")
+                except Exception as e:
+                    logger.error(f"Beta+SP模式失败: {e}")
+                    pass
+
+            # 缓存OCR结果
+            if norm["full_text"] or norm["text_lines"]:
+                logger.info("缓存OCR结果")
+                # 这里需要传递图片数据，但由于image_data可能不可用，传递空bytes
+                await ocr_cache_service.cache_ocr_result(
+                    image_hash, b"", norm, vendor, 1000
+                )
 
         recognition_id = f"rec_{int(datetime.now().timestamp() * 1000)}"
         task_id = f"task_{int(datetime.now().timestamp() * 1000)}"
@@ -137,8 +231,33 @@ async def start_recognition(
                 "text_lines": norm["text_lines"],
                 "texts": norm["texts"],
                 "layout": norm["layout"],
+                "cache_hit": cache_hit  # 添加缓存命中标识
             }
         }
+
+        # 最终调试输出（JSON格式）
+        logger.info("=== OCR识别完成（JSON格式） ===")
+        final_debug_info = {
+            "识别结果": {
+                "文字长度": len(norm['full_text']),
+                "置信度": norm['confidence'],
+                "文字行数": len(norm['text_lines']),
+                "文字块数": len(norm['texts']),
+                "图片尺寸": f"{norm['width']}x{norm['height']}",
+                "文字角度": norm['text_angel']
+            },
+            "缓存信息": {
+                "缓存命中": cache_hit,
+                "图片哈希": image_hash,
+                "供应商": vendor
+            },
+            "任务信息": {
+                "识别ID": recognition_id,
+                "任务ID": task_id,
+                "用户ID": user_id
+            }
+        }
+        logger.info(f"{final_debug_info}")
 
         return Result.ok(result, "识别完成")
     except Exception as e:

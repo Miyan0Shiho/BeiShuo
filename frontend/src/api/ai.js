@@ -73,6 +73,12 @@ export async function uploadImage({ baseUrl, token, file }) {
   const form = new FormData()
   form.append('image', file)
   const res = await fetch(url, { method: 'POST', headers, body: form })
+  
+  // 处理401未授权错误
+  if (res.status === 401) {
+    throw new Error('未授权访问，请先登录')
+  }
+  
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data = await res.json()
   if (data && data.success) return data.data

@@ -28,7 +28,7 @@ class AuthService:
         # 创建用户
         user_data = {
             "email": email,
-            "password": hashed_password,
+            "password_hash": hashed_password,
             "username": username
         }
         
@@ -47,7 +47,7 @@ class AuthService:
             raise BusinessException(ResultCode.INVALID_CREDENTIALS)
         
         # 验证密码
-        stored_password = user.get("password")
+        stored_password = user.get("password_hash")
         if not self.password_util.verify_password(password, stored_password):
             raise BusinessException(ResultCode.INVALID_CREDENTIALS)
         
