@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Path, Body
+from fastapi import APIRouter, Depends, Query, Path, Body, Request
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 from app.common.response import Result
@@ -343,6 +343,180 @@ async def get_recognition_history(
         return Result.success(result)
     finally:
         await service.close()
+
+@router.get("/recent")
+async def get_recent_recognition_records(
+    request: Request,
+    limit: int = Query(10, ge=1, le=50)
+):
+    """获取最近识别记录列表"""
+    try:
+        # 获取当前用户
+        current_user = request.state.current_user
+        
+        # 查询最近识别记录
+        query = """
+            SELECT 
+                oj.id as job_id,
+                oj.asset_id,
+                oj.status,
+                oj.confidence,
+                oj.duration_ms,
+                oj.created_at,
+                oj.updated_at,
+                oi.width,
+                oi.height,
+                oi.text_angel,
+                oi.text_angel_confidence,
+                oi.version,
+                oi.det_mode,
+                oi.image_size
+            FROM ocr_jobs oj
+            LEFT JOIN ocr_images oi ON oj.id = oi.job_id
+            WHERE oj.status = 'success'
+            AND oj.asset_id IN (SELECT id FROM inscriptions WHERE user_id = %s)
+            ORDER BY oj.created_at DESC
+            LIMIT %s
+        """
+        
+        # 使用mysql_client执行查询
+        from app.client.mysql_client import mysql_client
+        results = await mysql_client.execute_query(query, (current_user.id, limit))
+        
+        # 转换为前端需要的格式
+        recent_records = []
+        for record in results:
+            recent_records.append({
+                "job_id": record.get("job_id"),
+                "asset_id": record.get("asset_id"),
+                "status": record.get("status"),
+                "confidence": record.get("confidence"),
+                "duration_ms": record.get("duration_ms"),
+                "created_at": record.get("created_at"),
+                "width": record.get("width"),
+                "height": record.get("height"),
+                "image_size": record.get("image_size"),
+                "text_angel": record.get("text_angel"),
+                "text_angel_confidence": record.get("text_angel_confidence")
+            })
+        
+        return {
+            "code": 200,
+            "message": "获取最近识别记录成功",
+            "data": {
+                "list": recent_records,
+                "total": len(recent_records),
+                "limit": limit
+            }
+        }
+    except Exception as e:
+        logger.error(f"获取最近识别记录失败: {e}")
+        return {
+            "code": 500,
+            "message": "获取最近识别记录失败",
+            "data": None
+        }
+
+@router.get("/recent/{job_id}")
+async def get_recognition_record_detail(
+    request: Request,
+    job_id: int
+):
+    """获取单个识别记录的详细信息"""
+    try:
+        # 获取当前用户
+        current_user = request.state.current_user
+        
+        # 查询识别记录详情
+        query = """
+            SELECT 
+                oj.id as job_id,
+                oj.asset_id,
+                oj.status,
+                oj.vendor,
+                oj.params,
+                oj.confidence,
+                oj.duration_ms,
+                oj.created_at,
+                oj.updated_at,
+                oi.*,
+                i.title as inscription_title,
+                i.content as inscription_content
+            FROM ocr_jobs oj
+            LEFT JOIN ocr_images oi ON oj.id = oi.job_id
+            LEFT JOIN inscriptions i ON oj.asset_id = i.id
+            WHERE oj.id = %s
+            AND oj.status = 'success'
+            AND i.user_id = %s
+        """
+        
+        # 使用mysql_client执行查询
+        from app.client.mysql_client import mysql_client
+        import json
+        results = await mysql_client.execute_query(query, (job_id, current_user.id))
+        
+        if not results:
+            return {
+                "code": 404,
+                "message": "识别记录不存在",
+                "data": None
+            }
+        
+        record = results[0]
+        
+        # 解析params字段
+        params = {}
+        if record.get("params"):
+            try:
+                params = json.loads(record.get("params"))
+            except:
+                pass
+        
+        # 转换为前端需要的格式
+        detail = {
+            "job_id": record.get("job_id"),
+            "asset_id": record.get("asset_id"),
+            "status": record.get("status"),
+            "vendor": record.get("vendor"),
+            "confidence": record.get("confidence"),
+            "duration_ms": record.get("duration_ms"),
+            "created_at": record.get("created_at"),
+            "updated_at": record.get("updated_at"),
+            "params": params,
+            "image_info": {
+                "width": record.get("width"),
+                "height": record.get("height"),
+                "image_size": record.get("image_size"),
+                "text_angel": record.get("text_angel"),
+                "text_angel_confidence": record.get("text_angel_confidence"),
+                "version": record.get("version"),
+                "det_mode": record.get("det_mode"),
+                "det_layout": record.get("det_layout"),
+                "only_plain_text": record.get("only_plain_text"),
+                "return_layout": record.get("return_layout"),
+                "auto_insert_space": record.get("auto_insert_space"),
+                "hp_line_words_angel": record.get("hp_line_words_angel"),
+                "sp_line_words_angel": record.get("sp_line_words_angel"),
+                "char_ocr": record.get("char_ocr")
+            },
+            "inscription_info": {
+                "title": record.get("inscription_title"),
+                "content": record.get("inscription_content")
+            }
+        }
+        
+        return {
+            "code": 200,
+            "message": "获取识别记录详情成功",
+            "data": detail
+        }
+    except Exception as e:
+        logger.error(f"获取识别记录详情失败: {e}")
+        return {
+            "code": 500,
+            "message": "获取识别记录详情失败",
+            "data": None
+        }
 
 @router.put("/{recognition_id}/correct")
 async def correct_recognition(

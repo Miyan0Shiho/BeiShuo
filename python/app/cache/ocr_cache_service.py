@@ -58,7 +58,7 @@ class OCRCacheService:
                        oi.det_layout, oi.only_plain_text, oi.return_layout, 
                        oi.auto_insert_space, oi.hp_line_words_angel, 
                        oi.sp_line_words_angel, oi.char_ocr, oi.image_size,
-                       oj.confidence, oj.duration_ms, oj.created_at
+                       oj.confidence, oj.duration_ms, oj.created_at, oj.params
                 FROM ocr_images oi
                 JOIN ocr_jobs oj ON oi.job_id = oj.id
                 WHERE oj.vendor = %s AND oj.status = 'success' AND oj.params LIKE %s
@@ -66,12 +66,15 @@ class OCRCacheService:
                 LIMIT 1
             """
             
-            # 在params中查找image_hash - 使用更简单的模式匹配
-            hash_pattern = f'%{image_hash}%'
+            # 在params中查找image_hash - 使用更精确的模式匹配
+            hash_pattern = f'%"image_hash":"{image_hash}"%'
             result = await self.db.execute_query(query, (vendor, hash_pattern))
             
             if result:
-                # 由于实际表结构中没有hit_count字段，暂时跳过更新
+                # 尝试从params中提取OCR文本数据
+                params = json.loads(result[0]['params']) if result[0]['params'] else {}
+                
+                # 构建完整的OCR结果
                 return {
                     'id': result[0]['id'],
                     'job_id': result[0]['job_id'],
@@ -79,7 +82,13 @@ class OCRCacheService:
                     'height': result[0]['height'],
                     'confidence': result[0]['confidence'],
                     'duration_ms': result[0]['duration_ms'],
-                    'created_at': result[0]['created_at']
+                    'created_at': result[0]['created_at'],
+                    # 添加OCR文本数据占位符
+                    'text': params.get('text', ''),
+                    'word_count': params.get('word_count', 0),
+                    'text_lines': params.get('text_lines', []),
+                    'texts': params.get('texts', []),
+                    'layout': params.get('layout', None)
                 }
             
             return None
@@ -128,7 +137,13 @@ class OCRCacheService:
             job_params = {
                 'vendor': vendor,
                 'image_size': len(image_data),
-                'image_hash': image_hash  # 添加image_hash用于查询
+                'image_hash': image_hash,  # 添加image_hash用于查询
+                # 添加完整的OCR文本数据，便于缓存查询
+                'text': ocr_result.get('full_text', ''),
+                'word_count': ocr_result.get('word_count', 0),
+                'text_lines': ocr_result.get('text_lines', []),
+                'texts': ocr_result.get('texts', []),
+                'layout': ocr_result.get('layout', None)
             }
             
             job_values = (

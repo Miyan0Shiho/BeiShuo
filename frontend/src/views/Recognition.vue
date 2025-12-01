@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { postChat, streamChatFetch, postInterpretationSections, uploadImage, startRecognition as startRecognitionApi } from '../api/ai'
+import { getRecentRecognitionList, getRecognitionDetail } from '../api/recognition'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
 import { useUserStore } from '../stores/user'
@@ -286,30 +287,15 @@ const saveForm = ref({
 
 const availableTags = ['汉代碑文', '唐代碑文', '宋代碑文', '名人碑刻', '地方历史']
 
-// 历史记录
-const recentHistory = ref([
-    {
-        id: 1,
-        name: '李白墓碑文',
-        preview: '维大唐开元二十有九年，岁次辛巳，秋八月丁丑朔，十三日己丑...',
-        date: '今天 14:30',
-        confidence: 98.7
-    },
-    {
-        id: 2,
-        name: '兰亭集序',
-        preview: '永和九年，岁在癸丑，暮春之初，会于会稽山阴之兰亭，修禊事也...',
-        date: '昨天 09:15',
-        confidence: 97.5
-    },
-    {
-        id: 3,
-        name: '天下第一行书',
-        preview: '天下第一行书《兰亭集序》，东晋王羲之书，被誉为"天下第一行书"...',
-        date: '2023-10-28 16:42',
-        confidence: 96.8
-    }
-])
+// 最近识别记录
+const recentHistory = ref([])
+const recentHistoryLoading = ref(false)
+const recentHistoryPagination = ref({
+    currentPage: 1,
+    pageSize: 10,
+    total: 0,
+    totalPages: 0
+})
 
 // 推荐碑文
 const recommendations = ref([
@@ -599,6 +585,154 @@ const confirmCorrection = () => {
     hideCorrectionPopup()
 }
 
+// 获取最近识别记录
+const loadRecentRecognitionList = async (page = 1) => {
+    const userStore = useUserStore()
+    if (!userStore.isLoggedIn) {
+        appStore.addNotification({
+            type: 'warning',
+            message: '请先登录后查看识别记录',
+            duration: 3000
+        })
+        return
+    }
+
+    recentHistoryLoading.value = true
+    try {
+        const baseUrl = 'http://localhost:8080/api/v1'
+        const token = userStore.token
+        
+        const data = await getRecentRecognitionList({
+            baseUrl,
+            token,
+            page: page,
+            size: recentHistoryPagination.value.pageSize
+        })
+        
+        // 处理响应数据格式
+        if (data && data.records) {
+            recentHistory.value = data.records.map(item => ({
+                id: item.job_id || item.id,
+                name: item.image_name || '未命名图片',
+                preview: item.preview_text || item.ocr_text || '暂无识别内容',
+                date: formatDate(item.created_at || item.create_time),
+                confidence: Math.round((item.confidence || 0) * 100) / 100,
+                image_url: item.image_url,
+                job_id: item.job_id
+            }))
+            
+            // 更新分页信息
+            recentHistoryPagination.value = {
+                currentPage: data.current_page || page,
+                pageSize: data.page_size || recentHistoryPagination.value.pageSize,
+                total: data.total || 0,
+                totalPages: data.total_pages || Math.ceil((data.total || 0) / (data.page_size || recentHistoryPagination.value.pageSize))
+            }
+        } else {
+            // 处理空数据情况
+            recentHistory.value = []
+            recentHistoryPagination.value.total = 0
+            recentHistoryPagination.value.totalPages = 0
+        }
+        
+    } catch (error) {
+        console.error('获取最近识别记录失败:', error)
+        appStore.addNotification({
+            type: 'error',
+            message: '获取识别记录失败: ' + error.message,
+            duration: 3000
+        })
+        recentHistory.value = []
+    } finally {
+        recentHistoryLoading.value = false
+    }
+}
+
+// 格式化日期
+const formatDate = (dateString) => {
+    if (!dateString) return '未知时间'
+    
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) {
+        return '今天 ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    } else if (diffDays === 1) {
+        return '昨天 ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    } else if (diffDays < 7) {
+        return `${diffDays}天前`
+    } else {
+        return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    }
+}
+
+// 查看识别记录详情
+const viewRecognitionDetail = async (jobId) => {
+    const userStore = useUserStore()
+    if (!userStore.isLoggedIn) {
+        appStore.addNotification({
+            type: 'warning',
+            message: '请先登录后查看详情',
+            duration: 3000
+        })
+        return
+    }
+
+    try {
+        const baseUrl = 'http://localhost:8080/api/v1'
+        const token = userStore.token
+        
+        const detail = await getRecognitionDetail({
+            baseUrl,
+            token,
+            jobId
+        })
+        
+        // 处理详情数据，可以在这里打开详情弹窗或跳转到详情页面
+        console.log('识别记录详情:', detail)
+        
+        appStore.addNotification({
+            type: 'info',
+            message: '正在加载识别详情...',
+            duration: 2000
+        })
+        
+        // TODO: 实现详情查看功能
+        
+    } catch (error) {
+        console.error('获取识别详情失败:', error)
+        appStore.addNotification({
+            type: 'error',
+            message: '获取识别详情失败: ' + error.message,
+            duration: 3000
+        })
+    }
+}
+
+// 分页操作
+const prevPage = () => {
+    if (recentHistoryPagination.value.currentPage > 1) {
+        recentHistoryPagination.value.currentPage--
+        loadRecentRecognitionList(recentHistoryPagination.value.currentPage)
+    }
+}
+
+const nextPage = () => {
+    if (recentHistoryPagination.value.currentPage < recentHistoryPagination.value.totalPages) {
+        recentHistoryPagination.value.currentPage++
+        loadRecentRecognitionList(recentHistoryPagination.value.currentPage)
+    }
+}
+
+const goToPage = (page) => {
+    if (page >= 1 && page <= recentHistoryPagination.value.totalPages) {
+        recentHistoryPagination.value.currentPage = page
+        loadRecentRecognitionList(page)
+    }
+}
+
 const saveCorrections = async () => {
     const baseUrl = 'http://localhost:8080/api/v1'
     const token = localStorage.getItem('token') || ''
@@ -742,6 +876,11 @@ const sendAiQuestion = async () => {
 const triggerFileInput = () => {
     modalFileInput.value?.click()
 }
+
+// 组件挂载时初始化
+onMounted(() => {
+    loadRecentRecognitionList()
+})
 </script>
 
 <template>
