@@ -18,8 +18,8 @@ class OSSConfig(BaseSettings):
     """OSS配置类"""
     
     # 阿里云OSS配置
-    oss_access_key_id: str = "LTAI5tQc1DW41aWNq68u2TWX"
-    oss_access_key_secret: str = "ge9NjmCfitIq0VOM9LsiypeY31ghDn"
+    oss_access_key_id: str = ""
+    oss_access_key_secret: str = ""
     oss_endpoint: str = "https://oss-cn-hangzhou.aliyuncs.com"
     oss_bucket_name: str = "beiwen1"
     oss_region: str = "oss-cn-hangzhou"
