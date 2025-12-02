@@ -44,15 +44,15 @@ const recognitionResult = ref({
 const recognitionId = ref('')
 const textLines = ref([])
 const recognitionOptions = ref({
-  det_mode: 'sp',
-  return_position: true,
-  return_choices: true,
-  version: 'beta',
-  det_layout: false,
-  only_plain_text: false,
-  return_layout: false,
-  hp_line_words_angel: 'left2right',
-  sp_line_words_angel: 'top2bottom'
+    det_mode: 'sp',
+    return_position: true,
+    return_choices: true,
+    version: 'beta',
+    det_layout: false,
+    only_plain_text: false,
+    return_layout: false,
+    hp_line_words_angel: 'left2right',
+    sp_line_words_angel: 'top2bottom'
 })
 const originalImageUrl = ref('')
 const originalImageSize = ref({ width: 0, height: 0 })
@@ -63,159 +63,159 @@ const lineConfidences = ref([])
 const stripContainerRef = ref(null)
 const stripHighlight = ref({ visible: false, left: 0, top: 0, width: 0, height: 0 })
 const stripOverlayStyle = computed(() => ({
-  position: 'absolute',
-  left: stripHighlight.value.left + 'px',
-  top: stripHighlight.value.top + 'px',
-  width: stripHighlight.value.width + 'px',
-  height: stripHighlight.value.height + 'px',
-  display: stripHighlight.value.visible ? 'block' : 'none',
-  border: '2px solid rgba(255,165,0,0.9)',
-  background: 'rgba(255,165,0,0.25)',
+    position: 'absolute',
+    left: stripHighlight.value.left + 'px',
+    top: stripHighlight.value.top + 'px',
+    width: stripHighlight.value.width + 'px',
+    height: stripHighlight.value.height + 'px',
+    display: stripHighlight.value.visible ? 'block' : 'none',
+    border: '2px solid rgba(255,165,0,0.9)',
+    background: 'rgba(255,165,0,0.25)',
 }))
 const detModeSelection = ref('sp')
 const directionSelection = ref('top2bottom')
 const previewModeSelection = ref('vertical')
 const directionOptions = computed(() => detModeSelection.value === 'sp'
-  ? [
-    { id: 'top2bottom', label: '从上到下' },
-    { id: 'bottom2top', label: '从下到上' }
-  ]
-  : [
-    { id: 'left2right', label: '从左到右' },
-    { id: 'right2left', label: '从右到左' }
-  ]
+    ? [
+        { id: 'top2bottom', label: '从上到下' },
+        { id: 'bottom2top', label: '从下到上' }
+    ]
+    : [
+        { id: 'left2right', label: '从左到右' },
+        { id: 'right2left', label: '从右到左' }
+    ]
 )
 watch(detModeSelection, (v) => {
-  directionSelection.value = v === 'sp' ? 'top2bottom' : 'left2right'
-  previewModeSelection.value = v === 'hp' ? 'horizontal' : 'vertical'
+    directionSelection.value = v === 'sp' ? 'top2bottom' : 'left2right'
+    previewModeSelection.value = v === 'hp' ? 'horizontal' : 'vertical'
 })
 
 // 原图裁剪与置信度工具
 const loadImage = (src) => new Promise((resolve, reject) => {
-  const img = new Image()
-  img.crossOrigin = 'anonymous'
-  img.onload = () => resolve(img)
-  img.onerror = reject
-  img.src = src
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
 })
 
 const buildStripForLineVertical = async (img, line, targetWidth = 80) => {
-  const words = Array.isArray(line.words) ? line.words : []
-  if (!words.length) return { url: '', rects: [] }
-  const strips = []
-  const rects = []
-  let totalHeight = 0
-  for (const w of words) {
-    const pos = w.position || []
-    const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
-    const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
-    const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
-    const scale = targetWidth / wWidth
-    const h = Math.round(wHeight * scale)
-    strips.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dh: h, scale })
-    rects.push({ left: 0, top: totalHeight, width: targetWidth, height: h })
-    totalHeight += h
-  }
-  const canvas = document.createElement('canvas')
-  canvas.width = targetWidth
-  canvas.height = totalHeight
-  const ctx = canvas.getContext('2d')
-  let y = 0
-  for (const s of strips) {
-    ctx.drawImage(img, s.x, s.y, s.w, s.h, 0, y, targetWidth, s.dh)
-    y += s.dh
-  }
-  return { url: canvas.toDataURL('image/png'), rects, baseW: targetWidth, baseH: totalHeight }
+    const words = Array.isArray(line.words) ? line.words : []
+    if (!words.length) return { url: '', rects: [] }
+    const strips = []
+    const rects = []
+    let totalHeight = 0
+    for (const w of words) {
+        const pos = w.position || []
+        const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
+        const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
+        const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
+        const scale = targetWidth / wWidth
+        const h = Math.round(wHeight * scale)
+        strips.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dh: h, scale })
+        rects.push({ left: 0, top: totalHeight, width: targetWidth, height: h })
+        totalHeight += h
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = targetWidth
+    canvas.height = totalHeight
+    const ctx = canvas.getContext('2d')
+    let y = 0
+    for (const s of strips) {
+        ctx.drawImage(img, s.x, s.y, s.w, s.h, 0, y, targetWidth, s.dh)
+        y += s.dh
+    }
+    return { url: canvas.toDataURL('image/png'), rects, baseW: targetWidth, baseH: totalHeight }
 }
 
 const buildStripForLineHorizontal = async (img, line, targetHeight = 80) => {
-  const words = Array.isArray(line.words) ? line.words : []
-  if (!words.length) return { url: '', rects: [] }
-  const pieces = []
-  const rects = []
-  let totalWidth = 0
-  for (const w of words) {
-    const pos = w.position || []
-    const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
-    const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
-    const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
-    const scale = targetHeight / wHeight
-    const wScaled = Math.round(wWidth * scale)
-    pieces.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dw: wScaled, scale })
-    rects.push({ left: totalWidth, top: 0, width: wScaled, height: targetHeight })
-    totalWidth += wScaled
-  }
-  const canvas = document.createElement('canvas')
-  canvas.width = totalWidth
-  canvas.height = targetHeight
-  const ctx = canvas.getContext('2d')
-  let x = 0
-  for (const p of pieces) {
-    ctx.drawImage(img, p.x, p.y, p.w, p.h, x, 0, p.dw, targetHeight)
-    x += p.dw
-  }
-  return { url: canvas.toDataURL('image/png'), rects, baseW: totalWidth, baseH: targetHeight }
+    const words = Array.isArray(line.words) ? line.words : []
+    if (!words.length) return { url: '', rects: [] }
+    const pieces = []
+    const rects = []
+    let totalWidth = 0
+    for (const w of words) {
+        const pos = w.position || []
+        const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
+        const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
+        const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
+        const scale = targetHeight / wHeight
+        const wScaled = Math.round(wWidth * scale)
+        pieces.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dw: wScaled, scale })
+        rects.push({ left: totalWidth, top: 0, width: wScaled, height: targetHeight })
+        totalWidth += wScaled
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = totalWidth
+    canvas.height = targetHeight
+    const ctx = canvas.getContext('2d')
+    let x = 0
+    for (const p of pieces) {
+        ctx.drawImage(img, p.x, p.y, p.w, p.h, x, 0, p.dw, targetHeight)
+        x += p.dw
+    }
+    return { url: canvas.toDataURL('image/png'), rects, baseW: totalWidth, baseH: targetHeight }
 }
 
 const buildStripForLine = async (img, line, mode) => {
-  if (mode === 'horizontal') return buildStripForLineHorizontal(img, line)
-  return buildStripForLineVertical(img, line)
+    if (mode === 'horizontal') return buildStripForLineHorizontal(img, line)
+    return buildStripForLineVertical(img, line)
 }
 
 const computeLineConfidence = (line) => {
-  const words = Array.isArray(line.words) ? line.words : []
-  let sum = 0, n = 0
-  for (const w of words) {
-    let c = typeof w.confidence === 'number' ? w.confidence : (typeof w.det_confidence === 'number' ? w.det_confidence : null)
-    if (c !== null) { sum += c; n++ }
-  }
-  return n ? Math.round((sum / n) * 100) : 0
+    const words = Array.isArray(line.words) ? line.words : []
+    let sum = 0, n = 0
+    for (const w of words) {
+        let c = typeof w.confidence === 'number' ? w.confidence : (typeof w.det_confidence === 'number' ? w.det_confidence : null)
+        if (c !== null) { sum += c; n++ }
+    }
+    return n ? Math.round((sum / n) * 100) : 0
 }
 
 const formatWordConfidence = (w) => {
-  const c = typeof w.confidence === 'number' ? w.confidence : (typeof w.det_confidence === 'number' ? w.det_confidence : 0)
-  return Math.round(c * 100)
+    const c = typeof w.confidence === 'number' ? w.confidence : (typeof w.det_confidence === 'number' ? w.det_confidence : 0)
+    return Math.round(c * 100)
 }
 
 const onWordEnter = (li, wi) => {
-  if (typeof li !== 'number' || typeof wi !== 'number') {
-    stripHighlight.value.visible = false
-    return
-  }
-  currentColumn.value = li + 1
-  const rects = lineStripRects.value[li] || []
-  const r = rects[wi]
-  if (!r || !stripContainerRef.value) {
-    stripHighlight.value.visible = false
-    return
-  }
-  const cw = stripContainerRef.value.clientWidth || 0
-  const ch = stripContainerRef.value.clientHeight || 0
-  const dims = (lineStripDims.value[li]) || { baseW: 80, baseH: (rects.length ? rects.reduce((acc, it) => acc + it.height, 0) : 0) }
-  const imgW = dims.baseW
-  const imgH = dims.baseH
-  const scale = Math.min(cw / imgW, ch / imgH)
-  const rw = Math.round(imgW * scale)
-  const rh = Math.round(imgH * scale)
-  const offsetX = Math.floor((cw - rw) / 2)
-  const offsetY = Math.floor((ch - rh) / 2)
-  const left = offsetX + Math.round(r.left * scale)
-  const top = offsetY + Math.round(r.top * scale)
-  const width = Math.max(1, Math.round(r.width * scale))
-  const height = Math.max(1, Math.round(r.height * scale))
-  stripHighlight.value = { visible: true, left, top, width, height }
+    if (typeof li !== 'number' || typeof wi !== 'number') {
+        stripHighlight.value.visible = false
+        return
+    }
+    currentColumn.value = li + 1
+    const rects = lineStripRects.value[li] || []
+    const r = rects[wi]
+    if (!r || !stripContainerRef.value) {
+        stripHighlight.value.visible = false
+        return
+    }
+    const cw = stripContainerRef.value.clientWidth || 0
+    const ch = stripContainerRef.value.clientHeight || 0
+    const dims = (lineStripDims.value[li]) || { baseW: 80, baseH: (rects.length ? rects.reduce((acc, it) => acc + it.height, 0) : 0) }
+    const imgW = dims.baseW
+    const imgH = dims.baseH
+    const scale = Math.min(cw / imgW, ch / imgH)
+    const rw = Math.round(imgW * scale)
+    const rh = Math.round(imgH * scale)
+    const offsetX = Math.floor((cw - rw) / 2)
+    const offsetY = Math.floor((ch - rh) / 2)
+    const left = offsetX + Math.round(r.left * scale)
+    const top = offsetY + Math.round(r.top * scale)
+    const width = Math.max(1, Math.round(r.width * scale))
+    const height = Math.max(1, Math.round(r.height * scale))
+    stripHighlight.value = { visible: true, left, top, width, height }
 }
 
 const onWordLeave = () => {
-  stripHighlight.value.visible = false
+    stripHighlight.value.visible = false
 }
 
 // 校对数据
 const currentColumn = ref(1)
 const totalColumns = ref(12)
 const currentLine = computed(() => {
-  const idx = currentColumn.value - 1
-  return (Array.isArray(textLines.value) && textLines.value[idx]) ? textLines.value[idx] : { words: [] }
+    const idx = currentColumn.value - 1
+    return (Array.isArray(textLines.value) && textLines.value[idx]) ? textLines.value[idx] : { words: [] }
 })
 const currentWords = computed(() => Array.isArray(currentLine.value.words) ? currentLine.value.words : [])
 
@@ -287,7 +287,7 @@ const renderMarkdown = (md) => {
             continue
         }
         if (inCode) { codeBuf.push(line); continue }
-        if (!line.trim()) { closeLists(); html += '<br/>' ; continue }
+        if (!line.trim()) { closeLists(); html += '<br/>'; continue }
 
         const h3 = line.match(/^###\s+(.*)/)
         if (h3) { closeLists(); html += `<h3>${formatInline(h3[1])}</h3>`; continue }
@@ -478,7 +478,7 @@ const startRecognition = async () => {
         // 上传图片
         const uploadRes = await uploadImage({ baseUrl, token, file: selectedFile.value })
         const imageUrl = uploadRes.image_url
-        originalImageUrl.value = `${baseUrl.replace('/api/v1','')}${imageUrl.startsWith('/') ? imageUrl : ('/' + imageUrl)}`
+        originalImageUrl.value = `${baseUrl.replace('/api/v1', '')}${imageUrl.startsWith('/') ? imageUrl : ('/' + imageUrl)}`
 
         // 识别
         const timer = setInterval(() => {
@@ -526,7 +526,7 @@ const startRecognition = async () => {
                 lineStripRects.value = rectsAll
                 lineStripDims.value = dimsAll
             }
-        } catch {}
+        } catch { }
         const conf = typeof r.confidence === 'number' ? r.confidence : 0
         const now = new Date()
         recognitionResult.value = {
@@ -826,7 +826,8 @@ const triggerFileInput = () => {
                         class="p-6 md:p-8 flex-grow flex flex-col items-center justify-center text-center min-h-[400px]">
                         <!-- 等待状态 -->
                         <div v-if="recognitionState === 'waiting'">
-                            <div class="w-24 h-24 bg-secondary/30 rounded-full flex items-center justify-center mb-6">
+                            <div
+                                class="w-24 h-24 bg-secondary/30 rounded-full flex items-center justify-center mb-6 mx-auto">
                                 <i class="fas fa-upload text-primary/50 text-4xl"></i>
                             </div>
                             <h3 class="text-xl font-semibold text-dark mb-3">等待上传图片</h3>
@@ -842,7 +843,8 @@ const triggerFileInput = () => {
 
                         <!-- 识别中 -->
                         <div v-else-if="recognitionState === 'processing'">
-                            <div class="w-24 h-24 bg-secondary/30 rounded-full flex items-center justify-center mb-6">
+                            <div
+                                class="w-24 h-24 bg-secondary/30 rounded-full flex items-center justify-center mb-6 mx-auto">
                                 <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary">
                                 </div>
                             </div>
@@ -861,7 +863,8 @@ const triggerFileInput = () => {
 
                         <!-- 识别完成 -->
                         <div v-else-if="recognitionState === 'completed'">
-                            <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                            <div
+                                class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 mx-auto">
                                 <i class="fas fa-check text-green-500 text-4xl"></i>
                             </div>
                             <h3 class="text-xl font-semibold text-dark mb-3">识别完成</h3>
@@ -908,7 +911,7 @@ const triggerFileInput = () => {
                                     <span class="text-sm text-dark/70">
                                         第 <span class="font-medium">{{ currentColumn }}</span> 列 / 共 <span
                                             class="font-medium">{{
-                                            totalColumns }}</span> 列
+                                                totalColumns }}</span> 列
                                     </span>
                                     <button @click="nextColumn"
                                         class="p-2 rounded-md border border-gray-200 text-dark/70 hover:bg-gray-50 transition-custom"
@@ -932,66 +935,83 @@ const triggerFileInput = () => {
 
                             <!-- 列对比展示 -->
                             <div class="relative overflow-x-auto pb-4">
-                                <div class="flex space-x-4 min-w-max">
+                                <div class="flex justify-center space-x-6 min-w-max md:min-w-0">
                                     <!-- 原始图片列（按当前行拼接裁剪条） -->
-                                    <div class="w-40 flex-shrink-0">
-                                        <div ref="stripContainerRef" class="relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 h-[400px] flex items-start justify-center">
-                                            <img v-if="lineStripUrls[currentColumn - 1]" :src="lineStripUrls[currentColumn - 1]" class="w-full h-full object-contain" alt="拼接图" />
+                                    <div class="w-64 flex-shrink-0">
+                                        <div ref="stripContainerRef"
+                                            class="relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 h-[500px] flex items-start justify-center">
+                                            <img v-if="lineStripUrls[currentColumn - 1]"
+                                                :src="lineStripUrls[currentColumn - 1]"
+                                                class="w-full h-full object-contain" alt="拼接图" />
                                             <div :style="stripOverlayStyle"></div>
                                         </div>
                                         <div class="text-center text-xs text-dark/60 mt-2">
                                             拼接图高亮
                                             <div class="mt-2 flex items-center justify-center gap-2">
                                                 <label class="inline-flex items-center gap-1 cursor-pointer text-xs">
-                                                    <input type="radio" value="vertical" v-model="previewModeSelection" class="sr-only">
-                                                    <span :class="['px-2 py-1 rounded-full', previewModeSelection==='vertical' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">竖向拼接</span>
+                                                    <input type="radio" value="vertical" v-model="previewModeSelection"
+                                                        class="sr-only">
+                                                    <span
+                                                        :class="['px-2 py-1 rounded-full', previewModeSelection === 'vertical' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">竖向拼接</span>
                                                 </label>
                                                 <label class="inline-flex items-center gap-1 cursor-pointer text-xs">
-                                                    <input type="radio" value="horizontal" v-model="previewModeSelection" class="sr-only">
-                                                    <span :class="['px-2 py-1 rounded-full', previewModeSelection==='horizontal' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">横向拼接</span>
+                                                    <input type="radio" value="horizontal"
+                                                        v-model="previewModeSelection" class="sr-only">
+                                                    <span
+                                                        :class="['px-2 py-1 rounded-full', previewModeSelection === 'horizontal' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">横向拼接</span>
                                                 </label>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- 识别文字列 -->
-                                    <div class="w-24 flex-shrink-0">
-                                        <div class="bg-gray-50 rounded-lg border border-gray-200 h-[400px] p-2 overflow-y-auto">
+                                    <div class="w-32 flex-shrink-0">
+                                        <div
+                                            class="bg-gray-50 rounded-lg border border-gray-200 h-[500px] p-2 overflow-y-auto">
                                             <div class="space-y-1 text-center">
                                                 <div class="mb-2">
                                                     <span v-for="(w, wi) in currentWords" :key="wi"
-                                                          class="block py-2 hover:bg-yellow-100 cursor-pointer rounded"
-                                                          @mouseenter="onWordEnter(currentColumn-1, wi)" @mouseleave="onWordLeave" @click="showCorrectionPopup($event, w)">
+                                                        class="block py-3 hover:bg-yellow-100 cursor-pointer rounded text-lg"
+                                                        @mouseenter="onWordEnter(currentColumn - 1, wi)"
+                                                        @mouseleave="onWordLeave"
+                                                        @click="showCorrectionPopup($event, w)">
                                                         {{ w.text || w.char || '' }}
-                                                        <span class="text-[10px] text-dark/50 ml-1">{{ formatWordConfidence(w) }}%</span>
+                                                        <span class="block text-[10px] text-dark/50">{{
+                                                            formatWordConfidence(w) }}%</span>
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="text-center text-xs text-dark/60 mt-2">识别文字（第 {{ currentColumn }} 列 / 共 {{ totalColumns }} 列）</div>
+                                        <div class="text-center text-xs text-dark/60 mt-2">识别文字（第 {{ currentColumn }} 列
+                                            / 共 {{ totalColumns }} 列）</div>
                                     </div>
 
                                     <!-- 校正结果列 -->
-                                    <div class="w-24 flex-shrink-0">
-                                        <div class="bg-primary/5 rounded-lg border border-primary/20 h-[400px] p-2 overflow-y-auto">
+                                    <div class="w-32 flex-shrink-0">
+                                        <div
+                                            class="bg-primary/5 rounded-lg border border-primary/20 h-[500px] p-2 overflow-y-auto">
                                             <div class="space-y-2 text-center">
                                                 <div v-if="correctionPopup.visible">
                                                     <div class="text-xs text-dark/60 mb-1">候选字</div>
                                                     <span v-for="(c, ci) in correctionPopup.candidates" :key="ci"
-                                                          class="block py-2 hover:bg-primary/10 cursor-pointer rounded"
-                                                          @click="selectCandidate(c)">{{ c }}</span>
-                                                    <div class="mt-2 flex items-center gap-2">
-                                                        <input v-model="correctionPopup.customInput" class="w-full px-2 py-1 border border-gray-300 rounded text-xs" placeholder="自定义" />
-                                                        <button @click="confirmCorrection" class="px-2 py-1 bg-primary text-white rounded text-xs">确定</button>
+                                                        class="block py-2 hover:bg-primary/10 cursor-pointer rounded text-lg"
+                                                        @click="selectCandidate(c)">{{ c }}</span>
+                                                    <div class="mt-2 flex flex-col items-center gap-2">
+                                                        <input v-model="correctionPopup.customInput"
+                                                            class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                                                            placeholder="自定义" />
+                                                        <button @click="confirmCorrection"
+                                                            class="w-full px-2 py-1 bg-primary text-white rounded text-xs">确定</button>
                                                     </div>
                                                 </div>
-                                                <div v-else class="text-dark/60 text-xs">点击左侧文字以选择候选字</div>
+                                                <div v-else class="text-dark/60 text-xs mt-4">点击左侧文字以选择候选字</div>
                                             </div>
                                         </div>
                                         <div class="text-center text-xs text-primary mt-2">校正候选</div>
                                     </div>
                                 </div>
                             </div>
+
                         </div>
 
                         <!-- 底部操作 -->
@@ -1096,11 +1116,11 @@ const triggerFileInput = () => {
                                     { id: 'people', label: '相关人物' },
                                     { id: 'reading', label: '延伸阅读' }
                                 ]" :key="tab.id" @click="switchInterpretationTab(tab.id)" :class="[
-                    'py-4 px-1 border-b-2 font-medium text-sm md:text-base whitespace-nowrap transition-custom',
-                    interpretationTab === tab.id
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-dark/50 hover:text-dark/70 hover:border-gray-300'
-                ]">
+                                    'py-4 px-1 border-b-2 font-medium text-sm md:text-base whitespace-nowrap transition-custom',
+                                    interpretationTab === tab.id
+                                        ? 'border-primary text-primary'
+                                        : 'border-transparent text-dark/50 hover:text-dark/70 hover:border-gray-300'
+                                ]">
                                     {{ tab.label }}
                                 </button>
                             </nav>
@@ -1110,19 +1130,31 @@ const triggerFileInput = () => {
                         <div class="grid md:grid-cols-3 gap-8">
                             <!-- 左侧：主要阐释内容 -->
                             <div class="md:col-span-2">
-                                <div v-show="interpretationTab === 'history'" class="prose max-w-none text-dark/90 leading-relaxed mb-6" v-html="renderMarkdown(sectionsHistory || (sectionsLoading ? '### 正在生成历史背景...\n- 请稍候' : ''))"></div>
-                                <div v-show="interpretationTab === 'culture'" class="prose max-w-none text-dark/90 leading-relaxed mb-6" v-html="renderMarkdown(sectionsCulture || (sectionsLoading ? '### 正在生成文化意义...\n- 请稍候' : ''))"></div>
-                                <div v-show="interpretationTab === 'people'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
-                                    <div v-if="sectionsLoading && (!sectionsFigures || !sectionsFigures.length)" class="text-sm text-dark/60">正在生成相关人物...</div>
+                                <div v-show="interpretationTab === 'history'"
+                                    class="prose max-w-none text-dark/90 leading-relaxed mb-6"
+                                    v-html="renderMarkdown(sectionsHistory || (sectionsLoading ? '### 正在生成历史背景...\n- 请稍候' : ''))">
+                                </div>
+                                <div v-show="interpretationTab === 'culture'"
+                                    class="prose max-w-none text-dark/90 leading-relaxed mb-6"
+                                    v-html="renderMarkdown(sectionsCulture || (sectionsLoading ? '### 正在生成文化意义...\n- 请稍候' : ''))">
+                                </div>
+                                <div v-show="interpretationTab === 'people'"
+                                    class="prose max-w-none text-dark/90 leading-relaxed mb-6">
+                                    <div v-if="sectionsLoading && (!sectionsFigures || !sectionsFigures.length)"
+                                        class="text-sm text-dark/60">正在生成相关人物...</div>
                                     <div v-for="p in sectionsFigures" :key="p.name" class="mb-3">
-                                        <div class="font-semibold">{{ p.name }} <span class="text-dark/60 text-xs">{{ p.role }}</span></div>
+                                        <div class="font-semibold">{{ p.name }} <span class="text-dark/60 text-xs">{{
+                                                p.role }}</span></div>
                                         <div class="text-sm">{{ p.description }}</div>
                                     </div>
                                 </div>
-                                <div v-show="interpretationTab === 'reading'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
+                                <div v-show="interpretationTab === 'reading'"
+                                    class="prose max-w-none text-dark/90 leading-relaxed mb-6">
                                     <div class="text-sm text-dark/60 mb-2">引用来源</div>
                                     <div class="flex flex-wrap gap-2">
-                                        <span v-for="(s, i) in sectionsSources" :key="i" class="text-xs px-2 py-1 bg-secondary/30 text-primary rounded">{{ (s.snippet || '').slice(0, 32) }}</span>
+                                        <span v-for="(s, i) in sectionsSources" :key="i"
+                                            class="text-xs px-2 py-1 bg-secondary/30 text-primary rounded">{{ (s.snippet
+                                            || '').slice(0, 32) }}</span>
                                     </div>
                                 </div>
 
@@ -1134,14 +1166,22 @@ const triggerFileInput = () => {
                                         </div>
                                         <div class="flex-grow">
                                             <div class="space-y-3 mb-3 max-h-80 overflow-auto">
-                                                <div v-for="m in messages" :key="m.id" :class="m.role === 'user' ? 'text-right' : 'text-left'">
-                                                    <div :class="m.role === 'user' ? 'inline-block px-3 py-2 rounded-lg bg-primary text-white' : 'inline-block px-3 py-2 rounded-lg bg-white border border-gray-200 text-dark'">
-                                                        <span v-if="m.role === 'user'" class="whitespace-pre-line text-sm">{{ m.content }}</span>
-                                                        <div v-else class="prose text-sm" v-html="renderMarkdown(m.content)"></div>
-                                                        <i v-if="m.role === 'assistant' && m.status === 'sending'" class="fas fa-spinner fa-spin ml-2 text-primary"></i>
+                                                <div v-for="m in messages" :key="m.id"
+                                                    :class="m.role === 'user' ? 'text-right' : 'text-left'">
+                                                    <div
+                                                        :class="m.role === 'user' ? 'inline-block px-3 py-2 rounded-lg bg-primary text-white' : 'inline-block px-3 py-2 rounded-lg bg-white border border-gray-200 text-dark'">
+                                                        <span v-if="m.role === 'user'"
+                                                            class="whitespace-pre-line text-sm">{{ m.content }}</span>
+                                                        <div v-else class="prose text-sm"
+                                                            v-html="renderMarkdown(m.content)"></div>
+                                                        <i v-if="m.role === 'assistant' && m.status === 'sending'"
+                                                            class="fas fa-spinner fa-spin ml-2 text-primary"></i>
                                                     </div>
-                                                    <div v-if="m.role === 'assistant' && m.references && m.references.length" class="mt-1">
-                                                        <span v-for="(s, i) in m.references" :key="i" class="inline-block mr-1 mb-1 text-xs px-2 py-1 bg-secondary/30 text-primary rounded">{{ (s.snippet || '').slice(0, 24) }}</span>
+                                                    <div v-if="m.role === 'assistant' && m.references && m.references.length"
+                                                        class="mt-1">
+                                                        <span v-for="(s, i) in m.references" :key="i"
+                                                            class="inline-block mr-1 mb-1 text-xs px-2 py-1 bg-secondary/30 text-primary rounded">{{
+                                                            (s.snippet || '').slice(0, 24) }}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1150,7 +1190,8 @@ const triggerFileInput = () => {
                                                     @keyup.enter="sendAiQuestion"
                                                     class="flex-grow px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" />
                                                 <button @click="sendAiQuestion"
-                                                    class="bg-primary text-white px-4 py-2 rounded-r-md hover:bg-primary/90 transition-custom" :disabled="aiLoading">
+                                                    class="bg-primary text-white px-4 py-2 rounded-r-md hover:bg-primary/90 transition-custom"
+                                                    :disabled="aiLoading">
                                                     <i class="fas fa-paper-plane"></i>
                                                 </button>
                                             </div>
@@ -1200,7 +1241,8 @@ const triggerFileInput = () => {
                                             <div>
                                                 <p class="font-medium text-dark">{{ p.name }}</p>
                                                 <p class="text-xs text-dark/60">{{ p.role }}</p>
-                                                <p class="text-xs text-dark/60 mt-1" v-if="p.description">{{ p.description }}</p>
+                                                <p class="text-xs text-dark/60 mt-1" v-if="p.description">{{
+                                                    p.description }}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1329,52 +1371,56 @@ const triggerFileInput = () => {
                                 <i class="fas fa-times text-xl"></i>
                             </button>
                         </div>
-            <div class="p-6">
-                <!-- 上传区域 -->
-                <div @dragover="handleDragOver" @dragleave="handleDragLeave" @drop="handleDrop"
-                    @click="triggerFileInput" :class="[
-                        'border-2 border-dashed rounded-xl p-8 text-center transition-custom cursor-pointer mb-6',
-                        'bg-gradient-to-b from-light to-white shadow-sm',
-                        dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary hover:bg-primary/5'
-                    ]">
-                    <input ref="modalFileInput" type="file" accept="image/*" @change="handleFileSelect"
-                        class="hidden" />
-                    <div class="flex flex-col items-center">
-                        <div
-                            class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4 transform hover:scale-105 transition-custom">
-                            <i class="fas fa-camera text-primary text-3xl"></i>
-                        </div>
-                        <h3 class="text-xl font-semibold text-dark mb-2">点击上传或拖放图片</h3>
-                        <p class="text-sm text-dark/60 mb-6 max-w-md">
-                            支持 JPG、PNG、WEBP 格式，最大 10MB，建议图片清晰、文字端正以获得最佳识别效果
-                        </p>
-                    </div>
-                </div>
+                        <div class="p-6">
+                            <!-- 上传区域 -->
+                            <div @dragover="handleDragOver" @dragleave="handleDragLeave" @drop="handleDrop"
+                                @click="triggerFileInput" :class="[
+                                    'border-2 border-dashed rounded-xl p-8 text-center transition-custom cursor-pointer mb-6',
+                                    'bg-gradient-to-b from-light to-white shadow-sm',
+                                    dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary hover:bg-primary/5'
+                                ]">
+                                <input ref="modalFileInput" type="file" accept="image/*" @change="handleFileSelect"
+                                    class="hidden" />
+                                <div class="flex flex-col items-center">
+                                    <div
+                                        class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4 transform hover:scale-105 transition-custom">
+                                        <i class="fas fa-camera text-primary text-3xl"></i>
+                                    </div>
+                                    <h3 class="text-xl font-semibold text-dark mb-2">点击上传或拖放图片</h3>
+                                    <p class="text-sm text-dark/60 mb-6 max-w-md">
+                                        支持 JPG、PNG、WEBP 格式，最大 10MB，建议图片清晰、文字端正以获得最佳识别效果
+                                    </p>
+                                </div>
+                            </div>
 
-                <div class="mb-6">
-                    <div class="flex items-center gap-4 mb-3">
-                        <span class="text-sm text-dark/70">排版样式</span>
-                        <label class="inline-flex items-center gap-2 cursor-pointer">
-                            <input type="radio" value="sp" v-model="detModeSelection" class="sr-only">
-                            <span :class="['px-3 py-1 rounded-full text-sm', detModeSelection === 'sp' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">竖排</span>
-                        </label>
-                        <label class="inline-flex items-center gap-2 cursor-pointer">
-                            <input type="radio" value="hp" v-model="detModeSelection" class="sr-only">
-                            <span :class="['px-3 py-1 rounded-full text-sm', detModeSelection === 'hp' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">横排</span>
-                        </label>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm text-dark/70">文字排序方向</span>
-                        <select v-model="directionSelection" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
-                            <option v-for="opt in directionOptions" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
-                        </select>
-                    </div>
-                </div>
+                            <div class="mb-6">
+                                <div class="flex items-center gap-4 mb-3">
+                                    <span class="text-sm text-dark/70">排版样式</span>
+                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" value="sp" v-model="detModeSelection" class="sr-only">
+                                        <span
+                                            :class="['px-3 py-1 rounded-full text-sm', detModeSelection === 'sp' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">竖排</span>
+                                    </label>
+                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" value="hp" v-model="detModeSelection" class="sr-only">
+                                        <span
+                                            :class="['px-3 py-1 rounded-full text-sm', detModeSelection === 'hp' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">横排</span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-sm text-dark/70">文字排序方向</span>
+                                    <select v-model="directionSelection"
+                                        class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                                        <option v-for="opt in directionOptions" :key="opt.id" :value="opt.id">{{
+                                            opt.label }}</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                <!-- 图片预览区域 -->
-                <div v-if="previewUrl" class="mb-6">
-                    <div class="relative">
-                        <img :src="previewUrl" alt="预览图片"
+                            <!-- 图片预览区域 -->
+                            <div v-if="previewUrl" class="mb-6">
+                                <div class="relative">
+                                    <img :src="previewUrl" alt="预览图片"
                                         class="w-full h-64 object-contain border border-gray-200 rounded-lg" />
                                     <button @click.stop="removePreviewImage"
                                         class="absolute top-2 right-2 bg-white/80 p-2 rounded-full shadow-md hover:bg-white transition-custom">
@@ -1475,6 +1521,7 @@ const triggerFileInput = () => {
 
 .line-clamp-2 {
     display: -webkit-box;
+    line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
