@@ -1,0 +1,118 @@
+name: beishuo-dev
+
+services:
+  # 数据库服务
+  postgres:
+    image: postgres:15
+    container_name: beishuo-postgres
+    environment:
+      POSTGRES_DB: beishuo
+      POSTGRES_USER: beishuo
+      POSTGRES_PASSWORD: beishuo123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beishuo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis缓存服务
+  redis:
+    image: redis:7-alpine
+    container_name: beishuo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # 对象存储服务 (MinIO)
+  minio:
+    image: minio/minio:latest
+    container_name: beishuo-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Java后端服务
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beishuo-backend
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=beishuo
+      - DB_USER=beishuo
+      - DB_PASS=beishuo123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OSS_ENDPOINT=http://minio:9000
+      - OSS_ACCESS_KEY=minioadmin
+      - OSS_SECRET_KEY=minioadmin
+      - FAISS_INDEX_PATH=/faiss
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/faiss:/faiss
+      - ./uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Vue前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: beishuo-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_BACKEND_BASE=http://localhost:8080
+      - VITE_DEV_SERVER_HOST=0.0.0.0
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/package-lock.json:/app/package-lock.json
+    depends_on:
+      backend:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
