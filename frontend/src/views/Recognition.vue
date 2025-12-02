@@ -28,19 +28,13 @@ const dragActive = ref(false)
 
 // 识别结果数据
 const recognitionResult = ref({
-    text: `维大唐开元二十有九年，岁次辛巳，秋八月丁丑朔，十三日己丑。故朝散大夫、守秘书少监、集贤院学士、上柱国、赐紫金鱼袋、赠秘书监、江夏李公，字太白，葬于当涂青山之阳。
-
-公之生也，先天地而生；公之没也，后天地而没。其为文也，拔地倚天，陵轹万古；其为志也，怀瑾握瑜，含英咀华。
-
-公性倜傥，好神仙，喜纵横，击剑为任侠，轻财好施。常欲济苍生，安社稷，然遭逢乱世，有志不伸。乃浪迹江湖，浮游四方，与名流贤士，诗酒唱和。
-
-公之诗，雄奇豪放，清新飘逸，名动天下，传于后世。其代表作有《将进酒》、《望庐山瀑布》、《蜀道难》等，皆为千古绝唱。`,
-    wordCount: 286,
-    confidence: 98.7,
-    dynasty: '唐代',
-    year: '公元741年',
-    location: '当涂青山',
-    time: '刚刚'
+    text: '',
+    wordCount: 0,
+    confidence: 0,
+    dynasty: '',
+    year: '',
+    location: '',
+    time: ''
 })
 
 const recognitionId = ref('')
@@ -421,7 +415,7 @@ const confirmUpload = () => {
 const startRecognition = async () => {
     recognitionState.value = 'processing'
     processingProgress.value = 0
-    const baseUrl = 'http://localhost:8080/api/v1'
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
     
     // 检查用户是否已登录
     const userStore = useUserStore()
@@ -436,7 +430,11 @@ const startRecognition = async () => {
         // 上传图片
         const uploadRes = await uploadImage({ baseUrl, token, file: selectedFile.value })
         const imageUrl = uploadRes.image_url
-        originalImageUrl.value = `${baseUrl.replace('/api/v1','')}${imageUrl.startsWith('/') ? imageUrl : ('/' + imageUrl)}`
+        // 使用图片代理路由访问OSS图片 - 确保URL正确编码
+        const encodedImageUrl = encodeURIComponent(imageUrl)
+        console.log('原始图片URL:', imageUrl)
+        console.log('编码后图片URL:', encodedImageUrl)
+        originalImageUrl.value = `${baseUrl}/proxy/${encodedImageUrl}`
 
         // 识别
         const timer = setInterval(() => {
@@ -457,6 +455,11 @@ const startRecognition = async () => {
         const rec = await startRecognitionApi({ baseUrl, token, imageUrl, options: opts })
         clearInterval(timer)
         processingProgress.value = 100
+
+        // 调试信息：直接打印返回的原始JSON数据
+        console.log('=== OCR识别返回的原始JSON数据 ===')
+        console.log(JSON.stringify(rec, null, 2))
+        console.log('=== 原始JSON数据结束 ===')
 
         const r = rec.result || {}
         recognitionId.value = r.recognition_id || ''
@@ -497,8 +500,21 @@ const startRecognition = async () => {
         activeTab.value = 'result'
         appStore.addNotification({ type: 'success', message: '识别完成', duration: 2000 })
     } catch (e) {
+        console.error('OCR识别失败:', e)
         appStore.addNotification({ type: 'error', message: '识别失败，请稍后重试', duration: 3000 })
         recognitionState.value = 'waiting'
+        processingProgress.value = 0
+        processingStatus.value = '准备识别...'
+        // 清空识别结果，避免显示之前的测试数据
+        recognitionResult.value = {
+            text: '',
+            wordCount: 0,
+            confidence: 0,
+            dynasty: '',
+            year: '',
+            location: '',
+            time: ''
+        }
     }
 }
 
@@ -517,7 +533,7 @@ const switchInterpretationTab = (tab) => {
 const showInterpretation = async () => {
     activeTab.value = 'interpretation'
     if (!sectionsHistory.value && recognitionResult.value?.text) {
-        const baseUrl = 'http://localhost:8080/api/v1'
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
         const token = localStorage.getItem('token') || ''
         try {
             sectionsLoading.value = true
@@ -599,7 +615,7 @@ const loadRecentRecognitionList = async (page = 1) => {
 
     recentHistoryLoading.value = true
     try {
-        const baseUrl = 'http://localhost:8080/api/v1'
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
         const token = userStore.token
         
         const data = await getRecentRecognitionList({
@@ -681,7 +697,7 @@ const viewRecognitionDetail = async (jobId) => {
     }
 
     try {
-        const baseUrl = 'http://localhost:8080/api/v1'
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
         const token = userStore.token
         
         const detail = await getRecognitionDetail({
@@ -734,7 +750,7 @@ const goToPage = (page) => {
 }
 
 const saveCorrections = async () => {
-    const baseUrl = 'http://localhost:8080/api/v1'
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
     const token = localStorage.getItem('token') || ''
     const correctedText = (textLines.value || []).map(tl => tl.text || '').join('\n') || recognitionResult.value.text || ''
     const corrections = []
@@ -831,7 +847,7 @@ const sendAiQuestion = async () => {
         return
     }
     
-    const baseUrl = 'http://localhost:8080/api/v1'
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
     const token = userStore.token
     const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
     messages.value.push(userMsg)

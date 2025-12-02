@@ -64,7 +64,7 @@ class InscriptionService:
     
     async def create(self, user_id: int, inscription_data: Dict[str, Any]) -> Dict[str, Any]:
         """创建碑文"""
-        inscription_data["userId"] = user_id
+        inscription_data["user_id"] = user_id
         inscription = await self.database_client.create_inscription(inscription_data)
         if not inscription:
             raise BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "碑文创建失败")
@@ -83,7 +83,7 @@ class InscriptionService:
             raise BusinessException(ResultCode.INSCRIPTION_NOT_FOUND)
         
         # 检查权限
-        if inscription.get("userId") != user_id:
+        if inscription.get("creator_user_id") != user_id:
             raise BusinessException(ResultCode.FORBIDDEN, "无权限修改此碑文")
         
         # 更新碑文
@@ -105,7 +105,7 @@ class InscriptionService:
             raise BusinessException(ResultCode.INSCRIPTION_NOT_FOUND)
         
         # 检查权限
-        if inscription.get("userId") != user_id:
+        if inscription.get("creator_user_id") != user_id:
             raise BusinessException(ResultCode.FORBIDDEN, "无权限删除此碑文")
         
         # 删除碑文

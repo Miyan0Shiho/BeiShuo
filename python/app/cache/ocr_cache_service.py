@@ -3,6 +3,7 @@ OCR缓存服务 - 基于现有ocr_images和ocr_jobs表结构
 
 功能：
 - 基于图片哈希的OCR结果缓存
+- 集成OSS存储，先上传图片再创建asset记录
 - 利用现有表结构实现高性能缓存
 - 支持缓存状态管理和清理
 """
@@ -14,6 +15,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from ..client.mysql_client import mysql_client
+from ..services.oss_service import oss_service
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,7 @@ class OCRCacheService:
     
     def __init__(self):
         self.db = mysql_client
+        self.oss = oss_service
     
     def generate_image_hash(self, image_data: bytes) -> str:
         """生成图片哈希值"""
@@ -61,18 +64,23 @@ class OCRCacheService:
                        oj.confidence, oj.duration_ms, oj.created_at, oj.params
                 FROM ocr_images oi
                 JOIN ocr_jobs oj ON oi.job_id = oj.id
-                WHERE oj.vendor = %s AND oj.status = 'success' AND oj.params LIKE %s
+                WHERE oj.vendor = %s AND oj.status = 'success' 
+                AND JSON_UNQUOTE(JSON_EXTRACT(oj.params, '$.image_hash')) = %s
                 AND oi.id = (SELECT MAX(id) FROM ocr_images WHERE job_id = oj.id)
                 LIMIT 1
             """
             
-            # 在params中查找image_hash - 使用更精确的模式匹配
-            hash_pattern = f'%"image_hash":"{image_hash}"%'
-            result = await self.db.execute_query(query, (vendor, hash_pattern))
+            # 使用JSON_UNQUOTE去掉JSON_EXTRACT返回的引号，精确匹配image_hash
+            result = await self.db.execute_query(query, (vendor, image_hash))
             
             if result:
                 # 尝试从params中提取OCR文本数据
                 params = json.loads(result[0]['params']) if result[0]['params'] else {}
+                
+                # 确保confidence字段是JSON可序列化的类型（Decimal转换为float）
+                confidence = result[0]['confidence']
+                if hasattr(confidence, 'as_integer_ratio'):  # 检查是否为Decimal类型
+                    confidence = float(confidence)
                 
                 # 构建完整的OCR结果
                 return {
@@ -80,7 +88,7 @@ class OCRCacheService:
                     'job_id': result[0]['job_id'],
                     'width': result[0]['width'],
                     'height': result[0]['height'],
-                    'confidence': result[0]['confidence'],
+                    'confidence': confidence,
                     'duration_ms': result[0]['duration_ms'],
                     'created_at': result[0]['created_at'],
                     # 添加OCR文本数据占位符
@@ -97,95 +105,152 @@ class OCRCacheService:
             logger.error(f"获取OCR缓存失败: {e}")
             return None
     
-    async def cache_ocr_result(
-        self, 
-        image_hash: str, 
-        image_data: bytes, 
-        ocr_result: Dict[str, Any],
-        vendor: str = "kandianguji",
-        asset_id: int = None
-    ) -> bool:
+    async def upload_image_and_create_asset(self, image_data: bytes, filename: str, 
+                                          inscription_id: Optional[int] = None) -> Optional[int]:
         """
-        缓存OCR结果到数据库
+        上传图片到OSS并创建asset记录
         
         Args:
-            image_hash: 图片哈希值
-            image_data: 图片原始数据
+            image_data: 图片数据
+            filename: 原始文件名
+            inscription_id: 关联的碑刻ID（可选）
+            
+        Returns:
+            asset_id，如果失败则返回None
+        """
+        try:
+            # 上传图片到OSS并创建asset记录
+            upload_result = await self.oss.upload_image(image_data, filename, inscription_id)
+            
+            if upload_result and 'asset_id' in upload_result:
+                logger.info(f"图片上传成功，asset_id={upload_result['asset_id']}")
+                return upload_result['asset_id']
+            else:
+                logger.error("图片上传失败，无法获取asset_id")
+                return None
+                
+        except Exception as e:
+            logger.error(f"上传图片并创建asset记录失败: {e}")
+            return None
+    
+    async def cache_ocr_result(self, image_data: bytes, filename: str, ocr_result: Dict[str, Any], 
+                              vendor: str = "kandianguji", inscription_id: Optional[int] = None) -> bool:
+        """
+        缓存OCR识别结果（先上传图片到OSS，再创建asset记录）
+        
+        Args:
+            image_data: 图片数据
+            filename: 原始文件名
             ocr_result: OCR识别结果
             vendor: OCR服务提供商
-            asset_id: 关联的asset_id（可选）
+            inscription_id: 关联的碑刻ID（可选）
             
         Returns:
             缓存是否成功
         """
         try:
-            # 先检查是否已存在
-            existing = await self.get_cached_ocr(image_hash, vendor)
-            if existing:
-                logger.info(f"OCR结果已存在，跳过缓存: {image_hash}")
+            # 生成图片哈希
+            image_hash = self.generate_image_hash(image_data)
+            
+            # 检查是否已存在缓存
+            existing_cache = await self.get_cached_ocr(image_hash, vendor)
+            if existing_cache:
+                logger.info(f"OCR缓存已存在，跳过缓存: image_hash={image_hash}")
                 return True
+            
+            # 上传图片到OSS并创建asset记录
+            asset_id = await self.upload_image_and_create_asset(image_data, filename, inscription_id)
+            
+            if not asset_id:
+                logger.error("创建asset记录失败，无法缓存OCR结果")
+                return False
             
             # 插入ocr_jobs记录
             job_query = """
-                INSERT INTO ocr_jobs (
-                    asset_id, status, vendor, params, confidence, 
-                    duration_ms, retries, created_at, updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO ocr_jobs (asset_id, status, vendor, params, confidence, duration_ms, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
             """
             
-            # 这里asset_id使用传入的asset_id
-            job_params = {
-                'vendor': vendor,
-                'image_size': len(image_data),
-                'image_hash': image_hash,  # 添加image_hash用于查询
-                # 添加完整的OCR文本数据，便于缓存查询
-                'text': ocr_result.get('full_text', ''),
+            # 构建params，确保包含image_hash
+            params = {
+                'image_hash': image_hash,
+                'text': ocr_result.get('text', ''),
                 'word_count': ocr_result.get('word_count', 0),
                 'text_lines': ocr_result.get('text_lines', []),
                 'texts': ocr_result.get('texts', []),
-                'layout': ocr_result.get('layout', None)
+                'layout': ocr_result.get('layout', None),
+                'filename': filename,
+                'inscription_id': inscription_id
             }
             
-            job_values = (
-                asset_id,  # asset_id
-                'success',  # status
-                vendor,  # vendor
-                json.dumps(job_params),  # params
-                ocr_result.get('confidence', 0.0),  # confidence
-                ocr_result.get('duration_ms', 0),  # duration_ms
-                0,  # retries
-                datetime.now(),  # created_at
-                datetime.now()  # updated_at
+            # 使用从OSS上传获得的asset_id
+            
+            # 确保params正确序列化为JSON
+            job_id = await self.db.execute_insert(
+                job_query, 
+                (asset_id, 'success', vendor, json.dumps(params, ensure_ascii=False), 
+                 ocr_result.get('confidence', 0.0), ocr_result.get('duration_ms', 0))
             )
             
-            job_id = await self.db.execute_insert(job_query, job_values)
+            if not job_id:
+                logger.error("插入ocr_jobs记录失败")
+                return False
             
-            # 插入ocr_images记录 - 根据实际的表结构调整
+            # 插入ocr_images记录
             image_query = """
-                INSERT INTO ocr_images (
-                    job_id, width, height, text_angel, text_angel_confidence, 
-                    version, det_mode, det_layout, only_plain_text, return_layout,
-                    auto_insert_space, hp_line_words_angel, sp_line_words_angel,
-                    char_ocr, image_size, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                INSERT INTO ocr_images (job_id, width, height, text_angel, text_angel_confidence, 
+                                       version, det_mode, det_layout, only_plain_text, return_layout, 
+                                       auto_insert_space, hp_line_words_angel, sp_line_words_angel, 
+                                       char_ocr, image_size, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             """
             
-            image_values = (
-                job_id,  # job_id
-                ocr_result.get('width', 0), ocr_result.get('height', 0),
-                ocr_result.get('text_angel', 0), ocr_result.get('text_angel_confidence', 0),
-                ocr_result.get('version', 'default'), ocr_result.get('det_mode', 'auto'),
-                ocr_result.get('det_layout', 0), ocr_result.get('only_plain_text', 0),  # det_layout改为整数
-                ocr_result.get('return_layout', 0), ocr_result.get('auto_insert_space', 0),
-                ocr_result.get('hp_line_words_angel', 0), ocr_result.get('sp_line_words_angel', 0),
-                ocr_result.get('char_ocr', 0), len(image_data)  # image_size, char_ocr改为整数
+            # 处理version字段，确保使用数据库允许的枚举值
+            version_value = ocr_result.get('version', 'default')
+            # 数据库允许的枚举值：'default', 'beta', 'v2'
+            allowed_versions = ['default', 'beta', 'v2']
+            if version_value not in allowed_versions:
+                version_value = 'default'  # 如果不允许，使用默认值
+            
+            # 处理det_mode字段，确保使用数据库允许的枚举值
+            det_mode_value = ocr_result.get('det_mode', 'auto')
+            # 数据库允许的枚举值：'auto', 'sp', 'hp'
+            allowed_det_modes = ['auto', 'sp', 'hp']
+            if det_mode_value not in allowed_det_modes:
+                det_mode_value = 'auto'  # 如果不允许，使用默认值
+            
+            # 处理hp_line_words_angel字段，确保使用数据库允许的枚举值
+            hp_line_words_angel_value = ocr_result.get('hp_line_words_angel', 'left2right')
+            # 数据库允许的枚举值：'left2right', 'right2left'
+            allowed_hp_line_words_angel = ['left2right', 'right2left']
+            if hp_line_words_angel_value not in allowed_hp_line_words_angel:
+                hp_line_words_angel_value = 'left2right'  # 如果不允许，使用默认值
+            
+            # 处理sp_line_words_angel字段，确保使用数据库允许的枚举值
+            sp_line_words_angel_value = ocr_result.get('sp_line_words_angel', 'top2bottom')
+            # 数据库允许的枚举值：'top2bottom', 'bottom2top'
+            allowed_sp_line_words_angel = ['top2bottom', 'bottom2top']
+            if sp_line_words_angel_value not in allowed_sp_line_words_angel:
+                sp_line_words_angel_value = 'top2bottom'  # 如果不允许，使用默认值
+            
+            image_id = await self.db.execute_insert(
+                image_query,
+                (job_id, ocr_result.get('width', 0), ocr_result.get('height', 0),
+                 ocr_result.get('text_angel', 0.0), ocr_result.get('text_angel_confidence', 0.0),
+                 version_value, det_mode_value,
+                 ocr_result.get('det_layout', False), ocr_result.get('only_plain_text', False),
+                 ocr_result.get('return_layout', False), ocr_result.get('auto_insert_space', True),
+                 hp_line_words_angel_value, sp_line_words_angel_value,
+                 ocr_result.get('char_ocr', False), ocr_result.get('image_size', 0))
             )
             
-            await self.db.execute_insert(image_query, image_values)
-            
-            logger.info(f"OCR结果缓存成功: {image_hash}")
-            return True
-            
+            if image_id:
+                logger.info(f"OCR缓存成功: image_hash={image_hash}, job_id={job_id}, image_id={image_id}")
+                return True
+            else:
+                logger.error("插入ocr_images记录失败")
+                return False
+                
         except Exception as e:
             logger.error(f"缓存OCR结果失败: {e}")
             return False

@@ -90,8 +90,23 @@ export async function startRecognition({ baseUrl, token, imageUrl, imageBase64, 
   const url = `${baseUrl}/recognition/start`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
+  
+  // 处理URL编码问题：如果imageUrl已经被编码，先解码
+  let processedImageUrl = imageUrl
+  if (imageUrl && typeof imageUrl === 'string') {
+    // 检查是否包含URL编码的字符
+    if (imageUrl.includes('%3A') || imageUrl.includes('%2F') || imageUrl.includes('%3F')) {
+      try {
+        processedImageUrl = decodeURIComponent(imageUrl)
+        console.log('检测到编码的URL，解码后:', processedImageUrl)
+      } catch (e) {
+        console.warn('URL解码失败，使用原始URL:', imageUrl)
+      }
+    }
+  }
+  
   const body = {
-    image_url: imageUrl || undefined,
+    image_url: processedImageUrl || undefined,
     image_base64: imageBase64 || undefined,
     options: options || {}
   }

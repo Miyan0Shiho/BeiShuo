@@ -1,0 +1,38 @@
+{
+  "2.jpeg": {
+    "main": {
+      "success": false,
+      "reason": "无响应结果"
+    },
+    "sp": {
+      "success": false,
+      "reason": "无响应结果"
+    },
+    "hp": {
+      "success": false,
+      "reason": "无响应结果"
+    },
+    "beta+sp": {
+      "success": false,
+      "reason": "无响应结果"
+    }
+  },
+  "3.jpeg": {
+    "main": {
+      "success": false,
+      "reason": "无响应结果"
+    },
+    "sp": {
+      "success": false,
+      "reason": "无响应结果"
+    },
+    "hp": {
+      "success": false,
+      "reason": "无响应结果"
+    },
+    "beta+sp": {
+      "success": false,
+      "reason": "无响应结果"
+    }
+  }
+}

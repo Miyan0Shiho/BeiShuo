@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "data": {
+    "data": [],
+    "id": "700c2f4b-fe6c-4ee0-827f-27949d86f52c",
+    "info": "",
+    "message": "success"
+  },
+  "headers": {
+    "Server": "nginx/1.24.0 (Ubuntu)",
+    "Date": "Tue, 02 Dec 2025 02:12:33 GMT",
+    "Content-Type": "application/json",
+    "Content-Length": "86",
+    "Connection": "keep-alive",
+    "Vary": "Accept-Encoding"
+  },
+  "attempt": 1
+}

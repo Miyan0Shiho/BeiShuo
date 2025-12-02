@@ -194,7 +194,7 @@ class DatabaseClient:
             offset = page * size
             query = """
                 SELECT * FROM inscriptions 
-                WHERE user_id = %s
+                WHERE creator_user_id = %s
                 ORDER BY created_at DESC
                 LIMIT %s OFFSET %s
             """
@@ -218,15 +218,13 @@ class DatabaseClient:
         """创建碑文记录"""
         try:
             query = """
-                INSERT INTO inscriptions (user_id, title, content, dynasty, category, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+                INSERT INTO inscriptions (creator_user_id, title, dynasty, created_at, updated_at)
+                VALUES (%s, %s, %s, NOW(), NOW())
             """
             params = (
                 inscription_data.get("user_id"),
                 inscription_data.get("title"),
-                inscription_data.get("content"),
-                inscription_data.get("dynasty"),
-                inscription_data.get("category")
+                inscription_data.get("dynasty")
             )
             inscription_id = await self._execute_insert(query, params)
             if inscription_id:

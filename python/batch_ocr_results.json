@@ -1,0 +1,587 @@
+[
+  {
+    "filename": "0abff6a4-62b9-4a7a-83d7-693f284f7e8e.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/0abff6a4-62b9-4a7a-83d7-693f284f7e8e.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 234208
+  },
+  {
+    "filename": "10b8617f-f4de-4d00-ab1d-0697587663ee.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/10b8617f-f4de-4d00-ab1d-0697587663ee.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 234208
+  },
+  {
+    "filename": "161e6099-e086-4bb7-adfe-a142a42b1d2f.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/161e6099-e086-4bb7-adfe-a142a42b1d2f.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 126608
+  },
+  {
+    "filename": "1e2a9cea-1efa-451b-aede-a4be59f97945.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/1e2a9cea-1efa-451b-aede-a4be59f97945.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 234208
+  },
+  {
+    "filename": "3465a83f-fd6f-4537-91b3-c7ee49af1596.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/3465a83f-fd6f-4537-91b3-c7ee49af1596.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "48dec028-393f-42de-85a5-77a418bdea26.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/48dec028-393f-42de-85a5-77a418bdea26.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "4f23ad84-9406-49f2-80eb-29fb464822b4.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/4f23ad84-9406-49f2-80eb-29fb464822b4.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 644320
+  },
+  {
+    "filename": "525cc14f-582f-4b6c-a16c-9abfc864dfe2.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/525cc14f-582f-4b6c-a16c-9abfc864dfe2.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 85464
+  },
+  {
+    "filename": "6513d368-6f07-4063-86c0-7e3cc48b719a.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/6513d368-6f07-4063-86c0-7e3cc48b719a.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 85464
+  },
+  {
+    "filename": "6b19849b-771e-4181-be8d-ee95c19b2cfc.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/6b19849b-771e-4181-be8d-ee95c19b2cfc.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "6b29aa50-79a8-4024-a7a7-dd20c3c8b952.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/6b29aa50-79a8-4024-a7a7-dd20c3c8b952.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 562624
+  },
+  {
+    "filename": "96c9685b-511b-4058-97ab-a04fd95c64d5.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/96c9685b-511b-4058-97ab-a04fd95c64d5.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "9941c4c8-d23d-4cf7-94cb-4fc862043db5.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/9941c4c8-d23d-4cf7-94cb-4fc862043db5.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "a67c0592-f002-4a76-bdcc-0a9c439f97e9.jpeg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/a67c0592-f002-4a76-bdcc-0a9c439f97e9.jpeg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 3859220
+  },
+  {
+    "filename": "ac7a88d8-735c-4b2d-8a9f-962b208f73f6.jpeg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/ac7a88d8-735c-4b2d-8a9f-962b208f73f6.jpeg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 3859220
+  },
+  {
+    "filename": "b33b8b41-426d-4fbd-a85c-5574d21ff33c.jpeg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/b33b8b41-426d-4fbd-a85c-5574d21ff33c.jpeg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 3859220
+  },
+  {
+    "filename": "bd63ad5c-58f0-43df-adf8-ba37320337de.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/bd63ad5c-58f0-43df-adf8-ba37320337de.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 562624
+  },
+  {
+    "filename": "c6390d49-46dd-4325-bf44-f20842c2cbed.jpeg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/c6390d49-46dd-4325-bf44-f20842c2cbed.jpeg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 3859220
+  },
+  {
+    "filename": "cb33029a-b409-488f-96d9-4f6ce97a7115.jpeg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/cb33029a-b409-488f-96d9-4f6ce97a7115.jpeg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 3859220
+  },
+  {
+    "filename": "cc969884-5c96-4f2a-9b6e-a893a4abc106.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/cc969884-5c96-4f2a-9b6e-a893a4abc106.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "e7e39252-4757-43b2-a8ed-75319ad3e18e.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/e7e39252-4757-43b2-a8ed-75319ad3e18e.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "e89be53a-1e3d-41b4-ac1b-a7e968037743.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/e89be53a-1e3d-41b4-ac1b-a7e968037743.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "eb7f4210-cdfd-4acd-97a9-22492349a789.jpeg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/eb7f4210-cdfd-4acd-97a9-22492349a789.jpeg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 3859220
+  },
+  {
+    "filename": "efe97014-0520-49e5-a306-141ca76a6ab1.jpeg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/efe97014-0520-49e5-a306-141ca76a6ab1.jpeg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 3859220
+  },
+  {
+    "filename": "f0ec93f6-0e72-476e-9b81-b8e269ce5095.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/f0ec93f6-0e72-476e-9b81-b8e269ce5095.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 562624
+  },
+  {
+    "filename": "f81f9ac0-f427-4aa7-8b47-3dddc6097e3f.jpeg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/f81f9ac0-f427-4aa7-8b47-3dddc6097e3f.jpeg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 3859220
+  },
+  {
+    "filename": "f9cce3cb-9131-4722-bfce-1e67598af302.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/f9cce3cb-9131-4722-bfce-1e67598af302.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "乙瑛碑.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/乙瑛碑.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 562624
+  },
+  {
+    "filename": "九成宫醴泉铭.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/九成宫醴泉铭.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 117868
+  },
+  {
+    "filename": "史晨碑.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/史晨碑.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 85464
+  },
+  {
+    "filename": "多宝塔碑.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/多宝塔碑.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 234208
+  },
+  {
+    "filename": "张迁碑.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/张迁碑.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 435804
+  },
+  {
+    "filename": "曹全碑.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/曹全碑.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 178368
+  },
+  {
+    "filename": "玄秘塔碑.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/玄秘塔碑.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 76752
+  },
+  {
+    "filename": "石门颂.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/石门颂.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 137728
+  },
+  {
+    "filename": "礼器碑.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/礼器碑.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 126608
+  },
+  {
+    "filename": "西狭颂.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/西狭颂.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 423780
+  },
+  {
+    "filename": "郑文公碑.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/郑文公碑.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 69876
+  },
+  {
+    "filename": "颜勤礼碑.jpg",
+    "filepath": "/Users/liuminxuan/Desktop/团队项目/uploads/颜勤礼碑.jpg",
+    "success": false,
+    "status_code": 0,
+    "error": "HTTPSConnectionPool(host='api.kandianguji.com', port=443): Max retries exceeded with url: /ocr (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)')))",
+    "analysis": {
+      "recognized": false,
+      "text_count": 0,
+      "text_length": 0,
+      "confidence": 0.0,
+      "text_content": ""
+    },
+    "base64_length": 644320
+  }
+]

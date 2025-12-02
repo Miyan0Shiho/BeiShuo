@@ -1,0 +1,27 @@
+{
+  "status": 200,
+  "data": {
+    "data": [
+      "大唐西亰千福寺多寳佛",
+      "塔感應碑文",
+      "南陽岑勛撰觳朝議郎",
+      "判尚書武部貟外郎琅",
+      "邪顔真卿書雁",
+      "山杰",
+      "朝散大",
+      "夫撿挍尚書都官郎中"
+    ],
+    "id": "f2e02f42-73f9-4853-8ea9-0e5a7b6718db",
+    "info": "",
+    "message": "success"
+  },
+  "headers": {
+    "Server": "nginx/1.24.0 (Ubuntu)",
+    "Date": "Tue, 02 Dec 2025 02:13:09 GMT",
+    "Content-Type": "application/json",
+    "Content-Length": "268",
+    "Connection": "keep-alive",
+    "Vary": "Accept-Encoding"
+  },
+  "attempt": 1
+}

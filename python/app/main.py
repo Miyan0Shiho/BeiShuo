@@ -9,6 +9,7 @@ from app.core.exceptions import BusinessException, UnauthorizedException
 from app.common.response import Result
 from app.common.result_code import ResultCode
 from app.utils.logger import setup_logger, logger
+from app.services.temp_file_cleaner import temp_file_cleaner
 
 # 设置日志
 setup_logger()
@@ -18,9 +19,25 @@ async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时
     logger.info(f"{settings.app_name} 启动成功")
+    
+    # 启动临时文件清理服务
+    try:
+        await temp_file_cleaner.start()
+        logger.info("临时文件清理服务启动成功")
+    except Exception as e:
+        logger.error(f"临时文件清理服务启动失败: {e}")
+    
     yield
+    
     # 关闭时
     logger.info(f"{settings.app_name} 关闭")
+    
+    # 停止临时文件清理服务
+    try:
+        await temp_file_cleaner.stop()
+        logger.info("临时文件清理服务已停止")
+    except Exception as e:
+        logger.error(f"临时文件清理服务停止失败: {e}")
 
 app = FastAPI(
     title=settings.app_name,

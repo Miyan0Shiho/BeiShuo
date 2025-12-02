@@ -1,0 +1,211 @@
+{
+  "test_round": 1,
+  "total_tests": 17,
+  "successful_tests": 9,
+  "results": {
+    "组合1": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 0,
+      "data_sample": []
+    },
+    "组合2": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "dict",
+      "data_length": 6,
+      "data_sample": "{'height': 940, 'text_angel': 1, 'text_angel_confidence': 1.1, 'text_lines': [{'layout_classes_id': 0, 'position': [[538, 94], [630, 95], [628, 930], [535, 929]], 'text': '唐西亰千福寺多寳佛', 'words': [{'classes': 0, 'confidence': 1.0, 'det_confidence': 0.8923, 'img_direction': 0, 'layout_classes_id': 0, 'position': [538, 95, 619, 185], 'text': '唐', 'text_direction': 0}, {'classes': 0, 'confidence': 0.999, 'det_confidence': 0.8572, 'img_direction': 0, 'layout_classes_id': 0, 'position': [547, 196, 623, "
+    },
+    "组合3": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 0,
+      "data_sample": []
+    },
+    "组合4": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 0,
+      "data_sample": []
+    },
+    "组合5": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 0,
+      "data_sample": []
+    },
+    "组合6": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 0,
+      "data_sample": []
+    },
+    "组合9": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 8,
+      "data_sample": [
+        "唐西亰千福寺多寳佛",
+        "塔感應碑文",
+        "南陽岑勛撰觳",
+        "朝議郎",
+        "判尚書武部貟外郎琅",
+        "邪顔真卿書票厦",
+        "朝散大",
+        "夫撿挍尚書都官郎中"
+      ]
+    },
+    "组合10": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 8,
+      "data_sample": [
+        "唐西亰千福寺多寳佛",
+        "塔感應碑文",
+        "南陽岑勛撰觳",
+        "朝議郎",
+        "判尚書武部貟外郎琅",
+        "邪顔真卿書票厦",
+        "朝散大",
+        "夫撿挍尚書都官郎中"
+      ]
+    },
+    "组合11": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 8,
+      "data_sample": [
+        "唐西亰千福寺多寳佛",
+        "塔感應碑文",
+        "南陽岑勛撰觳",
+        "朝議郎",
+        "判尚書武部貟外郎琅",
+        "邪顔真卿書票厦",
+        "朝散大",
+        "夫撿挍尚書都官郎中"
+      ]
+    },
+    "组合12": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 8,
+      "data_sample": [
+        "大唐西亰千福寺多寳佛",
+        "塔感應碑文",
+        "南陽岑勛撰觳朝議郎",
+        "判尚書武部貟外郎琅",
+        "邪顔真卿書雁",
+        "山杰",
+        "朝散大",
+        "夫撿挍尚書都官郎中"
+      ]
+    },
+    "组合13": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 8,
+      "data_sample": [
+        "大唐西亰千福寺多寳佛",
+        "塔感應碑文",
+        "南陽岑勛撰觳朝議郎",
+        "判尚書武部貟外郎琅",
+        "邪顔真卿書雁",
+        "山杰",
+        "朝散大",
+        "夫撿挍尚書都官郎中"
+      ]
+    },
+    "组合14": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 8,
+      "data_sample": [
+        "大唐西亰千福寺多寳佛",
+        "塔感應碑文",
+        "南陽岑勛撰觳朝議郎",
+        "判尚書武部貟外郎琅",
+        "邪顔真卿書雁",
+        "山杰",
+        "朝散大",
+        "夫撿挍尚書都官郎中"
+      ]
+    },
+    "组合15": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 8,
+      "data_sample": [
+        "大唐西亰千福寺多寳佛",
+        "塔感應碑文",
+        "南陽岑勛撰觳朝議郎",
+        "判尚書武部貟外郎琅",
+        "邪顔真卿書雁",
+        "山杰",
+        "朝散大",
+        "夫撿挍尚書都官郎中"
+      ]
+    },
+    "组合16": {
+      "status": 200,
+      "message": "success",
+      "code": null,
+      "data_type": "list",
+      "data_length": 27,
+      "data_sample": [
+        "大",
+        "夫邪判南塔唐",
+        "撿顔尚陽感西",
+        "挍真書岑應亰",
+        "尚卿武勛碑千",
+        "福",
+        "都",
+        "書書部文",
+        "貟",
+        "撰",
+        "寺",
+        "雁山",
+        "区杰",
+        "觳黜",
+        "外",
+        "多",
+        "冫",
+        "官朝朝",
+        "郎",
+        "散郎",
+        "者",
+        "寳",
+        "議",
+        "佛",
+        "中大琅",
+        "郎心",
+        "踩"
+      ]
+    }
+  },
+  "timestamp": 1764641464.480764
+}

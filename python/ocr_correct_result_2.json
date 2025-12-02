@@ -1,0 +1,993 @@
+{
+  "status": 200,
+  "data": {
+    "data": {
+      "height": 940,
+      "text_angel": 1,
+      "text_angel_confidence": 1.1,
+      "text_lines": [
+        {
+          "layout_classes_id": 0,
+          "position": [
+            [
+              538,
+              94
+            ],
+            [
+              630,
+              95
+            ],
+            [
+              628,
+              930
+            ],
+            [
+              535,
+              929
+            ]
+          ],
+          "text": "唐西亰千福寺多寳佛",
+          "words": [
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8923,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                538,
+                95,
+                619,
+                185
+              ],
+              "text": "唐",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.999,
+              "det_confidence": 0.8572,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                547,
+                196,
+                623,
+                262
+              ],
+              "text": "西",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.999,
+              "det_confidence": 0.9023,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                546,
+                278,
+                625,
+                368
+              ],
+              "text": "亰",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.998,
+              "det_confidence": 0.8834,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                546,
+                377,
+                630,
+                465
+              ],
+              "text": "千",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8936,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                541,
+                473,
+                628,
+                559
+              ],
+              "text": "福",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.89,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                543,
+                564,
+                627,
+                650
+              ],
+              "text": "寺",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8588,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                545,
+                664,
+                615,
+                741
+              ],
+              "text": "多",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.959,
+              "det_confidence": 0.8947,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                546,
+                751,
+                618,
+                848
+              ],
+              "text": "寳",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8945,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                536,
+                852,
+                617,
+                930
+              ],
+              "text": "佛",
+              "text_direction": 0
+            }
+          ]
+        },
+        {
+          "layout_classes_id": 0,
+          "position": [
+            [
+              429,
+              90
+            ],
+            [
+              526,
+              90
+            ],
+            [
+              526,
+              546
+            ],
+            [
+              429,
+              546
+            ]
+          ],
+          "text": "塔感應碑文",
+          "words": [
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8907,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                432,
+                90,
+                526,
+                168
+              ],
+              "text": "塔",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8873,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                437,
+                185,
+                519,
+                270
+              ],
+              "text": "感",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.904,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                436,
+                276,
+                519,
+                363
+              ],
+              "text": "應",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8799,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                429,
+                371,
+                521,
+                456
+              ],
+              "text": "碑",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.99,
+              "det_confidence": 0.8784,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                443,
+                465,
+                526,
+                547
+              ],
+              "text": "文",
+              "text_direction": 0
+            }
+          ]
+        },
+        {
+          "layout_classes_id": 0,
+          "position": [
+            [
+              331,
+              92
+            ],
+            [
+              425,
+              92
+            ],
+            [
+              425,
+              642
+            ],
+            [
+              331,
+              642
+            ]
+          ],
+          "text": "南陽岑勛撰觳",
+          "words": [
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8847,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                333,
+                92,
+                419,
+                182
+              ],
+              "text": "南",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8977,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                338,
+                187,
+                417,
+                278
+              ],
+              "text": "陽",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.904,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                332,
+                283,
+                425,
+                370
+              ],
+              "text": "岑",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.9079,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                331,
+                380,
+                419,
+                470
+              ],
+              "text": "勛",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.9068,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                335,
+                477,
+                418,
+                559
+              ],
+              "text": "撰",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.55,
+              "det_confidence": 0.2443,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                346,
+                575,
+                416,
+                642
+              ],
+              "text": "觳",
+              "text_direction": 0
+            }
+          ]
+        },
+        {
+          "layout_classes_id": 0,
+          "position": [
+            [
+              335,
+              646
+            ],
+            [
+              429,
+              646
+            ],
+            [
+              429,
+              924
+            ],
+            [
+              335,
+              924
+            ]
+          ],
+          "text": "朝議郎",
+          "words": [
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8918,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                338,
+                647,
+                424,
+                731
+              ],
+              "text": "朝",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8962,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                336,
+                738,
+                430,
+                825
+              ],
+              "text": "議",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8918,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                346,
+                836,
+                428,
+                925
+              ],
+              "text": "郎",
+              "text_direction": 0
+            }
+          ]
+        },
+        {
+          "layout_classes_id": 0,
+          "position": [
+            [
+              219,
+              89
+            ],
+            [
+              323,
+              88
+            ],
+            [
+              332,
+              927
+            ],
+            [
+              228,
+              929
+            ]
+          ],
+          "text": "判尚書武部貟外郎琅",
+          "words": [
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.9,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                232,
+                89,
+                313,
+                174
+              ],
+              "text": "判",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.89,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                230,
+                187,
+                317,
+                266
+              ],
+              "text": "尚",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.994,
+              "det_confidence": 0.8866,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                232,
+                271,
+                313,
+                365
+              ],
+              "text": "書",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8926,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                234,
+                369,
+                318,
+                461
+              ],
+              "text": "武",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8913,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                225,
+                465,
+                317,
+                561
+              ],
+              "text": "部",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.964,
+              "det_confidence": 0.8645,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                236,
+                561,
+                307,
+                655
+              ],
+              "text": "貟",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.886,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                227,
+                661,
+                330,
+                746
+              ],
+              "text": "外",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8939,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                229,
+                751,
+                318,
+                841
+              ],
+              "text": "郎",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8944,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                231,
+                844,
+                330,
+                928
+              ],
+              "text": "琅",
+              "text_direction": 0
+            }
+          ]
+        },
+        {
+          "layout_classes_id": 0,
+          "position": [
+            [
+              117,
+              89
+            ],
+            [
+              211,
+              89
+            ],
+            [
+              211,
+              637
+            ],
+            [
+              117,
+              637
+            ]
+          ],
+          "text": "邪顔真卿書票厦",
+          "words": [
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8995,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                118,
+                89,
+                211,
+                176
+              ],
+              "text": "邪",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.836,
+              "det_confidence": 0.9186,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                117,
+                180,
+                208,
+                271
+              ],
+              "text": "顔",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.999,
+              "det_confidence": 0.8993,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                122,
+                278,
+                209,
+                366
+              ],
+              "text": "真",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8941,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                123,
+                370,
+                211,
+                467
+              ],
+              "text": "卿",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8763,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                132,
+                472,
+                209,
+                564
+              ],
+              "text": "書",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.743,
+              "det_confidence": 0.3461,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                171,
+                579,
+                204,
+                638
+              ],
+              "text": "票",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.469,
+              "det_confidence": 0.2584,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                139,
+                579,
+                171,
+                616
+              ],
+              "text": "厦",
+              "text_direction": 0
+            }
+          ]
+        },
+        {
+          "layout_classes_id": 0,
+          "position": [
+            [
+              125,
+              651
+            ],
+            [
+              222,
+              651
+            ],
+            [
+              222,
+              926
+            ],
+            [
+              125,
+              926
+            ]
+          ],
+          "text": "朝散大",
+          "words": [
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8956,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                125,
+                651,
+                210,
+                741
+              ],
+              "text": "朝",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.998,
+              "det_confidence": 0.909,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                126,
+                750,
+                222,
+                838
+              ],
+              "text": "散",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8739,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                131,
+                843,
+                221,
+                926
+              ],
+              "text": "大",
+              "text_direction": 0
+            }
+          ]
+        },
+        {
+          "layout_classes_id": 0,
+          "position": [
+            [
+              6,
+              78
+            ],
+            [
+              105,
+              78
+            ],
+            [
+              105,
+              914
+            ],
+            [
+              6,
+              914
+            ]
+          ],
+          "text": "夫撿挍尚書都官郎中",
+          "words": [
+            {
+              "classes": 0,
+              "confidence": 0.999,
+              "det_confidence": 0.8921,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                9,
+                78,
+                103,
+                165
+              ],
+              "text": "夫",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.878,
+              "det_confidence": 0.8948,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                6,
+                172,
+                106,
+                262
+              ],
+              "text": "撿",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.995,
+              "det_confidence": 0.8969,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                10,
+                272,
+                101,
+                350
+              ],
+              "text": "挍",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8938,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                6,
+                368,
+                95,
+                440
+              ],
+              "text": "尚",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 0.999,
+              "det_confidence": 0.8934,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                14,
+                448,
+                93,
+                544
+              ],
+              "text": "書",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.9001,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                8,
+                549,
+                103,
+                639
+              ],
+              "text": "都",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8783,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                15,
+                644,
+                99,
+                730
+              ],
+              "text": "官",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8867,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                19,
+                739,
+                94,
+                822
+              ],
+              "text": "郎",
+              "text_direction": 0
+            },
+            {
+              "classes": 0,
+              "confidence": 1.0,
+              "det_confidence": 0.8666,
+              "img_direction": 0,
+              "layout_classes_id": 0,
+              "position": [
+                24,
+                838,
+                93,
+                915
+              ],
+              "text": "中",
+              "text_direction": 0
+            }
+          ]
+        }
+      ],
+      "texts": [
+        "唐西亰千福寺多寳佛",
+        "塔感應碑文",
+        "南陽岑勛撰觳",
+        "朝議郎",
+        "判尚書武部貟外郎琅",
+        "邪顔真卿書票厦",
+        "朝散大",
+        "夫撿挍尚書都官郎中"
+      ],
+      "width": 640
+    },
+    "id": "1953a51f-ec01-474c-9fc9-4fc266d6732e",
+    "info": "",
+    "message": "success"
+  },
+  "headers": {
+    "Server": "nginx/1.24.0 (Ubuntu)",
+    "Date": "Tue, 02 Dec 2025 02:13:27 GMT",
+    "Content-Type": "application/json",
+    "Content-Length": "1544",
+    "Connection": "keep-alive",
+    "Vary": "Accept-Encoding",
+    "Content-Encoding": "br"
+  },
+  "attempt": 1
+}

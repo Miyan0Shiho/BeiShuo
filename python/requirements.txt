@@ -4,6 +4,7 @@ uvicorn[standard]==0.24.0
 
 # HTTP Client
 httpx==0.25.2
+requests==2.31.0
 
 # JWT
 pyjwt==2.8.0
@@ -24,6 +25,9 @@ loguru==0.7.2
 # Utilities
 python-multipart==0.0.6
 python-dotenv==1.0.0
+
+# OSS Storage
+oss2==2.18.4
 
 # Development Tools
 pytest==7.4.3

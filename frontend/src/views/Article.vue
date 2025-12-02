@@ -174,7 +174,7 @@ const sendChatQuestion = async () => {
     return
   }
   
-  const baseUrl = 'http://localhost:8080/api/v1'
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
   const token = userStore.token || ''
   const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
   chatMessages.value.push(userMsg)
@@ -224,7 +224,7 @@ const fetchArticleInterpretation = async () => {
       return
     }
     
-    const baseUrl = 'http://localhost:8080/api/v1'
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
     const token = userStore.token || ''
     const text = `${article.value.title} ${article.value.year || ''} ${article.value.dynasty || ''}`.trim()
     try {
