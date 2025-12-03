@@ -1,5 +1,5 @@
 export async function postChat({ baseUrl, token, recognitionId, message, conversationId }) {
-  const url = `${baseUrl}/ai/chat`
+  const url = `${baseUrl}/api/v1/ai/chat`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const body = {
@@ -16,7 +16,7 @@ export async function postChat({ baseUrl, token, recognitionId, message, convers
 }
 
 export async function streamChatFetch({ baseUrl, token, recognitionId, message, conversationId, onEvent }) {
-  const url = `${baseUrl}/ai/chat/stream`
+  const url = `${baseUrl}/api/v1/ai/chat/stream`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const body = {
@@ -49,7 +49,7 @@ export async function streamChatFetch({ baseUrl, token, recognitionId, message, 
 }
 
 export async function postInterpretationSections({ baseUrl, token, text, recognitionId, inscriptionId, conversationId }) {
-  const url = `${baseUrl}/ai/interpretation/sections`
+  const url = `${baseUrl}/api/v1/ai/interpretation/sections`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const body = {
@@ -67,7 +67,7 @@ export async function postInterpretationSections({ baseUrl, token, text, recogni
 }
 
 export async function uploadImage({ baseUrl, token, file }) {
-  const url = `${baseUrl}/upload/image`
+  const url = `${baseUrl}/api/v1/upload/image`
   const headers = {}
   if (token) headers['Authorization'] = `Bearer ${token}`
   const form = new FormData()
@@ -81,7 +81,7 @@ export async function uploadImage({ baseUrl, token, file }) {
 }
 
 export async function startRecognition({ baseUrl, token, imageUrl, imageBase64, options }) {
-  const url = `${baseUrl}/recognition/start`
+  const url = `${baseUrl}/api/v1/recognition/start`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const body = {

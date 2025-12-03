@@ -9,6 +9,7 @@ from app.core.exceptions import BusinessException, UnauthorizedException
 from app.common.response import Result
 from app.common.result_code import ResultCode
 from app.utils.logger import setup_logger, logger
+from app.client.mysql_client import mysql_client
 
 # 设置日志
 setup_logger()
@@ -17,10 +18,27 @@ setup_logger()
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时
+    logger.info(f"{settings.app_name} 启动中...")
+    # 连接数据库
+    try:
+        await mysql_client.connect()
+        logger.info(f"数据库连接成功")
+    except Exception as e:
+        logger.error(f"数据库连接失败: {e}")
+        raise
+    
     logger.info(f"{settings.app_name} 启动成功")
     yield
     # 关闭时
-    logger.info(f"{settings.app_name} 关闭")
+    logger.info(f"{settings.app_name} 关闭中...")
+    # 断开数据库连接
+    try:
+        await mysql_client.disconnect()
+        logger.info(f"数据库连接已断开")
+    except Exception as e:
+        logger.error(f"数据库断开连接失败: {e}")
+    
+    logger.info(f"{settings.app_name} 已关闭")
 
 app = FastAPI(
     title=settings.app_name,

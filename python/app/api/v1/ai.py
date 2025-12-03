@@ -98,7 +98,10 @@ async def chat(
     user_id: int = Depends(get_current_user_id)
 ):
     """AI对话"""
+    logger.debug(f"收到AI对话请求: user_id={user_id}, request={request}")
+    
     if not request.message:
+        logger.warning(f"AI对话请求失败: 缺少问题内容")
         return Result.fail(ResultCode.BAD_REQUEST, "问题不能为空")
     
     # 生成缓存键
@@ -108,19 +111,24 @@ async def chat(
         return hashlib.md5(cache_input.encode()).hexdigest()
     
     cache_key = generate_cache_key(request.message, request.context)
+    logger.debug(f"生成LLM缓存键: {cache_key}")
     
     # 检查数据库缓存
     db_client = DatabaseClient()
     cached_response = await db_client.get_llm_cache(cache_key)
     if cached_response:
         # 缓存命中，直接返回
-        print("缓存命中")
         logger.info(f"LLM缓存命中: cache_key={cache_key}")
+        logger.debug(f"缓存结果: {cached_response}")
+        
         conversation_id = request.conversation_id or f"conv_{int(datetime.now().timestamp() * 1000)}"
+        logger.debug(f"使用对话ID: {conversation_id}")
+        
         ctx = ContextManager()
         
         # 添加用户消息
         user_msg = Message(id=str(uuid.uuid4()), role="user", content=request.message, status=MessageStatus.success)
+        logger.debug(f"添加用户消息: msg_id={user_msg.id}, content={user_msg.content[:50]}...")
         await ctx.append_message(conversation_id, user_msg)
         
         # 添加助手消息（从缓存）
@@ -130,31 +138,53 @@ async def chat(
             content=cached_response["reply"]["content"], 
             status=MessageStatus.success
         )
+        logger.debug(f"添加助手消息（缓存）: msg_id={assistant_msg.id}, content={assistant_msg.content[:50]}...")
         await ctx.append_message(conversation_id, assistant_msg)
         
+        logger.info(f"LLM对话完成（缓存命中）: conversation_id={conversation_id}")
         return Result.ok(cached_response)
     
     # 缓存未命中，调用LLM
-    print("缓存未命中")
     logger.info(f"LLM缓存未命中: cache_key={cache_key}")
     service = InterpretationService()
     ctx = ContextManager()
     try:
         conversation_id = request.conversation_id or f"conv_{int(datetime.now().timestamp() * 1000)}"
+        logger.debug(f"创建新对话: conversation_id={conversation_id}")
+        
         user_msg = Message(id=str(uuid.uuid4()), role="user", content=request.message, status=MessageStatus.success)
+        logger.debug(f"添加用户消息: msg_id={user_msg.id}, content={user_msg.content[:50]}...")
         await ctx.append_message(conversation_id, user_msg)
 
+        # 调用LLM获取回答
+        logger.info(f"调用LLM生成回答: conversation_id={conversation_id}")
         answer, contexts = await service.chat_with_references(request.message, None)
+        logger.debug(f"LLM回答生成完成: answer_length={len(answer)}, contexts_count={len(contexts)}")
+        
+        # 处理引用
+        logger.debug(f"处理RAG引用: contexts_count={len(contexts)}")
         refs = contexts_to_references(contexts)
-        assistant_msg = Message(id=str(uuid.uuid4()), role="assistant", content=answer, status=MessageStatus.success, references=refs)
+        logger.debug(f"生成引用完成: references_count={len(refs)}")
+        
+        # 创建助手消息
+        assistant_msg = Message(
+            id=str(uuid.uuid4()), 
+            role="assistant", 
+            content=answer, 
+            status=MessageStatus.success, 
+            references=refs
+        )
+        logger.debug(f"添加助手消息: msg_id={assistant_msg.id}, content={assistant_msg.content[:50]}...")
         await ctx.append_message(conversation_id, assistant_msg)
 
+        # 构建响应结果
         reply = {
             "content": answer,
             "type": "text",
             "sources": [r.model_dump() for r in refs],
             "suggestions": []
         }
+        logger.debug(f"构建回复: content_length={len(answer)}, sources_count={len(reply['sources'])}")
 
         result = {
             "conversation_id": conversation_id,
@@ -163,11 +193,21 @@ async def chat(
         }
         
         # 缓存结果到数据库
-        await db_client.set_llm_cache(cache_key, result)
-
+        logger.info(f"保存LLM结果到缓存: cache_key={cache_key}")
+        try:
+            await db_client.set_llm_cache(cache_key, result)
+            logger.debug(f"LLM结果缓存成功: cache_key={cache_key}")
+        except Exception as e:
+            logger.warning(f"LLM结果缓存失败: {e}")
+        
+        logger.info(f"LLM对话完成: conversation_id={conversation_id}, answer_length={len(answer)}")
         return Result.ok(result)
+    except Exception as e:
+        logger.exception(f"LLM对话失败: {e}")
+        return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, f"对话失败: {str(e)}")
     finally:
         await service.close()
+        logger.debug(f"InterpretationService已关闭")
 
 @router.get("/recommendations")
 async def get_recommendations(

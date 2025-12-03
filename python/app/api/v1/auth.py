@@ -8,25 +8,46 @@ from app.core.dependencies import get_current_user_id
 from app.services.auth_service import AuthService
 from app.schemas.request.auth import LoginRequest, RegisterRequest
 from app.schemas.response.auth import LoginResponse, UserInfoResponse, RefreshResponse
+from app.utils.logger import logger
 
 router = APIRouter(prefix="/auth", tags=["认证"])
 
 @router.post("/register", response_model=Result[LoginResponse])
 async def register(request: RegisterRequest):
     """用户注册"""
+    logger.debug(f"收到用户注册请求: {request}")
+    
     service = AuthService()
     try:
+        # 验证请求参数
+        if not request.email or not request.password or not request.name:
+            logger.warning(f"注册请求失败: 缺少必要参数")
+            return Result.fail(ResultCode.BAD_REQUEST, "缺少必要参数")
+        
+        logger.info(f"处理用户注册: email={request.email}, name={request.name}")
+        
         # 使用name作为username
         user = await service.register(request.email, request.password, request.name)
+        logger.debug(f"用户注册成功: {user}")
         
         # 生成Token
         user_id = user["id"]
         username = user.get("username") or request.name
+        logger.debug(f"生成用户Token: user_id={user_id}, username={username}")
         token = jwt_util.generate_token(user_id, username)
+        logger.info(f"Token生成成功: user_id={user_id}")
         
         # 计算过期时间（24小时后）
         expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         expires_at_str = expires_at.isoformat()
+        logger.debug(f"Token过期时间: {expires_at_str}")
+        
+        # 确保created_at是字符串格式
+        created_at = user.get("created_at")
+        if isinstance(created_at, datetime):
+            created_at_str = created_at.isoformat()
+        else:
+            created_at_str = created_at or datetime.now(timezone.utc).isoformat()
         
         response_data = {
             "user_id": user_id,
@@ -38,30 +59,48 @@ async def register(request: RegisterRequest):
                 "email": user["email"],
                 "phone": request.phone,
                 "avatar": request.avatar,
-                "created_at": user.get("created_at", datetime.now(timezone.utc).isoformat())
+                "created_at": created_at_str
             }
         }
         
+        logger.info(f"用户注册完成: email={request.email}, user_id={user_id}")
         return Result.ok(response_data, "注册成功")
+    except Exception as e:
+        logger.exception(f"用户注册失败: {e}")
+        return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, f"注册失败: {str(e)}")
     finally:
         await service.close()
+        logger.debug(f"AuthService已关闭")
 
 @router.post("/login", response_model=Result[LoginResponse])
 async def login(request: LoginRequest):
     """用户登录"""
+    logger.debug(f"收到用户登录请求: {request}")
+    
     service = AuthService()
     try:
+        # 验证请求参数
+        if not request.email or not request.password:
+            logger.warning(f"登录请求失败: 缺少必要参数")
+            return Result.fail(ResultCode.BAD_REQUEST, "缺少必要参数")
+        
+        logger.info(f"处理用户登录: email={request.email}, remember_me={request.remember_me}")
+        
         user = await service.login(request.email, request.password)
+        logger.debug(f"用户登录成功: {user}")
         
         # 生成Token
         user_id = user["id"]
         username = user.get("username") or user.get("name", "")
+        logger.debug(f"生成用户Token: user_id={user_id}, username={username}")
         token = jwt_util.generate_token(user_id, username)
+        logger.info(f"Token生成成功: user_id={user_id}")
         
         # 根据remember_me决定过期时间
         expiration_hours = 168 if request.remember_me else 24  # 7天或1天
         expires_at = datetime.now(timezone.utc) + timedelta(hours=expiration_hours)
         expires_at_str = expires_at.isoformat()
+        logger.debug(f"Token过期时间: {expires_at_str}, remember_me={request.remember_me}")
         
         response_data = {
             "token": token,
@@ -75,9 +114,14 @@ async def login(request: LoginRequest):
             }
         }
         
+        logger.info(f"用户登录完成: email={request.email}, user_id={user_id}")
         return Result.ok(response_data, "登录成功")
+    except Exception as e:
+        logger.exception(f"用户登录失败: {e}")
+        return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, f"登录失败: {str(e)}")
     finally:
         await service.close()
+        logger.debug(f"AuthService已关闭")
 
 @router.post("/logout", response_model=Result[dict])
 async def logout():

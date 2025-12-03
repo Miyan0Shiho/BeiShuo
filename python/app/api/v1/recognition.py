@@ -16,6 +16,11 @@ import hashlib
 
 router = APIRouter(prefix="/recognition", tags=["识别"])
 
+# 内存缓存，用于存储OCR结果
+# 键：图片哈希值，值：OCR结果
+memory_cache = {}
+logger.info("OCR内存缓存已初始化")
+
 def _normalize_ocr(data: Dict[str, Any]) -> Dict[str, Any]:
     width = data.get("width") or 0
     height = data.get("height") or 0
@@ -59,47 +64,75 @@ async def start_recognition(
     user_id: int = Depends(get_current_user_id)
 ):
     """开始碑文识别（接入看典古籍OCR）"""
+    logger.debug(f"收到OCR识别请求: user_id={user_id}, request={request}")
+    
     image_url = request.get("image_url")
     image_base64 = request.get("image_base64")
     options = request.get("options", {})
+    
+    logger.debug(f"OCR请求参数: image_url={image_url}, image_base64={'存在' if image_base64 else '不存在'}, options={options}")
 
     if not image_url and not image_base64:
+        logger.warning(f"OCR请求失败: 缺少必要参数，image_url和image_base64至少提供一个")
         return Result.fail(ResultCode.BAD_REQUEST, "image_url或image_base64至少提供一个")
 
     try:
+        content = None
+        filename = ""
+        
         if not image_base64:
+            logger.debug(f"处理图片URL: {image_url}")
             if not isinstance(image_url, str) or not image_url.startswith(settings.file_upload_url_prefix):
+                logger.warning(f"无效的image_url: {image_url}")
                 return Result.fail(ResultCode.BAD_REQUEST, "无效的image_url")
             filename = image_url.replace(settings.file_upload_url_prefix + "/", "")
             file_path = os.path.join(settings.file_upload_path, filename)
+            logger.debug(f"图片文件路径: {file_path}")
+            
             if not os.path.exists(file_path):
+                logger.warning(f"文件不存在: {file_path}")
                 return Result.fail(ResultCode.BAD_REQUEST, "文件不存在或未上传")
+            
             with open(file_path, "rb") as f:
                 content = f.read()
+            logger.debug(f"读取图片文件成功，大小: {len(content)} bytes")
+            
             image_base64 = base64.b64encode(content).decode("utf-8")
+            logger.debug(f"图片转换为base64成功，长度: {len(image_base64)} chars")
+        else:
+            logger.debug(f"直接使用base64图片，长度: {len(image_base64)} chars")
+            # 提取内容用于生成哈希
+            content = base64.b64decode(image_base64)
 
         # 生成图片哈希值，用于缓存
         image_hash = hashlib.md5(content).hexdigest()
-        print(f"图片哈希值: {image_hash}")
+        logger.debug(f"生成图片哈希值: {image_hash}")
         
-        # 检查数据库缓存
+        # 检查内存缓存
+        if image_hash in memory_cache:
+            logger.info(f"OCR内存缓存命中: image_hash={image_hash}")
+            logger.debug(f"缓存结果: {memory_cache[image_hash]}")
+            return Result.ok(memory_cache[image_hash], "识别完成（缓存命中）")
+        
+        logger.debug(f"OCR内存缓存未命中: image_hash={image_hash}")
+        
+        # 检查数据库缓存作为备用
         db_client = DatabaseClient()
         existing_result = None
         try:
+            logger.debug(f"检查OCR数据库缓存: image_hash={image_hash}")
             existing_result = await db_client.get_ocr_result_by_image_hash(image_hash)
             if existing_result and existing_result.get("result"):
-                # 缓存命中，直接返回，但需要调整结果结构，确保与缓存未命中时相同
-                print("缓存命中")
-                logger.info(f"OCR结果从数据库缓存获取: image_hash={image_hash}")
-                # 打印返回给前端的数据，便于调试
-                print(f"返回给前端的数据（缓存命中）: {existing_result.get('result')}")
+                # 数据库缓存命中，更新内存缓存并返回结果
+                logger.info(f"OCR数据库缓存命中: image_hash={image_hash}")
+                logger.debug(f"数据库缓存结果: {existing_result.get('result')}")
+                memory_cache[image_hash] = existing_result.get("result")
                 return Result.ok(existing_result.get("result"), "识别完成（缓存命中）")
         except Exception as e:
-            logger.warning(f"获取OCR缓存失败: {e}")
+            logger.warning(f"获取OCR数据库缓存失败: {e}")
         
         # 缓存未命中或数据库服务不可用，执行OCR识别
-        print("缓存未命中或数据库服务不可用，执行OCR识别")
-        logger.info(f"OCR缓存未命中或数据库服务不可用，执行识别: image_hash={image_hash}")
+        logger.info(f"OCR缓存未命中，执行识别: image_hash={image_hash}")
 
         # 默认选项
         default_options = {
@@ -114,56 +147,51 @@ async def start_recognition(
             "hp_line_words_angel": options.get("hp_line_words_angel", "left2right"),
             "sp_line_words_angel": options.get("sp_line_words_angel", "top2bottom"),
         }
+        logger.debug(f"OCR识别选项: {default_options}")
 
         client = KandiangujiOCRClient()
         primary_options = {**default_options, "return_position": True}
+        logger.debug(f"主识别选项: {primary_options}")
         
         # 尝试多种OCR模式，提高识别成功率
         norm = {}
         recognition_success = False
+        attempt_count = 0
         
-        try:
-            # 第一次尝试：自动模式
-            ocr_resp = await client.recognize(image_base64, primary_options)
-            data = ocr_resp.get("data") or {}
-            norm = _normalize_ocr(data)
-            recognition_success = bool(norm["full_text"] or (norm["text_lines"] and norm["word_count"] > 0))
-        except Exception as e:
-            logger.warning(f"自动模式识别失败: {e}")
+        # 定义识别模式列表
+        recognition_modes = [
+            ("自动模式", primary_options),
+            ("竖排模式", {**primary_options, "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}),
+            ("横排模式", {**primary_options, "det_mode": "hp", "hp_line_words_angel": primary_options.get("hp_line_words_angel", "left2right")}),
+            ("beta版本+竖排模式", {**primary_options, "version": "beta", "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")})
+        ]
         
-        # 第二次尝试：竖排模式
-        if not recognition_success:
+        for mode_name, mode_options in recognition_modes:
+            attempt_count += 1
+            logger.debug(f"OCR识别尝试 {attempt_count}/{len(recognition_modes)}: {mode_name}")
             try:
-                fallback_sp = {**primary_options, "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
-                ocr_resp = await client.recognize(image_base64, fallback_sp)
-                norm = _normalize_ocr(ocr_resp.get("data") or {})
+                ocr_resp = await client.recognize(image_base64, mode_options)
+                logger.debug(f"{mode_name}识别响应: {ocr_resp}")
+                
+                data = ocr_resp.get("data") or {}
+                norm = _normalize_ocr(data)
+                logger.debug(f"{mode_name}识别结果归一化: {norm}")
+                
                 recognition_success = bool(norm["full_text"] or (norm["text_lines"] and norm["word_count"] > 0))
+                if recognition_success:
+                    logger.info(f"{mode_name}识别成功")
+                    break
+                else:
+                    logger.debug(f"{mode_name}识别结果为空")
             except Exception as e:
-                logger.warning(f"竖排模式识别失败: {e}")
+                logger.warning(f"{mode_name}识别失败: {e}")
         
-        # 第三次尝试：横排模式
-        if not recognition_success:
-            try:
-                fallback_hp = {**primary_options, "det_mode": "hp", "hp_line_words_angel": primary_options.get("hp_line_words_angel", "left2right")}
-                ocr_resp = await client.recognize(image_base64, fallback_hp)
-                norm = _normalize_ocr(ocr_resp.get("data") or {})
-                recognition_success = bool(norm["full_text"] or (norm["text_lines"] and norm["word_count"] > 0))
-            except Exception as e:
-                logger.warning(f"横排模式识别失败: {e}")
-        
-        # 第四次尝试：beta版本 + 竖排模式
-        if not recognition_success:
-            try:
-                fallback_beta_sp = {**primary_options, "version": "beta", "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
-                ocr_resp = await client.recognize(image_base64, fallback_beta_sp)
-                norm = _normalize_ocr(ocr_resp.get("data") or {})
-                recognition_success = bool(norm["full_text"] or (norm["text_lines"] and norm["word_count"] > 0))
-            except Exception as e:
-                logger.warning(f"beta版本识别失败: {e}")
+        logger.info(f"OCR识别完成，共尝试 {attempt_count} 种模式，成功: {recognition_success}")
         
         # 生成识别结果
         recognition_id = f"rec_{int(datetime.now().timestamp() * 1000)}"
         task_id = f"task_{int(datetime.now().timestamp() * 1000)}"
+        logger.debug(f"生成识别ID: {recognition_id}, 任务ID: {task_id}")
 
         result = {
             "task_id": task_id,
@@ -184,35 +212,52 @@ async def start_recognition(
             }
         }
         
+        logger.debug(f"OCR最终结果: {result}")
+        
         # 将识别结果保存到数据库，以便后续缓存使用
         try:
-            ocr_job = {
-                "task_id": task_id,
-                "image_id": filename,
-                "image_url": image_url,
-                "image_hash": image_hash,
-                "status": "completed",
-                "result": result,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
-            await db_client.create_ocr_job(ocr_job)
-            logger.info(f"OCR任务已保存到数据库: image_hash={image_hash}")
+            # 首先检查是否已存在对应的资产记录
+            asset_id = None
+            try:
+                # 查找对应的资产记录
+                # 注意：实际应用中应该根据图片哈希找到对应的asset_id
+                # 这里简化处理，将asset_id设为None
+                asset_id = None
+            except Exception as e:
+                logger.warning(f"查找资产记录失败: {e}")
             
-            await db_client.save_ocr_result(task_id, result)
-            logger.info(f"OCR结果已保存到数据库: image_hash={image_hash}")
+            ocr_job = {
+                "asset_id": asset_id,
+                "status": "success",
+                "vendor": "kandianguji",
+                "params": primary_options,
+                "confidence": norm.get("confidence", 0.0),
+                "duration_ms": None,
+                "retries": attempt_count - 1
+            }
+            logger.debug(f"创建OCR任务数据: {ocr_job}")
+            created_job = await db_client.create_ocr_job(ocr_job)
+            logger.info(f"OCR任务已保存到数据库: job_id={created_job['id']}, image_hash={image_hash}")
+            
+            logger.debug(f"保存OCR结果: task_id={task_id}")
+            saved_result = await db_client.save_ocr_result(task_id, result)
+            logger.info(f"OCR结果已保存到数据库: task_id={task_id}, image_hash={image_hash}")
         except Exception as e:
             logger.warning(f"保存OCR结果到数据库失败: {e}")
-            print(f"保存OCR结果到数据库失败: {e}")
             # 数据库服务不可用，继续返回OCR结果，不影响用户体验
             pass
 
-        # 打印返回给前端的数据，便于调试
-        print(f"返回给前端的数据: {result}")
+        # 将识别结果保存到内存缓存
+        memory_cache[image_hash] = result
+        logger.info(f"OCR结果已保存到内存缓存: image_hash={image_hash}")
+        
+        logger.info(f"OCR识别完成，返回结果: task_id={task_id}, word_count={norm.get('word_count', 0)}, confidence={norm.get('confidence', 0.0)}")
         return Result.ok(result, "识别完成")
     except Exception as e:
         # 打印堆栈，便于定位
         logger.exception(f"识别失败: {e}")
         msg = str(e).strip() or repr(e)
+        logger.error(f"OCR识别失败，返回错误: {msg}")
         return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, f"识别失败: {msg}")
 
 @router.get("/progress/{task_id}")

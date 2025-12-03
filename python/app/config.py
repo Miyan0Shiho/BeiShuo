@@ -10,6 +10,19 @@ class Settings(BaseSettings):
     port: int = 8080
     
     # 数据库服务配置
+    # 直接连接MySQL配置
+    db_host: str = "rm-cn-zky4j31d100068po.rwlb.rds.aliyuncs.com"
+    db_port: int = 3306
+    db_user: str = "lmx"
+    db_password: str = "lmx123456+"
+    db_name: str = "beishuo"
+    db_charset: str = "utf8mb4"
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    db_pool_recycle: int = 3600
+    db_echo: bool = True  # 调试模式，打印SQL语句
+    
+    # 旧的数据库API配置（保留用于兼容，后续可移除）
     database_api_base_url: str = "http://localhost:8081/api/database"
     database_api_connect_timeout: int = 5000
     database_api_read_timeout: int = 10000
@@ -75,7 +88,7 @@ class Settings(BaseSettings):
     cors_max_age: int = 3600
     
     # 日志配置
-    log_level: str = "INFO"
+    log_level: str = "DEBUG"
     log_file: str = "logs/python-backend.log"
     
     class Config:

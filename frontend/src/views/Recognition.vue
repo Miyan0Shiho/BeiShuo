@@ -472,13 +472,13 @@ const confirmUpload = () => {
 const startRecognition = async () => {
     recognitionState.value = 'processing'
     processingProgress.value = 0
-    const baseUrl = 'http://localhost:8080/api/v1'
+    const baseUrl = 'http://localhost:8080'
     const token = localStorage.getItem('token') || ''
     try {
         // 上传图片
         const uploadRes = await uploadImage({ baseUrl, token, file: selectedFile.value })
         const imageUrl = uploadRes.image_url
-        originalImageUrl.value = `${baseUrl.replace('/api/v1', '')}${imageUrl.startsWith('/') ? imageUrl : ('/' + imageUrl)}`
+        originalImageUrl.value = `${baseUrl}${imageUrl.startsWith('/') ? imageUrl : ('/' + imageUrl)}`
 
         // 识别
         const timer = setInterval(() => {
@@ -562,7 +562,7 @@ const switchInterpretationTab = (tab) => {
 const showInterpretation = async () => {
     activeTab.value = 'interpretation'
     if (!sectionsHistory.value && recognitionResult.value?.text) {
-        const baseUrl = 'http://localhost:8080/api/v1'
+        const baseUrl = 'http://localhost:8080'
         const token = localStorage.getItem('token') || ''
         try {
             sectionsLoading.value = true
@@ -631,12 +631,12 @@ const confirmCorrection = () => {
 }
 
 const saveCorrections = async () => {
-    const baseUrl = 'http://localhost:8080/api/v1'
+    const baseUrl = 'http://localhost:8080'
     const token = localStorage.getItem('token') || ''
     const correctedText = (textLines.value || []).map(tl => tl.text || '').join('\n') || recognitionResult.value.text || ''
     const corrections = []
     try {
-        const url = `${baseUrl}/recognition/${recognitionId.value || 'rec_local'}/correct`
+        const url = `${baseUrl}/api/v1/recognition/${recognitionId.value || 'rec_local'}/correct`
         const headers = { 'Content-Type': 'application/json' }
         if (token) headers['Authorization'] = `Bearer ${token}`
         const body = { corrected_text: correctedText, corrections }
@@ -720,7 +720,7 @@ const confirmSave = () => {
 const sendAiQuestion = async () => {
     const q = aiQuestion.value.trim()
     if (!q) return
-    const baseUrl = 'http://localhost:8080/api/v1'
+    const baseUrl = 'http://localhost:8080'
     const token = localStorage.getItem('token') || ''
     const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
     messages.value.push(userMsg)
@@ -786,9 +786,9 @@ const dislikeResult = async () => {
         }
         
         // 调用API删除OCR缓存
-        const baseUrl = 'http://localhost:8080/api/v1'
+        const baseUrl = 'http://localhost:8080'
         const token = localStorage.getItem('token') || ''
-        const url = `${baseUrl}/recognition/result/${imageHash}/dislike`
+        const url = `${baseUrl}/api/v1/recognition/result/${imageHash}/dislike`
         const headers = { 'Content-Type': 'application/json' }
         if (token) {
             headers['Authorization'] = `Bearer ${token}`

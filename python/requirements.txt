@@ -25,6 +25,10 @@ loguru==0.7.2
 python-multipart==0.0.6
 python-dotenv==1.0.0
 
+# Database
+aiomysql==0.2.0
+pymysql==1.1.0
+
 # Development Tools
 pytest==7.4.3
 pytest-asyncio==0.21.1

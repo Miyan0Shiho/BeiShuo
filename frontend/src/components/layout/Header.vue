@@ -71,24 +71,58 @@ const closeModals = () => {
 }
 
 // 表单提交
-const handleLogin = () => {
-  // TODO: 实现登录逻辑
-  appStore.addNotification({
-    type: 'success',
-    message: '登录成功!',
-    duration: 3000
-  })
-  closeModals()
+const handleLogin = async () => {
+  try {
+    const result = await userStore.login(loginForm.value)
+    if (result.success) {
+      appStore.addNotification({
+        type: 'success',
+        message: '登录成功!',
+        duration: 3000
+      })
+      closeModals()
+    } else {
+      appStore.addNotification({
+        type: 'error',
+        message: result.error || '登录失败',
+        duration: 3000
+      })
+    }
+  } catch (error) {
+    appStore.addNotification({
+      type: 'error',
+      message: error.message || '登录失败',
+      duration: 3000
+    })
+  }
 }
 
-const handleRegister = () => {
-  // TODO: 实现注册逻辑
-  appStore.addNotification({
-    type: 'success',
-    message: '注册成功!',
-    duration: 3000
-  })
-  closeModals()
+const handleRegister = async () => {
+  try {
+    const result = await userStore.register(registerForm.value)
+    if (result.success) {
+      appStore.addNotification({
+        type: 'success',
+        message: '注册成功!',
+        duration: 3000
+      })
+      closeModals()
+      // 注册成功后自动跳转到登录
+      isLoginModalOpen.value = true
+    } else {
+      appStore.addNotification({
+        type: 'error',
+        message: result.error || '注册失败',
+        duration: 3000
+      })
+    }
+  } catch (error) {
+    appStore.addNotification({
+      type: 'error',
+      message: error.message || '注册失败',
+      duration: 3000
+    })
+  }
 }
 
 const handleLogout = () => {
