@@ -10,7 +10,9 @@ from app.LLM.context import ContextManager
 from app.LLM.models import Message, MessageStatus
 from app.RAG.references import contexts_to_references
 from app.LLM.streaming import llm_stream_generator, sse_response
+from app.client.database_client import DatabaseClient
 import uuid
+import hashlib
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/ai", tags=["AI功能"])
@@ -98,6 +100,43 @@ async def chat(
     """AI对话"""
     if not request.message:
         return Result.fail(ResultCode.BAD_REQUEST, "问题不能为空")
+    
+    # 生成缓存键
+    def generate_cache_key(message: str, context: Optional[str] = None) -> str:
+        """生成LLM缓存键"""
+        cache_input = f"{message}:{context or ''}"
+        return hashlib.md5(cache_input.encode()).hexdigest()
+    
+    cache_key = generate_cache_key(request.message, request.context)
+    
+    # 检查数据库缓存
+    db_client = DatabaseClient()
+    cached_response = await db_client.get_llm_cache(cache_key)
+    if cached_response:
+        # 缓存命中，直接返回
+        print("缓存命中")
+        logger.info(f"LLM缓存命中: cache_key={cache_key}")
+        conversation_id = request.conversation_id or f"conv_{int(datetime.now().timestamp() * 1000)}"
+        ctx = ContextManager()
+        
+        # 添加用户消息
+        user_msg = Message(id=str(uuid.uuid4()), role="user", content=request.message, status=MessageStatus.success)
+        await ctx.append_message(conversation_id, user_msg)
+        
+        # 添加助手消息（从缓存）
+        assistant_msg = Message(
+            id=str(uuid.uuid4()), 
+            role="assistant", 
+            content=cached_response["reply"]["content"], 
+            status=MessageStatus.success
+        )
+        await ctx.append_message(conversation_id, assistant_msg)
+        
+        return Result.ok(cached_response)
+    
+    # 缓存未命中，调用LLM
+    print("缓存未命中")
+    logger.info(f"LLM缓存未命中: cache_key={cache_key}")
     service = InterpretationService()
     ctx = ContextManager()
     try:
@@ -122,6 +161,9 @@ async def chat(
             "reply": reply,
             "related_questions": []
         }
+        
+        # 缓存结果到数据库
+        await db_client.set_llm_cache(cache_key, result)
 
         return Result.ok(result)
     finally:

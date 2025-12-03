@@ -1,61 +1,18 @@
-spring:
-  application:
-    name: beishuo-backend
-  servlet:
-    multipart:
-      enabled: true
-      max-file-size: 10MB
-      max-request-size: 10MB
-      file-size-threshold: 2KB
-
-# 数据库配置
-spring.datasource:
-  driver-class-name: org.postgresql.Driver
-  url: jdbc:postgresql://localhost:5432/beishuo
-  username: beishuo
-  password: beishuo123
-
-# JPA配置
-spring.jpa:
-  hibernate:
-    ddl-auto: update
-  show-sql: true
-  properties:
-    hibernate:
-      dialect: org.hibernate.dialect.PostgreSQLDialect
-      format_sql: true
-
+# 原来的Java后端服务配置
 server:
-  port: 8081
-  host: 0.0.0.0
+  port: 8080
   servlet:
-    context-path: /api/database
-  compression:
-    enabled: true
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    context-path: /api/v1
 
-# 日志配置
-logging:
-  level:
-    root: INFO
-    com.beishuo: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
-  file:
-    name: logs/beishuo-backend.log
-    max-size: 10MB
-    max-history: 30
-
-# 数据库API配置（等待实际服务地址）
+# 数据库API配置（指向数据库中间层服务）
 database:
   api:
-    base-url: http://localhost:8081/api/database  # 改回 base-url
+    base-url: http://localhost:8081/api/database
     connect-timeout: 5000
     read-timeout: 10000
     retry-times: 3
 
-# Redis API配置（等待实际服务地址）
+# Redis API配置（可选，根据实际情况配置）
 redis:
   api:
     base-url: http://localhost:8082/api/redis

@@ -765,6 +765,69 @@ const sendAiQuestion = async () => {
 const triggerFileInput = () => {
     modalFileInput.value?.click()
 }
+
+const dislikeResult = async () => {
+    try {
+        // 显示确认对话框
+        if (!confirm('确定对当前识别结果不满意吗？系统将重新执行识别。')) {
+            return
+        }
+        
+        // 这里需要获取当前识别结果的图片哈希值
+        // 假设recognitionResult对象中包含image_hash字段
+        const imageHash = recognitionResult.value.image_hash || ''
+        if (!imageHash) {
+            appStore.addNotification({
+                type: 'error',
+                message: '无法获取图片哈希值，无法重新识别',
+                duration: 3000
+            })
+            return
+        }
+        
+        // 调用API删除OCR缓存
+        const baseUrl = 'http://localhost:8080/api/v1'
+        const token = localStorage.getItem('token') || ''
+        const url = `${baseUrl}/recognition/result/${imageHash}/dislike`
+        const headers = { 'Content-Type': 'application/json' }
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`
+        }
+        
+        const response = await fetch(url, { method: 'POST', headers })
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+        }
+        
+        const data = await response.json()
+        if (data && data.success) {
+            appStore.addNotification({
+                type: 'success',
+                message: '已删除缓存，将重新执行识别',
+                duration: 3000
+            })
+            
+            // 重新执行OCR识别
+            recognitionState.value = 'processing'
+            processingProgress.value = 0
+            processingStatus.value = '准备重新识别...'
+            
+            // 这里需要获取当前上传的图片文件或URL，然后重新调用startRecognitionApi
+            // 由于当前代码中没有保存原始图片文件，我们可以提示用户重新上传
+            uploadModalOpen.value = true
+        } else {
+            const msg = data && data.message ? data.message : '操作失败'
+            throw new Error(msg)
+        }
+    } catch (e) {
+        console.error('处理不满意结果失败:', e)
+        appStore.addNotification({
+            type: 'error',
+            message: `操作失败: ${e.message}`,
+            duration: 3000
+        })
+    }
+}
 </script>
 
 <template>
@@ -1052,6 +1115,11 @@ const triggerFileInput = () => {
                                     class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom"
                                     title="编辑文本">
                                     <i class="fas fa-edit"></i>
+                                </button>
+                                <button @click="dislikeResult"
+                                    class="p-2 text-dark/70 hover:text-red-500 hover:bg-gray-100 rounded-md transition-custom"
+                                    title="不满意结果">
+                                    <i class="fas fa-thumbs-down"></i>
                                 </button>
                             </div>
                         </div>

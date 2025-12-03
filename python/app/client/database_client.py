@@ -151,4 +151,88 @@ class DatabaseClient(BaseHTTPClient):
         if isinstance(result, list):
             return result
         return []
+    
+    # ========== 对话相关 ==========
+    
+    async def create_conversation(self, user_id: int, conversation_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """创建对话"""
+        data = {
+            "userId": user_id,
+            **conversation_data
+        }
+        return await self.post("/conversation", json=data)
+    
+    async def get_conversation_by_id(self, conversation_id: str) -> Optional[Dict[str, Any]]:
+        """根据ID获取对话"""
+        return await self.get(f"/conversation/{conversation_id}")
+    
+    async def add_message(self, conversation_id: str, message_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """添加对话消息"""
+        data = {
+            "conversationId": conversation_id,
+            **message_data
+        }
+        return await self.post("/message", json=data)
+    
+    async def get_messages(self, conversation_id: str, page: int = 0, size: int = 20, order: str = "asc") -> Optional[List[Dict[str, Any]]]:
+        """获取对话消息列表"""
+        params = {
+            "conversationId": conversation_id,
+            "page": page,
+            "size": size,
+            "order": order
+        }
+        result = await self.get("/message/list", params=params)
+        if isinstance(result, list):
+            return result
+        return []
+    
+    async def update_message_status(self, message_id: str, status: str) -> bool:
+        """更新对话消息状态"""
+        data = {"status": status}
+        result = await self.put(f"/message/{message_id}/status", json=data)
+        return result is not None
+    
+    async def reset_conversation(self, conversation_id: str) -> bool:
+        """重置对话上下文"""
+        return await self.delete(f"/conversation/{conversation_id}/messages")
+    
+    # ========== OCR相关 ==========
+    
+    async def get_ocr_result_by_image_hash(self, image_hash: str) -> Optional[Dict[str, Any]]:
+        """根据图片哈希值获取OCR结果"""
+        result = await self.get(f"/ocr/result/hash/{image_hash}")
+        # 检查success字段，只有当success为true时才返回OCR结果，否则返回None
+        if result and isinstance(result, dict) and result.get("success", False):
+            return result
+        return None
+    
+    async def create_ocr_job(self, ocr_job_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """创建OCR任务"""
+        return await self.post("/ocr/job", json=ocr_job_data)
+    
+    async def save_ocr_result(self, task_id: str, result_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """保存OCR识别结果"""
+        return await self.post(f"/ocr/result/{task_id}", json=result_data)
+    
+    async def delete_ocr_cache(self, image_hash: str) -> bool:
+        """删除OCR缓存"""
+        result = await self.delete(f"/ocr/result/hash/{image_hash}")
+        return result is not None
+    
+    # ========== LLM缓存相关 ==========
+    
+    async def get_llm_cache(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """获取LLM响应缓存"""
+        return await self.get(f"/llm/cache/{cache_key}")
+    
+    async def set_llm_cache(self, cache_key: str, cache_data: Dict[str, Any], ttl: int = 3600) -> bool:
+        """设置LLM响应缓存"""
+        data = {
+            "cacheKey": cache_key,
+            "cacheData": cache_data,
+            "ttl": ttl
+        }
+        result = await self.post("/llm/cache", json=data)
+        return result is not None
 

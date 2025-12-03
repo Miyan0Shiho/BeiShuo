@@ -1,6 +1,7 @@
 package com.beishuo.service;
 
 import com.beishuo.client.DatabaseClient;
+import com.beishuo.client.OSSClient;
 import com.beishuo.client.RedisClient;
 import com.beishuo.common.PageResult;
 import com.beishuo.common.ResultCode;
@@ -15,9 +16,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 @Service
@@ -30,6 +35,9 @@ public class InscriptionService {
 
     @Autowired
     private RedisClient redisClient;
+
+    @Autowired
+    private OSSClient ossClient;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -74,13 +82,27 @@ public class InscriptionService {
 
             // 生成访问URL
             String imageUrl = urlPrefix + "/" + filename;
+            
+            // 上传到OSS
+            String ossUrl = "";
+            try {
+                ossUrl = ossClient.uploadFile(filePath.toFile(), filename);
+                logger.info("文件上传到OSS成功: filename={}, ossUrl={}", originalFilename, ossUrl);
+            } catch (Exception e) {
+                logger.warn("文件上传到OSS失败，继续使用本地存储: filename={}", originalFilename, e);
+            }
+
+            // 生成图片哈希值
+            String imageHash = generateImageHash(file.getInputStream());
 
             Map<String, Object> result = new HashMap<>();
             result.put("imageUrl", imageUrl);
+            result.put("ossUrl", ossUrl);
             result.put("imageId", filename);
             result.put("filename", originalFilename);
+            result.put("imageHash", imageHash);
 
-            logger.info("文件上传成功: filename={}, imageUrl={}", originalFilename, imageUrl);
+            logger.info("文件上传成功: filename={}, imageUrl={}, imageHash={}", originalFilename, imageUrl, imageHash);
             return result;
         } catch (IOException e) {
             logger.error("文件上传失败", e);
@@ -89,12 +111,100 @@ public class InscriptionService {
     }
 
     /**
+     * 生成图片哈希值，用于OCR识别结果缓存
+     */
+    private String generateImageHash(InputStream inputStream) throws IOException {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                md.update(buffer, 0, bytesRead);
+            }
+            byte[] hashBytes = md.digest();
+            BigInteger bigInt = new BigInteger(1, hashBytes);
+            String hash = bigInt.toString(16);
+            // 手动实现padStart功能
+            int length = hash.length();
+            if (length < 32) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < 32 - length; i++) {
+                    sb.append('0');
+                }
+                sb.append(hash);
+                hash = sb.toString();
+            }
+            return hash;
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("生成图片哈希值失败", e);
+            throw new RuntimeException("生成图片哈希值失败", e);
+        } finally {
+            inputStream.close();
+        }
+    }
+    
+    /**
+     * 生成图片哈希值，用于OCR识别结果缓存
+     */
+    private String generateImageHash(String imageUrl) {
+        // 从URL生成哈希值，实际项目中应该下载图片计算哈希值
+        // 这里简化处理，直接对URL进行哈希
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] hashBytes = md.digest(imageUrl.getBytes());
+            BigInteger bigInt = new BigInteger(1, hashBytes);
+            String hash = bigInt.toString(16);
+            // 手动实现padStart功能
+            int length = hash.length();
+            if (length < 32) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < 32 - length; i++) {
+                    sb.append('0');
+                }
+                sb.append(hash);
+                hash = sb.toString();
+            }
+            return hash;
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("生成图片哈希值失败", e);
+            throw new RuntimeException("生成图片哈希值失败", e);
+        }
+    }
+
+    /**
      * 提交识别任务
      */
     public String submitRecognitionTask(String imageId, String imageUrl) {
-        // TODO: 这里应该调用OCR服务进行识别
-        // 当前返回一个模拟的taskId
+        // 生成图片哈希值
+        String imageHash = generateImageHash(imageUrl);
+        
+        // 查询数据库，检查是否已有识别结果
+        Map<String, Object> existingResult = databaseClient.getOCRResultByImageHash(imageHash);
+        if (existingResult != null) {
+            // 已有结果，直接使用
+            logger.info("缓存命中: imageId={}, imageHash={}", imageId, imageHash);
+            System.out.println("缓存命中");
+            // TODO: 使用已有结果创建inscription记录
+            return existingResult.get("task_id").toString();
+        }
+        
+        // 无已有结果，提交OCR任务
+        logger.info("缓存未命中: imageId={}, imageHash={}", imageId, imageHash);
+        System.out.println("缓存未命中");
+        
         String taskId = UUID.randomUUID().toString();
+        
+        // 创建OCR任务记录
+        Map<String, Object> ocrJob = new HashMap<>();
+        ocrJob.put("task_id", taskId);
+        ocrJob.put("image_id", imageId);
+        ocrJob.put("image_url", imageUrl);
+        ocrJob.put("image_hash", imageHash);
+        ocrJob.put("status", "pending");
+        databaseClient.createOCRJob(ocrJob);
+        
+        // TODO: 实现OCR服务调用
+        
         logger.info("提交识别任务: imageId={}, taskId={}", imageId, taskId);
         return taskId;
     }
@@ -103,7 +213,14 @@ public class InscriptionService {
      * 获取识别状态
      */
     public Map<String, Object> getRecognitionStatus(String taskId) {
-        // TODO: 从OCR服务或任务队列获取状态
+        // 从数据库获取OCR任务状态
+        // TODO: 实现databaseClient.getOCRJobStatus方法
+        // Map<String, Object> ocrJob = databaseClient.getOCRJobStatus(taskId);
+        // if (ocrJob != null) {
+        //     return ocrJob;
+        // }
+        
+        // 暂时返回模拟数据，待databaseClient实现getOCRJobStatus方法后替换
         Map<String, Object> status = new HashMap<>();
         status.put("status", "processing");
         status.put("progress", 50);

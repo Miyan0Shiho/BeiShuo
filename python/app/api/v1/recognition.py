@@ -8,9 +8,11 @@ from app.services.inscription_service import InscriptionService
 from app.utils.logger import logger
 from app.config import settings
 from app.client.kandianguji_ocr_client import KandiangujiOCRClient
+from app.client.database_client import DatabaseClient
 import base64
 import os
 import uuid
+import hashlib
 
 router = APIRouter(prefix="/recognition", tags=["识别"])
 
@@ -76,6 +78,29 @@ async def start_recognition(
                 content = f.read()
             image_base64 = base64.b64encode(content).decode("utf-8")
 
+        # 生成图片哈希值，用于缓存
+        image_hash = hashlib.md5(content).hexdigest()
+        print(f"图片哈希值: {image_hash}")
+        
+        # 检查数据库缓存
+        db_client = DatabaseClient()
+        existing_result = None
+        try:
+            existing_result = await db_client.get_ocr_result_by_image_hash(image_hash)
+            if existing_result and existing_result.get("result"):
+                # 缓存命中，直接返回，但需要调整结果结构，确保与缓存未命中时相同
+                print("缓存命中")
+                logger.info(f"OCR结果从数据库缓存获取: image_hash={image_hash}")
+                # 打印返回给前端的数据，便于调试
+                print(f"返回给前端的数据（缓存命中）: {existing_result.get('result')}")
+                return Result.ok(existing_result.get("result"), "识别完成（缓存命中）")
+        except Exception as e:
+            logger.warning(f"获取OCR缓存失败: {e}")
+        
+        # 缓存未命中或数据库服务不可用，执行OCR识别
+        print("缓存未命中或数据库服务不可用，执行OCR识别")
+        logger.info(f"OCR缓存未命中或数据库服务不可用，执行识别: image_hash={image_hash}")
+
         # 默认选项
         default_options = {
             "version": options.get("version", "v2"),
@@ -92,32 +117,51 @@ async def start_recognition(
 
         client = KandiangujiOCRClient()
         primary_options = {**default_options, "return_position": True}
-        ocr_resp = await client.recognize(image_base64, primary_options)
-        data = ocr_resp.get("data") or {}
-        norm = _normalize_ocr(data)
-        if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
-            fallback_sp = {**primary_options, "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
+        
+        # 尝试多种OCR模式，提高识别成功率
+        norm = {}
+        recognition_success = False
+        
+        try:
+            # 第一次尝试：自动模式
+            ocr_resp = await client.recognize(image_base64, primary_options)
+            data = ocr_resp.get("data") or {}
+            norm = _normalize_ocr(data)
+            recognition_success = bool(norm["full_text"] or (norm["text_lines"] and norm["word_count"] > 0))
+        except Exception as e:
+            logger.warning(f"自动模式识别失败: {e}")
+        
+        # 第二次尝试：竖排模式
+        if not recognition_success:
             try:
+                fallback_sp = {**primary_options, "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
                 ocr_resp = await client.recognize(image_base64, fallback_sp)
                 norm = _normalize_ocr(ocr_resp.get("data") or {})
-            except Exception:
-                pass
-        if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
-            fallback_hp = {**primary_options, "det_mode": "hp", "hp_line_words_angel": primary_options.get("hp_line_words_angel", "left2right")}
+                recognition_success = bool(norm["full_text"] or (norm["text_lines"] and norm["word_count"] > 0))
+            except Exception as e:
+                logger.warning(f"竖排模式识别失败: {e}")
+        
+        # 第三次尝试：横排模式
+        if not recognition_success:
             try:
+                fallback_hp = {**primary_options, "det_mode": "hp", "hp_line_words_angel": primary_options.get("hp_line_words_angel", "left2right")}
                 ocr_resp = await client.recognize(image_base64, fallback_hp)
                 norm = _normalize_ocr(ocr_resp.get("data") or {})
-            except Exception:
-                pass
-        # 尝试版本回退（beta + sp）
-        if not norm["full_text"] and (not norm["text_lines"] or norm["word_count"] == 0):
-            fallback_beta_sp = {**primary_options, "version": "beta", "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
+                recognition_success = bool(norm["full_text"] or (norm["text_lines"] and norm["word_count"] > 0))
+            except Exception as e:
+                logger.warning(f"横排模式识别失败: {e}")
+        
+        # 第四次尝试：beta版本 + 竖排模式
+        if not recognition_success:
             try:
+                fallback_beta_sp = {**primary_options, "version": "beta", "det_mode": "sp", "sp_line_words_angel": primary_options.get("sp_line_words_angel", "top2bottom")}
                 ocr_resp = await client.recognize(image_base64, fallback_beta_sp)
                 norm = _normalize_ocr(ocr_resp.get("data") or {})
-            except Exception:
-                pass
-
+                recognition_success = bool(norm["full_text"] or (norm["text_lines"] and norm["word_count"] > 0))
+            except Exception as e:
+                logger.warning(f"beta版本识别失败: {e}")
+        
+        # 生成识别结果
         recognition_id = f"rec_{int(datetime.now().timestamp() * 1000)}"
         task_id = f"task_{int(datetime.now().timestamp() * 1000)}"
 
@@ -128,18 +172,42 @@ async def start_recognition(
             "estimated_time": 0,
             "result": {
                 "recognition_id": recognition_id,
-                "text": norm["full_text"],
-                "word_count": norm["word_count"],
-                "confidence": norm["confidence"],
-                "width": norm["width"],
-                "height": norm["height"],
-                "text_angel": norm["text_angel"],
-                "text_lines": norm["text_lines"],
-                "texts": norm["texts"],
-                "layout": norm["layout"],
+                "text": norm.get("full_text", ""),
+                "word_count": norm.get("word_count", 0),
+                "confidence": norm.get("confidence", 0.0),
+                "width": norm.get("width", 0),
+                "height": norm.get("height", 0),
+                "text_angel": norm.get("text_angel"),
+                "text_lines": norm.get("text_lines", []),
+                "texts": norm.get("texts", []),
+                "layout": norm.get("layout"),
             }
         }
+        
+        # 将识别结果保存到数据库，以便后续缓存使用
+        try:
+            ocr_job = {
+                "task_id": task_id,
+                "image_id": filename,
+                "image_url": image_url,
+                "image_hash": image_hash,
+                "status": "completed",
+                "result": result,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db_client.create_ocr_job(ocr_job)
+            logger.info(f"OCR任务已保存到数据库: image_hash={image_hash}")
+            
+            await db_client.save_ocr_result(task_id, result)
+            logger.info(f"OCR结果已保存到数据库: image_hash={image_hash}")
+        except Exception as e:
+            logger.warning(f"保存OCR结果到数据库失败: {e}")
+            print(f"保存OCR结果到数据库失败: {e}")
+            # 数据库服务不可用，继续返回OCR结果，不影响用户体验
+            pass
 
+        # 打印返回给前端的数据，便于调试
+        print(f"返回给前端的数据: {result}")
         return Result.ok(result, "识别完成")
     except Exception as e:
         # 打印堆栈，便于定位
@@ -286,4 +354,26 @@ async def save_correction_history(
     """保存校对记录"""
     # TODO: 实现校对记录保存
     return Result.ok(None, "校对记录已保存")
+
+@router.post("/result/{image_hash}/dislike")
+async def dislike_ocr_result(
+    image_hash: str = Path(..., description="图片哈希值"),
+    user_id: int = Depends(get_current_user_id)
+):
+    """用户不满意OCR结果，删除缓存"""
+    try:
+        db_client = DatabaseClient()
+        
+        # 删除OCR缓存
+        delete_result = await db_client.delete_ocr_cache(image_hash)
+        
+        if delete_result:
+            logger.info(f"OCR缓存已删除: image_hash={image_hash}")
+            return Result.ok(None, "OCR缓存已删除，将重新执行识别")
+        else:
+            logger.warning(f"删除OCR缓存失败: image_hash={image_hash}")
+            return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, "删除OCR缓存失败")
+    except Exception as e:
+        logger.exception(f"处理用户不满意OCR结果请求失败: {e}")
+        return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, f"处理请求失败: {str(e)}")
 

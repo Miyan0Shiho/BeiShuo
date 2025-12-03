@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     file_upload_allowed_types: List[str] = ["jpg", "jpeg", "png", "webp"]
     file_upload_url_prefix: str = "/uploads"
 
+    # 阿里云OSS配置
+    aliyun_oss_access_key_id: str = ""
+    aliyun_oss_access_key_secret: str = ""
+    aliyun_oss_endpoint: str = ""
+    aliyun_oss_bucket_name: str = ""
+    aliyun_oss_domain: str = ""
+
     # 看典古籍OCR配置
     kandianguji_ocr_token: str = ""
     kandianguji_ocr_email: str = ""

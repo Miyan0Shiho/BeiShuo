@@ -1,67 +1,82 @@
 from typing import List, Optional
 import json
-from app.client.redis_client import RedisClient
+from app.client.database_client import DatabaseClient
 from app.config import settings
 from app.LLM.models import Message, MessageStatus
 
 
 class ContextManager:
     def __init__(self):
-        self.redis = RedisClient()
+        self.db_client = DatabaseClient()
         self.mem = {}
 
-    def _key_messages(self, conversation_id: str) -> str:
-        return f"chat:{conversation_id}:messages"
-
     async def append_message(self, conversation_id: str, message: Message) -> None:
-        key = self._key_messages(conversation_id)
-        ttl = settings.cache_user_info_ttl
+        # 先更新内存缓存
+        mem_key = f"chat:{conversation_id}:messages"
         messages = await self.get_messages(conversation_id)
         messages.append(message)
         data = json.dumps([m.model_dump() for m in messages], ensure_ascii=False)
-        self.mem[key] = data
+        self.mem[mem_key] = data
+        
+        # 持久化到数据库
+        message_data = message.model_dump()
         try:
-            await self.redis.set(key, data, ttl)
-        except Exception:
-            pass
+            await self.db_client.add_message(conversation_id, message_data)
+        except Exception as e:
+            print(f"Error saving message to database: {e}")
 
     async def update_message_status(self, conversation_id: str, message_id: str, status: MessageStatus) -> None:
-        key = self._key_messages(conversation_id)
+        # 先更新内存缓存
+        mem_key = f"chat:{conversation_id}:messages"
         messages = await self.get_messages(conversation_id)
         for m in messages:
             if m.id == message_id:
                 m.status = status
         data = json.dumps([m.model_dump() for m in messages], ensure_ascii=False)
-        self.mem[key] = data
+        self.mem[mem_key] = data
+        
+        # 更新数据库
         try:
-            await self.redis.set(key, data, settings.cache_user_info_ttl)
-        except Exception:
-            pass
+            await self.db_client.update_message_status(message_id, status.value)
+        except Exception as e:
+            print(f"Error updating message status in database: {e}")
 
     async def get_messages(self, conversation_id: str) -> List[Message]:
-        key = self._key_messages(conversation_id)
-        raw = None
-        try:
-            raw = await self.redis.get_value(key)
-        except Exception:
-            raw = None
-        if not raw:
-            raw = self.mem.get(key)
+        # 先从内存缓存获取
+        mem_key = f"chat:{conversation_id}:messages"
+        raw = self.mem.get(mem_key)
+        
         if raw:
             try:
                 arr = json.loads(raw)
                 return [Message(**item) for item in arr]
             except Exception:
-                return []
+                pass
+        
+        # 从数据库获取
+        try:
+            db_messages = await self.db_client.get_messages(conversation_id)
+            if db_messages:
+                messages = [Message(**msg) for msg in db_messages]
+                # 更新内存缓存
+                data = json.dumps([m.model_dump() for m in messages], ensure_ascii=False)
+                self.mem[mem_key] = data
+                return messages
+        except Exception as e:
+            print(f"Error getting messages from database: {e}")
+        
         return []
 
     async def reset_context(self, conversation_id: str) -> None:
-        key = self._key_messages(conversation_id)
-        self.mem.pop(key, None)
+        # 清除内存缓存
+        mem_key = f"chat:{conversation_id}:messages"
+        self.mem.pop(mem_key, None)
+        
+        # 清除数据库中的对话消息
         try:
-            await self.redis.delete_key(key)
-        except Exception:
-            pass
+            await self.db_client.reset_conversation(conversation_id)
+        except Exception as e:
+            print(f"Error resetting conversation in database: {e}")
 
     async def build_context_snippets(self, conversation_id: str, max_chars: int) -> Optional[str]:
         messages = await self.get_messages(conversation_id)

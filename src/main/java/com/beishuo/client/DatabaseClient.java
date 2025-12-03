@@ -348,4 +348,74 @@ public class DatabaseClient {
             return null;
         }
     }
+    
+    // ========== OCR相关 ==========
+    
+    /**
+     * 根据图片哈希值查询OCR结果
+     */
+    public Map<String, Object> getOCRResultByImageHash(String imageHash) {
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/ocr/result")
+                .queryParam("imageHash", imageHash)
+                .toUriString();
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    url, HttpMethod.GET, null,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            return response.getBody();
+        } catch (Exception e) {
+            logger.error("根据图片哈希查询OCR结果失败: imageHash={}", imageHash, e);
+            return null;
+        }
+    }
+    
+    /**
+     * 创建OCR任务
+     */
+    public void createOCRJob(Map<String, Object> ocrJobData) {
+        String url = baseUrl + "/ocr/job";
+        try {
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(ocrJobData);
+            restTemplate.exchange(url, HttpMethod.POST, request, Void.class);
+            logger.info("创建OCR任务成功: taskId={}", ocrJobData.get("task_id"));
+        } catch (Exception e) {
+            logger.error("创建OCR任务失败", e);
+            throw new RuntimeException("创建OCR任务失败", e);
+        }
+    }
+    
+    /**
+     * 更新OCR任务状态
+     */
+    public void updateOCRJobStatus(String taskId, String status) {
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/ocr/job/status")
+                .queryParam("taskId", taskId)
+                .queryParam("status", status)
+                .toUriString();
+        try {
+            restTemplate.exchange(url, HttpMethod.PUT, null, Void.class);
+            logger.info("更新OCR任务状态成功: taskId={}, status={}", taskId, status);
+        } catch (Exception e) {
+            logger.error("更新OCR任务状态失败: taskId={}, status={}", taskId, status, e);
+            throw new RuntimeException("更新OCR任务状态失败", e);
+        }
+    }
+    
+    /**
+     * 保存OCR识别结果
+     */
+    public void saveOCRResult(String taskId, Map<String, Object> resultData) {
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/ocr/result")
+                .queryParam("taskId", taskId)
+                .toUriString();
+        try {
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(resultData);
+            restTemplate.exchange(url, HttpMethod.POST, request, Void.class);
+            logger.info("保存OCR识别结果成功: taskId={}", taskId);
+        } catch (Exception e) {
+            logger.error("保存OCR识别结果失败: taskId={}", taskId, e);
+            throw new RuntimeException("保存OCR识别结果失败", e);
+        }
+    }
 }

@@ -1,261 +1,186 @@
 package com.beishuo.controller;
 
-import com.beishuo.common.JwtUtil;
-import com.beishuo.common.PageResult;
-import com.beishuo.common.Result;
-import com.beishuo.common.ResultCode;
-import com.beishuo.service.InscriptionService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.beishuo.entity.Inscription;
+import com.beishuo.entity.User;
+import com.beishuo.repository.InscriptionRepository;
+import com.beishuo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+/**
+ * 碑文控制器
+ */
 @RestController
 @RequestMapping("/inscription")
-public class InscriptionController {
-
-    private static final Logger logger = LoggerFactory.getLogger(InscriptionController.class);
-
+public class InscriptionController extends BaseController {
+    
     @Autowired
-    private JwtUtil jwtUtil;
-
+    private InscriptionRepository inscriptionRepository;
+    
     @Autowired
-    private InscriptionService inscriptionService;
-
+    private UserRepository userRepository;
+    
     /**
-     * 上传碑文图片
-     */
-    @PostMapping("/upload")
-    public Result<Map<String, Object>> uploadImage(@RequestParam("file") MultipartFile file) {
-        Map<String, Object> result = inscriptionService.uploadImage(file);
-        return Result.success(result);
-    }
-
-    /**
-     * 提交识别任务
-     */
-    @PostMapping("/recognize")
-    public Result<Map<String, Object>> recognize(@RequestBody Map<String, Object> request) {
-        // TODO: 实现识别任务提交
-        // String taskId = inscriptionService.submitRecognitionTask(imageId, imageUrl);
-        // Map<String, Object> result = new HashMap<>();
-        // result.put("taskId", taskId);
-        // return Result.success(result);
-
-        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "识别功能待实现");
-    }
-
-    /**
-     * 查询识别状态
-     */
-    @GetMapping("/status/{taskId}")
-    public Result<Map<String, Object>> getRecognitionStatus(@PathVariable String taskId) {
-        // TODO: 实现识别状态查询
-        // Map<String, Object> status = inscriptionService.getRecognitionStatus(taskId);
-        // return Result.success(status);
-
-        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "状态查询功能待实现");
-    }
-
-    /**
-     * 获取识别结果
-     */
-    @GetMapping("/{id}/result")
-    public Result<Map<String, Object>> getRecognitionResult(@PathVariable Long id) {
-        // TODO: 实现识别结果获取
-        // Map<String, Object> result = inscriptionService.getRecognitionResult(id);
-        // return Result.success(result);
-
-        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "结果获取功能待实现");
-    }
-
-    /**
-     * 保存校对结果
-     */
-    @PutMapping("/{id}/save-proofread")
-    public Result<?> saveProofread(@PathVariable Long id, @RequestBody Map<String, Object> request) {
-        // TODO: 实现校对结果保存
-        // inscriptionService.saveProofread(id, correctedText, columns);
-        // return Result.success();
-
-        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "保存功能待实现");
-    }
-
-    /**
-     * 重新识别
-     */
-    @PostMapping("/{id}/re-recognize")
-    public Result<Map<String, Object>> reRecognize(@PathVariable Long id) {
-        // TODO: 实现重新识别
-        // String taskId = inscriptionService.reRecognize(id);
-        // Map<String, Object> result = new HashMap<>();
-        // result.put("taskId", taskId);
-        // return Result.success(result);
-
-        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "重新识别功能待实现");
-    }
-
-    /**
-     * 获取我的碑文列表
+     * 查询碑文列表
      */
     @GetMapping("/list")
-    public Result<PageResult<Map<String, Object>>> getMyInscriptions(
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String tab) {
-
-        Long userId = getUserIdFromToken(authHeader);
-        if (userId == null) {
-            return Result.error(ResultCode.UNAUTHORIZED);
+    public ResponseEntity<Map<String, Object>> getInscriptionList(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sort) {
+        
+        Sort sortObj = Sort.unsorted();
+        if (sort != null) {
+            String[] sortParts = sort.split(",");
+            if (sortParts.length == 2) {
+                if (sortParts[1].equalsIgnoreCase("desc")) {
+                    sortObj = Sort.by(Sort.Direction.DESC, sortParts[0]);
+                } else {
+                    sortObj = Sort.by(Sort.Direction.ASC, sortParts[0]);
+                }
+            }
         }
-
-        PageResult<Map<String, Object>> result = inscriptionService.getMyInscriptions(
-                userId, page, size, sort, keyword, tab);
-        return Result.success(result);
+        
+        Pageable pageable = PageRequest.of(page, size, sortObj);
+        
+        if (userId != null) {
+            return ResponseEntity.ok(buildPageResult(inscriptionRepository.findByCreatedBy_Id(userId, pageable)));
+        } else {
+            return ResponseEntity.ok(buildPageResult(inscriptionRepository.findByStatus("active", pageable)));
+        }
     }
-
+    
     /**
-     * 获取碑文详情
+     * 根据ID查询碑文详情
      */
     @GetMapping("/{id}")
-    public Result<Map<String, Object>> getInscriptionDetail(
-            @PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-
-        Map<String, Object> detail = inscriptionService.getInscriptionDetail(id);
-        return Result.success(detail);
+    public ResponseEntity<Map<String, Object>> getInscriptionById(@PathVariable Long id) {
+        Inscription inscription = inscriptionRepository.findById(id).orElse(null);
+        if (inscription != null) {
+            return ResponseEntity.ok(convertInscriptionToMap(inscription));
+        }
+        return ResponseEntity.notFound().build();
     }
-
+    
+    /**
+     * 创建碑文记录
+     */
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> createInscription(@RequestBody Map<String, Object> inscriptionData) {
+        Inscription inscription = new Inscription();
+        inscription.setTitle((String) inscriptionData.get("title"));
+        inscription.setContent((String) inscriptionData.get("content"));
+        inscription.setDynasty((String) inscriptionData.get("dynasty"));
+        inscription.setLocation((String) inscriptionData.get("location"));
+        inscription.setAuthor((String) inscriptionData.get("author"));
+        inscription.setCreatedYear((String) inscriptionData.get("createdYear"));
+        inscription.setImageUrl((String) inscriptionData.get("imageUrl"));
+        inscription.setStatus((String) inscriptionData.getOrDefault("status", "active"));
+        
+        if (inscriptionData.containsKey("createdBy")) {
+            Long createdById = Long.parseLong(inscriptionData.get("createdBy").toString());
+            User createdBy = userRepository.findById(createdById).orElse(null);
+            if (createdBy != null) {
+                inscription.setCreatedBy(createdBy);
+            }
+        }
+        
+        Inscription savedInscription = inscriptionRepository.save(inscription);
+        return ResponseEntity.ok(convertInscriptionToMap(savedInscription));
+    }
+    
     /**
      * 更新碑文
      */
     @PutMapping("/{id}")
-    public Result<?> updateInscription(
-            @PathVariable Long id,
-            @RequestBody Map<String, Object> request,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-
-        Long userId = getUserIdFromToken(authHeader);
-        if (userId == null) {
-            return Result.error(ResultCode.UNAUTHORIZED);
+    public ResponseEntity<Void> updateInscription(@PathVariable Long id, @RequestBody Map<String, Object> inscriptionData) {
+        Inscription inscription = inscriptionRepository.findById(id).orElse(null);
+        if (inscription != null) {
+            if (inscriptionData.containsKey("title")) {
+                inscription.setTitle((String) inscriptionData.get("title"));
+            }
+            if (inscriptionData.containsKey("content")) {
+                inscription.setContent((String) inscriptionData.get("content"));
+            }
+            if (inscriptionData.containsKey("dynasty")) {
+                inscription.setDynasty((String) inscriptionData.get("dynasty"));
+            }
+            if (inscriptionData.containsKey("location")) {
+                inscription.setLocation((String) inscriptionData.get("location"));
+            }
+            if (inscriptionData.containsKey("author")) {
+                inscription.setAuthor((String) inscriptionData.get("author"));
+            }
+            if (inscriptionData.containsKey("createdYear")) {
+                inscription.setCreatedYear((String) inscriptionData.get("createdYear"));
+            }
+            if (inscriptionData.containsKey("imageUrl")) {
+                inscription.setImageUrl((String) inscriptionData.get("imageUrl"));
+            }
+            if (inscriptionData.containsKey("status")) {
+                inscription.setStatus((String) inscriptionData.get("status"));
+            }
+            
+            inscriptionRepository.save(inscription);
+            return ResponseEntity.ok().build();
         }
-
-        inscriptionService.updateInscription(id, userId, request);
-        return Result.success();
+        return ResponseEntity.notFound().build();
     }
-
+    
     /**
      * 删除碑文
      */
     @DeleteMapping("/{id}")
-    public Result<?> deleteInscription(
-            @PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-
-        Long userId = getUserIdFromToken(authHeader);
-        if (userId == null) {
-            return Result.error(ResultCode.UNAUTHORIZED);
+    public ResponseEntity<Void> deleteInscription(@PathVariable Long id) {
+        Inscription inscription = inscriptionRepository.findById(id).orElse(null);
+        if (inscription != null) {
+            inscriptionRepository.delete(inscription);
+            return ResponseEntity.ok().build();
         }
-
-        inscriptionService.deleteInscription(id, userId);
-        return Result.success();
+        return ResponseEntity.notFound().build();
     }
-
+    
     /**
-     * 收藏碑文
-     */
-    @PostMapping("/{id}/favorite")
-    public Result<?> favoriteInscription(
-            @PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-
-        Long userId = getUserIdFromToken(authHeader);
-        if (userId == null) {
-            return Result.error(ResultCode.UNAUTHORIZED);
-        }
-
-        // TODO: 调用InscriptionService收藏碑文
-        // inscriptionService.favoriteInscription(id, userId);
-        // return Result.success();
-
-        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "收藏功能待实现");
-    }
-
-    /**
-     * 取消收藏
-     */
-    @DeleteMapping("/{id}/favorite")
-    public Result<?> unfavoriteInscription(
-            @PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-
-        Long userId = getUserIdFromToken(authHeader);
-        if (userId == null) {
-            return Result.error(ResultCode.UNAUTHORIZED);
-        }
-
-        // TODO: 调用InscriptionService取消收藏
-        // inscriptionService.unfavoriteInscription(id, userId);
-        // return Result.success();
-
-        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "取消收藏功能待实现");
-    }
-
-    /**
-     * 发布到知识库
-     */
-    @PostMapping("/{id}/publish")
-    public Result<Map<String, Object>> publishToKnowledge(
-            @PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-
-        Long userId = getUserIdFromToken(authHeader);
-        if (userId == null) {
-            return Result.error(ResultCode.UNAUTHORIZED);
-        }
-
-        // TODO: 调用InscriptionService发布到知识库
-        // Long knowledgeId = inscriptionService.publishToKnowledge(id, userId);
-        // Map<String, Object> result = new HashMap<>();
-        // result.put("knowledgeId", knowledgeId);
-        // return Result.success(result);
-
-        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "发布功能待实现");
-    }
-
-    /**
-     * 搜索碑文
+     * 模糊搜索碑文
      */
     @GetMapping("/search")
-    public Result<List<Map<String, Object>>> searchInscriptions(
-            @RequestParam String keyword,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
-
-        List<Map<String, Object>> results = inscriptionService.searchInscriptions(keyword, page, size);
-        return Result.success(results);
+    public ResponseEntity<List<Map<String, Object>>> searchInscriptions(@RequestParam String keyword) {
+        List<Inscription> inscriptions = inscriptionRepository.searchByKeyword(keyword);
+        List<Map<String, Object>> result = inscriptions.stream()
+                .map(this::convertInscriptionToMap)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
     }
-
+    
     /**
-     * 从Token中获取用户ID
+     * 将Inscription对象转换为Map
      */
-    private Long getUserIdFromToken(String authHeader) {
-        if (authHeader == null) {
-            return null;
+    private Map<String, Object> convertInscriptionToMap(Inscription inscription) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", inscription.getId());
+        result.put("title", inscription.getTitle());
+        result.put("content", inscription.getContent());
+        result.put("dynasty", inscription.getDynasty());
+        result.put("location", inscription.getLocation());
+        result.put("author", inscription.getAuthor());
+        result.put("createdYear", inscription.getCreatedYear());
+        result.put("imageUrl", inscription.getImageUrl());
+        result.put("status", inscription.getStatus());
+        if (inscription.getCreatedBy() != null) {
+            result.put("createdBy", inscription.getCreatedBy().getId());
         }
-        String token = jwtUtil.extractTokenFromHeader(authHeader);
-        if (token == null || !jwtUtil.validateToken(token)) {
-            return null;
-        }
-        return jwtUtil.getUserIdFromToken(token);
+        result.put("createdAt", inscription.getCreatedAt());
+        result.put("updatedAt", inscription.getUpdatedAt());
+        return result;
     }
 }
-
