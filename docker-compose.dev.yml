@@ -1,4 +1,4 @@
-name: beishuo-dev
+# name: beishuo-dev
 
 services:
   # 数据库服务
@@ -15,7 +15,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U beishuo"]
+      test: [ "CMD-SHELL", "pg_isready -U beishuo" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,7 +29,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -48,7 +48,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -85,10 +85,38 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/v1/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Python OCR 后端服务
+  python-backend:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    container_name: beishuo-python
+    ports:
+      - "8083:8083"
+    environment:
+      - DEBUG=true
+      - HOST=0.0.0.0
+      - PORT=8083
+      - FILE_UPLOAD_PATH=/app/uploads
+    env_file:
+      - ./python/.env
+    volumes:
+      - ./uploads:/app/uploads
+      - ./python/logs:/app/logs
+    depends_on:
+      - backend
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8083/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 20s
 
   # Vue前端服务
   frontend:
@@ -107,8 +135,7 @@ services:
       - ./frontend/package.json:/app/package.json
       - ./frontend/package-lock.json:/app/package-lock.json
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     stdin_open: true
     tty: true
 

@@ -13,12 +13,27 @@ const userStore = useUserStore()
 const isMobileMenuOpen = ref(false)
 const isLoginModalOpen = ref(false)
 const isRegisterModalOpen = ref(false)
+const isUserMenuOpen = ref(false)
 const showPassword = ref(false)
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+// 用户首字母头像
+const userInitials = computed(() => {
+  const name = userStore.user?.display_name || userStore.user?.username || userStore.user?.name || 'U'
+  return name.charAt(0).toUpperCase()
+})
+
+// 用户显示名称
+const userDisplayName = computed(() => {
+  return userStore.user?.display_name || userStore.user?.username || userStore.user?.name || '用户'
+})
 
 // 表单数据
 const loginForm = ref({
   email: '',
-  password: ''
+  password: '',
+  rememberMe: false
 })
 
 const registerForm = ref({
@@ -55,44 +70,91 @@ const navigateTo = (path) => {
 const openLoginModal = () => {
   isLoginModalOpen.value = true
   isRegisterModalOpen.value = false
+  errorMessage.value = ''
   document.body.style.overflow = 'hidden'
 }
 
 const openRegisterModal = () => {
   isRegisterModalOpen.value = true
   isLoginModalOpen.value = false
+  errorMessage.value = ''
   document.body.style.overflow = 'hidden'
 }
 
 const closeModals = () => {
   isLoginModalOpen.value = false
   isRegisterModalOpen.value = false
+  errorMessage.value = ''
   document.body.style.overflow = ''
 }
 
 // 表单提交
-const handleLogin = () => {
-  // TODO: 实现登录逻辑
-  appStore.addNotification({
-    type: 'success',
-    message: '登录成功!',
-    duration: 3000
-  })
-  closeModals()
+const handleLogin = async () => {
+  if (isLoading.value) return
+  
+  errorMessage.value = ''
+  isLoading.value = true
+  
+  try {
+    const result = await userStore.login({
+      email: loginForm.value.email,
+      password: loginForm.value.password,
+      rememberMe: loginForm.value.rememberMe
+    })
+    
+    if (result.success) {
+      appStore.addNotification({
+        type: 'success',
+        message: '登录成功!',
+        duration: 3000
+      })
+      closeModals()
+      // 重置表单
+      loginForm.value = { email: '', password: '', rememberMe: false }
+    } else {
+      errorMessage.value = result.error || '登录失败，请检查邮箱和密码'
+    }
+  } catch (error) {
+    errorMessage.value = error.message || '登录失败，请稍后重试'
+  } finally {
+    isLoading.value = false
+  }
 }
 
-const handleRegister = () => {
-  // TODO: 实现注册逻辑
-  appStore.addNotification({
-    type: 'success',
-    message: '注册成功!',
-    duration: 3000
-  })
-  closeModals()
+const handleRegister = async () => {
+  if (isLoading.value) return
+  
+  errorMessage.value = ''
+  isLoading.value = true
+  
+  try {
+    const result = await userStore.register({
+      name: registerForm.value.name,
+      email: registerForm.value.email,
+      password: registerForm.value.password
+    })
+    
+    if (result.success) {
+      appStore.addNotification({
+        type: 'success',
+        message: '注册成功!',
+        duration: 3000
+      })
+      closeModals()
+      // 重置表单
+      registerForm.value = { name: '', email: '', password: '' }
+    } else {
+      errorMessage.value = result.error || '注册失败，请稍后重试'
+    }
+  } catch (error) {
+    errorMessage.value = error.message || '注册失败，请稍后重试'
+  } finally {
+    isLoading.value = false
+  }
 }
 
-const handleLogout = () => {
-  userStore.logout()
+const handleLogout = async () => {
+  await userStore.logout()
   router.push('/')
   appStore.addNotification({
     type: 'success',
@@ -146,14 +208,51 @@ onUnmounted(() => {
         <!-- 用户操作区域 -->
         <div class="flex items-center space-x-4">
           <template v-if="userStore.isLoggedIn">
-            <div class="flex items-center space-x-3">
-              <img :src="userStore.user?.avatar || '/images/default-avatar.png'" :alt="userStore.user?.name"
-                class="w-8 h-8 rounded-full object-cover">
-              <span class="hidden sm:block text-sm font-medium">{{ userStore.user?.name }}</span>
+            <div class="relative" @mouseenter="isUserMenuOpen = true" @mouseleave="isUserMenuOpen = false">
+              <button class="flex items-center space-x-2 focus:outline-none group">
+                <div class="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold border border-primary/20 overflow-hidden transition-custom group-hover:bg-primary group-hover:text-white">
+                  <img v-if="userStore.user?.avatar_url" :src="userStore.user.avatar_url" :alt="userDisplayName" class="w-full h-full object-cover">
+                  <span v-else>{{ userInitials }}</span>
+                </div>
+                <span class="hidden sm:block text-sm font-medium text-dark/80 group-hover:text-primary transition-custom">{{ userDisplayName }}</span>
+                <i class="fas fa-chevron-down text-xs text-dark/50 group-hover:text-primary transition-custom" :class="{ 'rotate-180': isUserMenuOpen }"></i>
+              </button>
+
+              <!-- 下拉菜单 -->
+              <transition
+                enter-active-class="transition ease-out duration-200"
+                enter-from-class="transform opacity-0 scale-95"
+                enter-to-class="transform opacity-100 scale-100"
+                leave-active-class="transition ease-in duration-75"
+                leave-from-class="transform opacity-100 scale-100"
+                leave-to-class="transform opacity-0 scale-95"
+              >
+                <div v-show="isUserMenuOpen" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 origin-top-right">
+                  <div class="px-4 py-3 border-b border-gray-50">
+                    <p class="text-xs text-gray-500">登录账号</p>
+                    <p class="text-sm font-medium text-gray-900 truncate">{{ userStore.user?.email }}</p>
+                  </div>
+                  
+                  <div class="py-1">
+                    <router-link to="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
+                      <i class="fas fa-user-circle w-5 text-center mr-2 text-gray-400"></i>个人中心
+                    </router-link>
+                    <router-link to="/favorites" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
+                      <i class="fas fa-star w-5 text-center mr-2 text-gray-400"></i>我的收藏
+                    </router-link>
+                    <router-link to="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
+                      <i class="fas fa-cog w-5 text-center mr-2 text-gray-400"></i>账号设置
+                    </router-link>
+                  </div>
+                  
+                  <div class="border-t border-gray-50 py-1">
+                    <button @click="handleLogout" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center">
+                      <i class="fas fa-sign-out-alt w-5 text-center mr-2"></i>退出登录
+                    </button>
+                  </div>
+                </div>
+              </transition>
             </div>
-            <button @click="handleLogout" class="text-sm text-red-600 hover:text-red-700 font-medium">
-              退出
-            </button>
           </template>
 
           <template v-else>
@@ -245,8 +344,17 @@ onUnmounted(() => {
                   </button>
                 </div>
               </div>
-              <button type="submit"
-                class="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-custom mb-4">登录</button>
+              <!-- 错误提示 -->
+              <div v-if="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                {{ errorMessage }}
+              </div>
+              <button type="submit" :disabled="isLoading"
+                class="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-custom mb-4 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span v-if="isLoading">
+                  <i class="fas fa-spinner fa-spin mr-2"></i>登录中...
+                </span>
+                <span v-else>登录</span>
+              </button>
               <div class="text-center text-sm text-dark/60">
                 <span>还没有账号? </span>
                 <button type="button" @click="openRegisterModal"
@@ -311,8 +419,17 @@ onUnmounted(() => {
                   </button>
                 </div>
               </div>
-              <button type="submit"
-                class="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-custom">注册账号</button>
+              <!-- 错误提示 -->
+              <div v-if="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                {{ errorMessage }}
+              </div>
+              <button type="submit" :disabled="isLoading"
+                class="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-custom disabled:opacity-50 disabled:cursor-not-allowed">
+                <span v-if="isLoading">
+                  <i class="fas fa-spinner fa-spin mr-2"></i>注册中...
+                </span>
+                <span v-else>注册账号</span>
+              </button>
               <div class="text-center text-sm text-dark/60 mt-4">
                 <span>已有账号? </span>
                 <button type="button" @click="openLoginModal"

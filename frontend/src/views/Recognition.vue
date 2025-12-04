@@ -472,7 +472,8 @@ const confirmUpload = () => {
 const startRecognition = async () => {
     recognitionState.value = 'processing'
     processingProgress.value = 0
-    const baseUrl = 'http://localhost:8080/api/v1'
+    // 使用 Python OCR 后端进行识别
+    const baseUrl = 'http://localhost:8083/api/v1'
     const token = localStorage.getItem('token') || ''
     try {
         // 上传图片

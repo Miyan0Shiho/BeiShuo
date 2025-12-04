@@ -22,7 +22,7 @@ COPY src ./src
 RUN mvn -B -DskipTests package
 
 # ==========================
-FROM openjdk:17-jre-slim
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 ENV JAVA_OPTS=""
 COPY --from=builder /workspace/target/*.jar /app/app.jar

@@ -32,7 +32,7 @@ const getNotificationClass = (type) => {
 </script>
 
 <template>
-  <div class="fixed top-4 right-4 z-50 space-y-2">
+  <div class="fixed top-24 right-4 z-50 space-y-2">
     <div
       v-for="notification in appStore.notifications"
       :key="notification.id"

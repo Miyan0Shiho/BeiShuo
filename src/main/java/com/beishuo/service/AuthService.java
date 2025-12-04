@@ -1,8 +1,9 @@
 package com.beishuo.service;
 
-import com.beishuo.client.DatabaseClient;
 import com.beishuo.common.ResultCode;
 import com.beishuo.common.exception.BusinessException;
+import com.beishuo.entity.User;
+import com.beishuo.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +20,7 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
-    private DatabaseClient databaseClient;
+    private UserRepository userRepository;
 
     @Autowired(required = false)
     private PasswordEncoder passwordEncoder;
@@ -31,29 +32,30 @@ public class AuthService {
      * 用户注册
      */
     public Map<String, Object> register(String email, String password, String username) {
-        // 检查用户是否已存在
-        Map<String, Object> existingUser = databaseClient.getUserByEmail(email);
-        if (existingUser != null) {
+        // 检查邮箱是否已存在
+        if (userRepository.existsByEmail(email)) {
             throw new BusinessException(ResultCode.USER_ALREADY_EXISTS);
         }
 
-        // 加密密码
-        String encodedPassword = encodePassword(password);
-
-        // 创建用户数据
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("email", email);
-        userData.put("password", encodedPassword);
-        userData.put("username", username);
-
-        // 调用数据库API创建用户
-        Map<String, Object> user = databaseClient.createUser(userData);
-        if (user == null) {
-            throw new BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "用户创建失败");
+        // 确保用户名唯一，如果已存在则添加随机后缀
+        String uniqueUsername = username;
+        if (userRepository.existsByUsername(username)) {
+            uniqueUsername = username + "_" + System.currentTimeMillis() % 10000;
         }
 
-        logger.info("用户注册成功: email={}, username={}", email, username);
-        return user;
+        // 创建用户
+        User user = new User();
+        user.setEmail(email);
+        user.setUsername(uniqueUsername);
+        user.setDisplayName(username);
+        user.setPasswordHash(encodePassword(password));
+        user.setRole("user");
+
+        // 保存用户
+        User savedUser = userRepository.save(user);
+        
+        logger.info("用户注册成功: email={}, username={}", email, uniqueUsername);
+        return convertToMap(savedUser);
     }
 
     /**
@@ -61,44 +63,66 @@ public class AuthService {
      */
     public Map<String, Object> login(String email, String password) {
         // 查询用户
-        Map<String, Object> user = databaseClient.getUserByEmail(email);
-        if (user == null) {
-            throw new BusinessException(ResultCode.INVALID_CREDENTIALS);
-        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ResultCode.INVALID_CREDENTIALS));
 
         // 验证密码
-        String storedPassword = (String) user.get("password");
-        if (!verifyPassword(password, storedPassword)) {
+        if (!verifyPassword(password, user.getPasswordHash())) {
             throw new BusinessException(ResultCode.INVALID_CREDENTIALS);
         }
 
         logger.info("用户登录成功: email={}", email);
-        return user;
+        return convertToMap(user);
     }
 
     /**
      * 根据ID获取用户信息
      */
     public Map<String, Object> getUserById(Long userId) {
-        Map<String, Object> user = databaseClient.getUserById(userId);
-        if (user == null) {
-            throw new BusinessException(ResultCode.USER_NOT_FOUND);
-        }
-        return user;
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ResultCode.USER_NOT_FOUND));
+        return convertToMap(user);
     }
 
     /**
      * 更新用户信息
      */
     public void updateUser(Long userId, Map<String, Object> userData) {
-        // 如果包含密码，需要加密
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ResultCode.USER_NOT_FOUND));
+        
+        if (userData.containsKey("username")) {
+            user.setUsername((String) userData.get("username"));
+        }
+        if (userData.containsKey("display_name")) {
+            user.setDisplayName((String) userData.get("display_name"));
+        }
+        if (userData.containsKey("avatar_url")) {
+            user.setAvatarUrl((String) userData.get("avatar_url"));
+        }
         if (userData.containsKey("password")) {
             String password = (String) userData.get("password");
-            userData.put("password", encodePassword(password));
+            user.setPasswordHash(encodePassword(password));
         }
 
-        databaseClient.updateUser(userId, userData);
+        userRepository.save(user);
         logger.info("用户信息更新成功: userId={}", userId);
+    }
+
+    /**
+     * 转换 User 实体为 Map
+     */
+    private Map<String, Object> convertToMap(User user) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", user.getId());
+        map.put("username", user.getUsername());
+        map.put("email", user.getEmail());
+        map.put("display_name", user.getDisplayName());
+        map.put("avatar_url", user.getAvatarUrl());
+        map.put("role", user.getRole());
+        map.put("created_at", user.getCreatedAt());
+        map.put("updated_at", user.getUpdatedAt());
+        return map;
     }
 
     /**
@@ -125,4 +149,3 @@ public class AuthService {
         return String.valueOf(rawPassword.hashCode()).equals(encodedPassword);
     }
 }
-

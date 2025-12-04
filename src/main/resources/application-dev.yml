@@ -45,7 +45,7 @@ rag:
 
 # JWT配置（开发环境）（随机生成32位密钥，可修改）
 jwt:
-  secret: K8mN2pQ7vX4wZ9aB3cD5eF6gH1jL8nM0qR2sT4uV6wY8zA1bC3dE5fG7hI9jK0
+  secret: K8mN2pQ7vX4wZ9aB3cD5eF6gH1jL8nM0qR2sT4uV6wY8zA1bC3dE5fG7hI9jK0xY
   expiration: 86400000
   refresh-expiration: 604800000
 
