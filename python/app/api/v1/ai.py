@@ -82,12 +82,28 @@ async def interpretation_sections(
     try:
         sections, refs = await service.generate_sections(request.text, request.inscription_id)
         conversation_id = request.conversation_id or f"conv_{int(datetime.now().timestamp() * 1000)}"
+        
+        # 保存AI阐释结果到数据库
+        logger.debug(f"准备保存AI阐释结果: user_id={user_id}, recognition_id={request.recognition_id}, inscription_id={request.inscription_id}")
+        save_result = await service.save_interpretation(
+            user_id=user_id,
+            recognition_id=request.recognition_id,
+            inscription_id=request.inscription_id,
+            sections=sections
+        )
+        
+        if save_result:
+            logger.info(f"AI阐释结果保存成功: conversation_id={conversation_id}")
+        else:
+            logger.warning(f"AI阐释结果保存失败: conversation_id={conversation_id}")
+        
         return Result.ok({
             "conversation_id": conversation_id,
             "sections": sections,
             "sources": [r.model_dump() for r in refs]
         })
     except Exception as e:
+        logger.exception(f"AI阐释生成失败: {e}")
         return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, f"生成失败: {str(e)}")
     finally:
         await service.close()

@@ -205,10 +205,10 @@ class DatabaseClient:
         logger.debug(f"DatabaseClient.create_ocr_job result: {result}")
         return result
     
-    async def save_ocr_result(self, task_id: str, result_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def save_ocr_result(self, task_id: str, result_data: Dict[str, Any], image_hash: str = None, content: bytes = None) -> Optional[Dict[str, Any]]:
         """保存OCR识别结果"""
-        logger.debug(f"DatabaseClient.save_ocr_result: task_id={task_id}, result_data={result_data}")
-        result = await self.client.save_ocr_result(task_id, result_data)
+        logger.debug(f"DatabaseClient.save_ocr_result: task_id={task_id}, result_data={result_data}, image_hash={image_hash}")
+        result = await self.client.save_ocr_result(task_id, result_data, image_hash, content)
         logger.debug(f"DatabaseClient.save_ocr_result result: {result}")
         return result
     

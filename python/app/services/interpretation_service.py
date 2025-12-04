@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from app.client.llm_client import LLMClient
 from app.client.rag_client import RAGClient
 from app.client.embedding_client import EmbeddingClient
@@ -115,12 +115,45 @@ class InterpretationService:
                 sections["culture_markdown"] = obj.get("culture_markdown") or ""
                 sections["figures"] = obj.get("figures") or []
                 sections["timeline"] = obj.get("timeline") or []
-            except Exception:
+            except Exception as e:
                 # 解析失败，降级为简版摘要
+                logger.error(f"AI阐释解析失败: {e}")
                 summary = ("基于碑文与上下文的自动摘要：\n" + (context_text[:600] if context_text else text[:600]))
                 sections["history_markdown"] = summary
+        
         refs = contexts_to_references(contexts)
+        logger.info(f"AI阐释章节生成成功: inscription_id={inscription_id}")
         return sections, refs
+    
+    async def save_interpretation(self, user_id: int, recognition_id: Optional[str], inscription_id: Optional[int], sections: Dict[str, Any]) -> bool:
+        """保存AI阐释结果到数据库"""
+        try:
+            logger.debug(f"开始保存AI阐释结果: user_id={user_id}, recognition_id={recognition_id}, inscription_id={inscription_id}")
+            
+            # 这里我们将AI阐释结果保存到llm_cache表中，作为一种临时解决方案
+            # 在实际应用中，应该创建专门的表来保存AI阐释结果
+            import hashlib
+            
+            # 生成唯一的缓存键
+            cache_input = f"{user_id}:{recognition_id}:{inscription_id}:{json.dumps(sections)}"
+            cache_key = hashlib.md5(cache_input.encode()).hexdigest()
+            
+            # 保存到LLM缓存
+            cache_data = {
+                "reply": {
+                    "content": json.dumps(sections),
+                    "type": "interpretation",
+                    "sources": [],
+                    "suggestions": []
+                }
+            }
+            
+            await self.database_client.set_llm_cache(cache_key, cache_data)
+            logger.info(f"AI阐释结果保存成功: cache_key={cache_key}")
+            return True
+        except Exception as e:
+            logger.error(f"AI阐释结果保存失败: {e}")
+            return False
     
     async def close(self):
         """关闭客户端连接"""

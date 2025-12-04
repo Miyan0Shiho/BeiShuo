@@ -478,7 +478,13 @@ const startRecognition = async () => {
         // 上传图片
         const uploadRes = await uploadImage({ baseUrl, token, file: selectedFile.value })
         const imageUrl = uploadRes.image_url
-        originalImageUrl.value = `${baseUrl}${imageUrl.startsWith('/') ? imageUrl : ('/' + imageUrl)}`
+        if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+            // 如果已经是完整的URL，直接使用
+            originalImageUrl.value = imageUrl
+        } else {
+            // 否则拼接baseUrl
+            originalImageUrl.value = `${baseUrl}${imageUrl.startsWith('/') ? imageUrl : ('/' + imageUrl)}`
+        }
 
         // 识别
         const timer = setInterval(() => {
@@ -508,25 +514,60 @@ const startRecognition = async () => {
             txt = r.texts.join('\n')
         }
         originalImageSize.value = { width: r.width || 0, height: r.height || 0 }
+        
+        // 检查是否是缓存命中，如果是，从返回结果中获取图片URL
+        if (r.image_url) {
+            // 如果结果中包含image_url，说明是从数据库读取的缓存结果
+            // 构建完整的图片URL
+            if (r.image_url.startsWith('http://') || r.image_url.startsWith('https://')) {
+                // 如果已经是完整的URL，直接使用
+                originalImageUrl.value = r.image_url
+            } else {
+                // 否则拼接baseUrl
+                originalImageUrl.value = `${baseUrl}${r.image_url.startsWith('/') ? r.image_url : ('/' + r.image_url)}`
+            }
+        }
+        
         lineConfidences.value = (textLines.value || []).map(computeLineConfidence)
         totalColumns.value = Array.isArray(textLines.value) ? textLines.value.length : 0
+        console.log('=== 开始构建拼接图 ===')
+        console.log('originalImageUrl.value:', originalImageUrl.value)
+        console.log('textLines.value.length:', textLines.value.length)
+        console.log('textLines.value:', textLines.value)
+        
         try {
             if (originalImageUrl.value && textLines.value.length) {
+                console.log('开始加载原始图片')
                 const img = await loadImage(originalImageUrl.value)
+                console.log('原始图片加载成功:', img.width, 'x', img.height)
+                
                 const urls = []
                 const rectsAll = []
                 const dimsAll = []
+                
                 for (const line of textLines.value) {
+                    console.log('处理文本行:', line.text)
                     const out = await buildStripForLine(img, line, previewModeSelection.value)
                     urls.push(out.url)
                     rectsAll.push(out.rects)
                     dimsAll.push({ baseW: out.baseW, baseH: out.baseH })
+                    console.log('生成的strip URL:', out.url.substring(0, 50), '...')
                 }
+                
                 lineStripUrls.value = urls
                 lineStripRects.value = rectsAll
                 lineStripDims.value = dimsAll
+                console.log('拼接图构建完成，strip数量:', urls.length)
+            } else {
+                console.log('构建拼接图条件不满足:')
+                console.log('originalImageUrl.value:', originalImageUrl.value)
+                console.log('textLines.value.length:', textLines.value.length)
             }
-        } catch { }
+        } catch (e) {
+            console.error('构建拼接图失败:', e)
+            console.error(e.stack)
+        }
+        console.log('=== 拼接图构建结束 ===')
         const conf = typeof r.confidence === 'number' ? r.confidence : 0
         const now = new Date()
         recognitionResult.value = {

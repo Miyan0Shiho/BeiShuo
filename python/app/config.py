@@ -69,11 +69,11 @@ class Settings(BaseSettings):
     file_upload_url_prefix: str = "/uploads"
 
     # 阿里云OSS配置
-    aliyun_oss_access_key_id: str = ""
-    aliyun_oss_access_key_secret: str = ""
-    aliyun_oss_endpoint: str = ""
-    aliyun_oss_bucket_name: str = ""
-    aliyun_oss_domain: str = ""
+    aliyun_oss_access_key_id: str = "LTAI5tQc1DW41aWNq68u2TWX"
+    aliyun_oss_access_key_secret: str = "ge9NjmCfitIq0VOM9LsiypeY31ghDn"
+    aliyun_oss_endpoint: str = "http://oss-cn-hangzhou.aliyuncs.com"
+    aliyun_oss_bucket_name: str = "beiwen1"
+    aliyun_oss_domain: str = "beiwen1.oss-cn-hangzhou.aliyuncs.com"
 
     # 看典古籍OCR配置
     kandianguji_ocr_token: str = ""

@@ -88,10 +88,74 @@ app.include_router(v1_router, prefix="/api/v1")
 # 静态文件挂载（用于前端裁剪原图：/uploads/*）
 app.mount("/uploads", StaticFiles(directory=settings.file_upload_path), name="uploads")
 
+# 静态文件挂载（用于临时OSS图片：/temp_oss_images/*）
+import os
+# 创建临时目录（如果不存在）
+temp_oss_images_path = os.path.join(os.getcwd(), "temp_oss_images")
+os.makedirs(temp_oss_images_path, exist_ok=True)
+app.mount("/temp_oss_images", StaticFiles(directory=temp_oss_images_path), name="temp_oss_images")
+
+@app.get("/")
+async def root():
+    """根路径处理"""
+    return {
+        "message": f"{settings.app_name} API服务",
+        "version": settings.app_version,
+        "health": "ok",
+        "api_prefix": "/api/v1",
+        "endpoints": {
+            "health": "/health",
+            "api": "/api/v1",
+            "upload": "/api/v1/upload",
+            "recognition": "/api/v1/recognition",
+            "auth": "/api/v1/auth",
+            "ai": "/api/v1/ai"
+        }
+    }
+
 @app.get("/health")
 async def health_check():
     """健康检查"""
     return {"status": "ok"}
+
+# 添加定时清理临时OSS图片文件的任务
+import asyncio
+import time
+
+async def cleanup_temp_oss_images():
+    """定时清理过期的临时OSS图片文件"""
+    while True:
+        try:
+            logger.info("开始清理临时OSS图片文件...")
+            
+            temp_oss_images_path = os.path.join(os.getcwd(), "temp_oss_images")
+            if os.path.exists(temp_oss_images_path):
+                current_time = time.time()
+                # 删除24小时前的文件
+                cutoff_time = current_time - 24 * 3600
+                
+                for filename in os.listdir(temp_oss_images_path):
+                    file_path = os.path.join(temp_oss_images_path, filename)
+                    if os.path.isfile(file_path):
+                        file_mtime = os.path.getmtime(file_path)
+                        if file_mtime < cutoff_time:
+                            os.remove(file_path)
+                            logger.info(f"删除过期临时文件: {file_path}")
+            
+            logger.info("临时OSS图片文件清理完成")
+        except Exception as e:
+            logger.error(f"清理临时OSS图片文件失败: {e}")
+        
+        # 每6小时执行一次清理
+        await asyncio.sleep(6 * 3600)
+
+# 启动定时清理任务
+@app.on_event("startup")
+async def startup_event():
+    """应用启动时执行"""
+    # 启动定时清理任务
+    asyncio.create_task(cleanup_temp_oss_images())
+    logger.info("定时清理临时OSS图片任务已启动")
 
 if __name__ == "__main__":
     import uvicorn

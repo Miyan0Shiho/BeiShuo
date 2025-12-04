@@ -7,6 +7,7 @@ from app.core.dependencies import get_current_user_id
 from app.services.inscription_service import InscriptionService
 from app.config import settings
 from app.utils.logger import logger
+from app.client.oss_client import oss_client
 import os
 import uuid
 
@@ -39,26 +40,41 @@ async def upload_image(
     if not filename:
         filename = f"{uuid.uuid4()}.{file_ext}"
     
-    # 保存文件
-    upload_dir = settings.file_upload_path
-    os.makedirs(upload_dir, exist_ok=True)
+    # 上传到OSS
+    image_url = None
     
-    file_path = os.path.join(upload_dir, filename)
-    with open(file_path, 'wb') as f:
-        f.write(content)
+    # 1. 尝试上传到OSS
+    if oss_client.is_initialized():
+        logger.info(f"开始上传文件到OSS: filename={filename}")
+        # 生成object_name
+        object_name = f"uploads/{filename}"
+        # 上传内容到OSS
+        image_url = oss_client.upload_content(content, object_name, f"image/{file_ext}")
+        logger.info(f"文件上传到OSS成功: image_url={image_url}")
     
-    # 返回文件URL
-    file_url = f"{settings.file_upload_url_prefix}/{filename}"
+    # 2. 如果OSS上传失败，使用本地保存作为备用
+    if not image_url:
+        logger.warning("OSS客户端未初始化或上传失败，使用本地保存作为备用")
+        # 保存文件到本地
+        upload_dir = settings.file_upload_path
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        file_path = os.path.join(upload_dir, filename)
+        with open(file_path, 'wb') as f:
+            f.write(content)
+        
+        # 返回文件URL
+        image_url = f"{settings.file_upload_url_prefix}/{filename}"
     
     # 生成image_id
     image_id = f"img_{int(datetime.now().timestamp() * 1000)}"
     
-    logger.info(f"文件上传成功: {file_url}, user_id={user_id}")
+    logger.info(f"文件上传成功: {image_url}, user_id={user_id}")
     
     # 返回前端期望的格式
     result = {
         "image_id": image_id,
-        "image_url": file_url,
+        "image_url": image_url,
         "image_size": {
             "width": 0,  # TODO: 从图片中获取实际尺寸
             "height": 0
