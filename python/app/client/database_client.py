@@ -123,12 +123,36 @@ class DatabaseClient:
         self,
         keyword: str,
         dynasty: Optional[str] = None,
-        tags: Optional[str] = None
-    ) -> Optional[List[Dict[str, Any]]]:
+        tags: Optional[str] = None,
+        page: int = 0,
+        size: int = 20
+    ) -> Optional[Dict[str, Any]]:
         """搜索知识库"""
-        logger.debug(f"DatabaseClient.search_knowledge: keyword={keyword}, dynasty={dynasty}, tags={tags}")
-        # 暂时使用模拟实现
-        return []
+        logger.debug(f"DatabaseClient.search_knowledge: keyword={keyword}, dynasty={dynasty}, tags={tags}, page={page}, size={size}")
+        result = await self.client.search_knowledge(keyword, dynasty, tags, page, size)
+        logger.debug(f"DatabaseClient.search_knowledge result: {result}")
+        return result
+    
+    async def get_knowledge_tags(self, article_id: int) -> List[Dict[str, Any]]:
+        """获取文章标签"""
+        logger.debug(f"DatabaseClient.get_knowledge_tags: article_id={article_id}")
+        result = await self.client.get_knowledge_tags(article_id)
+        logger.debug(f"DatabaseClient.get_knowledge_tags result: {result}")
+        return result
+    
+    async def get_knowledge_categories(self) -> List[Dict[str, Any]]:
+        """获取知识库分类列表"""
+        logger.debug("DatabaseClient.get_knowledge_categories")
+        result = await self.client.get_knowledge_categories()
+        logger.debug(f"DatabaseClient.get_knowledge_categories result: {result}")
+        return result
+    
+    async def get_knowledge_dynasties(self) -> List[Dict[str, Any]]:
+        """获取知识库朝代列表"""
+        logger.debug("DatabaseClient.get_knowledge_dynasties")
+        result = await self.client.get_knowledge_dynasties()
+        logger.debug(f"DatabaseClient.get_knowledge_dynasties result: {result}")
+        return result
     
     # ========== 收藏相关 ==========
     

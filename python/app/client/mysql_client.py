@@ -958,11 +958,15 @@ class MySQLClient:
         
         conditions = []
         if keyword:
-            conditions.append("title LIKE %s OR content LIKE %s")
+            conditions.append("(title LIKE %s OR content LIKE %s)")
             params.extend([f"%{keyword}%", f"%{keyword}%"])
+        
+        # 朝代筛选（如果表中有dynasty字段）
         if dynasty:
             conditions.append("dynasty = %s")
             params.append(dynasty)
+        
+        # 分类筛选（如果表中有category字段）
         if category:
             conditions.append("category = %s")
             params.append(category)
@@ -977,11 +981,36 @@ class MySQLClient:
         
         # 主查询
         query = f"SELECT * FROM knowledge_articles {where_clause} ORDER BY created_at DESC {limit_clause}"
-        result = await self.execute_query(query, tuple(params))
+        
+        try:
+            result = await self.execute_query(query, tuple(params))
+        except Exception as e:
+            # 如果字段不存在，移除对应条件重试
+            error_str = str(e).lower()
+            if dynasty and ('dynasty' in error_str or 'unknown column' in error_str):
+                # 移除dynasty条件
+                conditions = [c for c in conditions if 'dynasty' not in c.lower()]
+                params = [p for p in params if p != dynasty]
+                where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+                params = [p for p in params if p != dynasty]
+                params.extend([size, offset])
+                query = f"SELECT * FROM knowledge_articles {where_clause} ORDER BY created_at DESC {limit_clause}"
+                result = await self.execute_query(query, tuple(params))
+            elif category and ('category' in error_str or 'unknown column' in error_str):
+                # 移除category条件
+                conditions = [c for c in conditions if 'category' not in c.lower()]
+                params = [p for p in params if p != category]
+                where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+                params = [p for p in params if p != category]
+                params.extend([size, offset])
+                query = f"SELECT * FROM knowledge_articles {where_clause} ORDER BY created_at DESC {limit_clause}"
+                result = await self.execute_query(query, tuple(params))
+            else:
+                raise
         
         # 查询总数
         count_query = f"SELECT COUNT(*) as total FROM knowledge_articles {where_clause}"
-        count_params = tuple(params[:-2]) if params else tuple()
+        count_params = tuple(params[:-2]) if len(params) > 2 else tuple()
         count_result = await self.execute_query(count_query, count_params)
         total = count_result[0]['total'] if count_result else 0
         
@@ -997,6 +1026,137 @@ class MySQLClient:
         query = "SELECT * FROM knowledge_articles WHERE id = %s"
         result = await self.execute_query(query, (knowledge_id,))
         return result[0] if result else None
+    
+    async def get_knowledge_tags(self, article_id: int) -> List[Dict[str, Any]]:
+        """获取文章标签"""
+        query = """
+            SELECT t.id, t.name, t.type 
+            FROM tags t
+            INNER JOIN article_tag_map atm ON t.id = atm.tag_id
+            WHERE atm.article_id = %s
+        """
+        result = await self.execute_query(query, (article_id,))
+        return result if result else []
+    
+    async def search_knowledge(
+        self,
+        keyword: str,
+        dynasty: Optional[str] = None,
+        tags: Optional[str] = None,
+        page: int = 0,
+        size: int = 20
+    ) -> Optional[Dict[str, Any]]:
+        """搜索知识库"""
+        conditions = []
+        params = []
+        
+        # 关键词搜索
+        if keyword:
+            conditions.append("(ka.title LIKE %s OR ka.content LIKE %s)")
+            params.extend([f"%{keyword}%", f"%{keyword}%"])
+        
+        # 朝代筛选（如果表中有dynasty字段）
+        if dynasty:
+            # 先尝试查询是否有dynasty字段，如果没有则忽略
+            conditions.append("ka.dynasty = %s")
+            params.append(dynasty)
+        
+        # 标签筛选
+        if tags:
+            tag_list = [t.strip() for t in tags.split(',') if t.strip()]
+            if tag_list:
+                tag_placeholders = ','.join(['%s'] * len(tag_list))
+                conditions.append(f"""
+                    ka.id IN (
+                        SELECT DISTINCT atm.article_id 
+                        FROM article_tag_map atm
+                        INNER JOIN tags t ON atm.tag_id = t.id
+                        WHERE t.name IN ({tag_placeholders})
+                    )
+                """)
+                params.extend(tag_list)
+        
+        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+        
+        # 构建分页
+        offset = page * size
+        limit_clause = "LIMIT %s OFFSET %s"
+        params.extend([size, offset])
+        
+        # 主查询
+        query = f"""
+            SELECT DISTINCT ka.* 
+            FROM knowledge_articles ka
+            {where_clause}
+            ORDER BY ka.created_at DESC
+            {limit_clause}
+        """
+        
+        try:
+            result = await self.execute_query(query, tuple(params))
+        except Exception as e:
+            # 如果dynasty字段不存在，移除dynasty条件重试
+            if dynasty and 'dynasty' in str(e).lower():
+                conditions = [c for c in conditions if 'dynasty' not in c]
+                params = [p for i, p in enumerate(params) if i != params.index(dynasty)]
+                where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+                params = [p for p in params if p != dynasty]
+                params.extend([size, offset])
+                query = f"""
+                    SELECT DISTINCT ka.* 
+                    FROM knowledge_articles ka
+                    {where_clause}
+                    ORDER BY ka.created_at DESC
+                    {limit_clause}
+                """
+                result = await self.execute_query(query, tuple(params))
+            else:
+                raise
+        
+        # 查询总数
+        count_query = f"SELECT COUNT(DISTINCT ka.id) as total FROM knowledge_articles ka {where_clause}"
+        count_params = tuple(params[:-2]) if len(params) > 2 else tuple()
+        count_result = await self.execute_query(count_query, count_params)
+        total = count_result[0]['total'] if count_result else 0
+        
+        return {
+            "items": result,
+            "total": total,
+            "page": page,
+            "size": size
+        }
+    
+    async def get_knowledge_categories(self) -> List[Dict[str, Any]]:
+        """获取知识库分类列表（如果表中有category字段）"""
+        try:
+            query = """
+                SELECT DISTINCT category, COUNT(*) as count 
+                FROM knowledge_articles 
+                WHERE category IS NOT NULL AND category != ''
+                GROUP BY category
+                ORDER BY count DESC
+            """
+            result = await self.execute_query(query)
+            return result if result else []
+        except Exception:
+            # 如果category字段不存在，返回空列表
+            return []
+    
+    async def get_knowledge_dynasties(self) -> List[Dict[str, Any]]:
+        """获取知识库朝代列表（如果表中有dynasty字段）"""
+        try:
+            query = """
+                SELECT DISTINCT dynasty, COUNT(*) as count 
+                FROM knowledge_articles 
+                WHERE dynasty IS NOT NULL AND dynasty != ''
+                GROUP BY dynasty
+                ORDER BY count DESC
+            """
+            result = await self.execute_query(query)
+            return result if result else []
+        except Exception:
+            # 如果dynasty字段不存在，返回空列表
+            return []
 
 # 创建全局MySQL客户端实例
 mysql_client = MySQLClient()

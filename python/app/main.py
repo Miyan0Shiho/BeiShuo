@@ -86,10 +86,13 @@ async def general_exception_handler(request: Request, exc: Exception):
 app.include_router(v1_router, prefix="/api/v1")
 
 # 静态文件挂载（用于前端裁剪原图：/uploads/*）
-app.mount("/uploads", StaticFiles(directory=settings.file_upload_path), name="uploads")
+import os
+# 创建uploads目录（如果不存在）
+uploads_path = os.path.abspath(settings.file_upload_path)
+os.makedirs(uploads_path, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
 # 静态文件挂载（用于临时OSS图片：/temp_oss_images/*）
-import os
 # 创建临时目录（如果不存在）
 temp_oss_images_path = os.path.join(os.getcwd(), "temp_oss_images")
 os.makedirs(temp_oss_images_path, exist_ok=True)
