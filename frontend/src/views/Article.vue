@@ -1,13 +1,15 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
-import { inscriptionsData } from '../data/inscriptionsData'
+import { useUserStore } from '../stores/user'
+import { fetchArticleDetail, incrementArticleViews } from '../api/knowledge'
 import { postChat, streamChatFetch, postInterpretationSections } from '../api/ai'
 
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const userStore = useUserStore()
 
 // 响应式数据
 const article = ref(null)
@@ -18,11 +20,14 @@ const chatQuestion = ref('')
 const chatLoading = ref(false)
 const chatMessages = ref([])
 const chatConversationId = ref('')
-const sectionsHistory = ref('')
+const sectionsHistory = ref(null)
 const sectionsCulture = ref('')
 const sectionsFigures = ref([])
 const sectionsSources = ref([])
 const sectionsLoading = ref(false)
+const timeline = ref([])
+const recommendedReading = ref([])
+
 
 const escapeHtml = (str) => {
   return str
@@ -85,16 +90,181 @@ const renderMarkdown = (md) => {
 }
 
 // 计算属性
-const articleId = computed(() => route.params.id)
+const articleId = computed(() => parseInt(route.params.id, 10))
+
+// 从Markdown内容中提取原文
+const extractOriginalText = (content) => {
+  if (!content) return ''
+  
+  // 匹配## 原文到下一个##之间的内容
+  const originalRegex = /## 原文\s*([\s\S]*?)(?=## |$)/i
+  const match = content.match(originalRegex)
+  
+  if (match && match[1]) {
+    return renderMarkdown(match[1].trim())
+  }
+  
+  return '暂无原文数据'
+}
+
+// 从Markdown内容中提取译文
+const extractTranslationText = (content) => {
+  if (!content) return ''
+  
+  // 匹配## 翻译或## 译文到下一个##之间的内容
+  const translationRegex = /## (翻译|译文)\s*([\s\S]*?)(?=## |$)/i
+  const match = content.match(translationRegex)
+  
+  if (match && match[2]) {
+    return renderMarkdown(match[2].trim())
+  }
+  
+  return '暂无译文数据'
+}
+
+// 从Markdown内容中提取历史背景
+const extractHistoryBackground = (content) => {
+  if (!content) return ''
+  
+  // 匹配## 历史背景到下一个##之间的内容
+  const historyRegex = /## 历史背景\s*([\s\S]*?)(?=## |$)/i
+  const match = content.match(historyRegex)
+  
+  if (match && match[1]) {
+    return match[1].trim()
+  }
+  
+  return ''
+}
+
+// 从Markdown内容中提取文化意义
+const extractCulturalSignificance = (content) => {
+  if (!content) return ''
+  
+  // 匹配## 文化意义到下一个##之间的内容
+  const cultureRegex = /## 文化意义\s*([\s\S]*?)(?=## |$)/i
+  const match = content.match(cultureRegex)
+  
+  if (match && match[1]) {
+    return match[1].trim()
+  }
+  
+  return ''
+}
+
+// 从Markdown内容中提取相关人物
+const extractRelatedFigures = (content) => {
+  if (!content) return ''
+  
+  // 匹配## 相关人物到下一个##之间的内容
+  const figuresRegex = /## 相关人物\s*([\s\S]*?)(?=## |$)/i
+  const match = content.match(figuresRegex)
+  
+  if (match && match[1]) {
+    return match[1].trim()
+  }
+  
+  return ''
+}
+
+// 从Markdown内容中提取延伸阅读
+const extractFurtherReading = (content) => {
+  if (!content) return ''
+  
+  // 匹配## 延伸阅读或## 相关时间线到下一个##之间的内容
+  const readingRegex = /## (延伸阅读|相关阅读|参考资料)\s*([\s\S]*?)(?=## |$)/i
+  const match = content.match(readingRegex)
+  
+  if (match && match[2]) {
+    return match[2].trim()
+  }
+  
+  return ''
+}
+
+// 从Markdown内容中提取推荐阅读
+const extractRecommendedReading = (content) => {
+  if (!content) return []
+  
+  // 匹配## 延伸阅读或## 相关阅读或## 参考资料到下一个##之间的内容
+  const readingRegex = /## (延伸阅读|相关阅读|参考资料)\s*([\s\S]*?)(?=## |$)/i
+  const match = content.match(readingRegex)
+  
+  if (match && match[2]) {
+    const readingContent = match[2].trim()
+    const readingItems = []
+    
+    // 匹配推荐阅读条目，格式：- [标题](链接) 或 - 标题
+    const itemRegex = /-\s*(?:\[(.*?)\]\((.*?)\)|(.*?))\n/g
+    let itemMatch
+    
+    while ((itemMatch = itemRegex.exec(readingContent + '\n')) !== null) {
+      const title = itemMatch[1] || itemMatch[3]
+      const url = itemMatch[2] || ''
+      if (title) {
+        readingItems.push({ title: title.trim(), url: url.trim() })
+      }
+    }
+    
+    return readingItems
+  }
+  
+  return []
+}
+
+
+
+// 从Markdown内容中提取时间线
+const extractTimeline = (content) => {
+  if (!content) return []
+  
+  // 匹配## 相关时间线到下一个##之间的内容
+  const timelineRegex = /## 相关时间线\s*([\s\S]*?)(?=## |$)/i
+  const match = content.match(timelineRegex)
+  
+  if (match && match[1]) {
+    const timelineContent = match[1].trim()
+    const timelineItems = []
+    
+    // 匹配时间线条目，格式：- 年份：事件
+    const itemRegex = /-\s*(\d{4}年?)\s*[:：]\s*(.*?)\n/g
+    let itemMatch
+    
+    while ((itemMatch = itemRegex.exec(timelineContent + '\n')) !== null) {
+      const year = itemMatch[1].trim()
+      const event = itemMatch[2].trim()
+      if (year && event) {
+        timelineItems.push({ year, event })
+      }
+    }
+    
+    return timelineItems
+  }
+  
+  return []
+}
 
 // 加载碑文
 const loadArticle = async () => {
   try {
     loading.value = true
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    article.value = inscriptionsData.getInscriptionById(articleId.value)
-    if (!article.value) {
+    
+    // 重置AI阐释状态，确保切换文章时重新生成阐释
+    sectionsHistory.value = null
+    sectionsCulture.value = ''
+    sectionsFigures.value = []
+    sectionsSources.value = []
+    timeline.value = []
+    recommendedReading.value = []
+    
+    // API配置
+    const baseUrl = 'http://localhost:8080'
+    const token = userStore.token || ''
+    
+    // 调用真实API获取文章详情
+    const articleData = await fetchArticleDetail(baseUrl, token, articleId.value)
+    
+    if (!articleData) {
       appStore.addNotification({
         type: 'error',
         message: '碑文不存在',
@@ -103,11 +273,25 @@ const loadArticle = async () => {
       router.push('/knowledge')
       return
     }
-
+    
+    article.value = articleData
+    
+    // 碑刻年代直接从数据库获取，不需要从内容中提取
+    // extractedYear.value = articleData.year || extractYear(articleData.content) || '未知年代'
+    
+    // 检查是否已收藏
     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
     isFavorited.value = favorites.includes(articleId.value)
+    
+    // 增加文章查看次数
+    try {
+      await incrementArticleViews(baseUrl, token, articleId.value)
+    } catch (error) {
+      console.error('增加查看次数失败:', error)
+    }
 
   } catch (error) {
+    console.error('加载碑文失败:', error)
     appStore.addNotification({
       type: 'error',
       message: '加载碑文失败',
@@ -167,8 +351,8 @@ const shareArticle = () => {
 const sendChatQuestion = async () => {
   const q = chatQuestion.value.trim()
   if (!q) return
-  const baseUrl = 'http://localhost:8080/api/v1'
-  const token = localStorage.getItem('token') || ''
+  const baseUrl = 'http://localhost:8080'
+  const token = userStore.token || ''
   const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
   chatMessages.value.push(userMsg)
   chatQuestion.value = ''
@@ -176,23 +360,16 @@ const sendChatQuestion = async () => {
   chatMessages.value.push(assistantMsg)
   chatLoading.value = true
   try {
-    await streamChatFetch({
-      baseUrl,
-      token,
-      recognitionId: 'rec_local',
-      message: q,
-      conversationId: chatConversationId.value,
-      onEvent: (evt) => {
-        if (!evt || !evt.event) return
-        if (evt.event === 'status') {
-          if (evt.data && evt.data.status === 'success') assistantMsg.status = 'success'
-        } else if (evt.event === 'references') {
-          assistantMsg.references = evt.data || []
-        } else if (evt.event === 'delta') {
-          if (evt.data && typeof evt.data.text === 'string') assistantMsg.content += evt.data.text
-        }
+    await streamChatFetch({ baseUrl, token, recognitionId: 'rec_local', message: q, conversationId: chatConversationId.value, onEvent: (evt) => {
+      if (!evt || !evt.event) return
+      if (evt.event === 'status') {
+        if (evt.data && evt.data.status === 'success') assistantMsg.status = 'success'
+      } else if (evt.event === 'references') {
+        assistantMsg.references = evt.data || []
+      } else if (evt.event === 'delta') {
+        if (evt.data && typeof evt.data.text === 'string') assistantMsg.content += evt.data.text
       }
-    })
+    }})
   } catch (e) {
     try {
       const data = await postChat({ baseUrl, token, recognitionId: 'rec_local', message: q, conversationId: chatConversationId.value })
@@ -210,13 +387,14 @@ const sendChatQuestion = async () => {
 }
 
 const fetchArticleInterpretation = async () => {
-  if (!sectionsHistory.value && article.value) {
-    const baseUrl = 'http://localhost:8080/api/v1'
-    const token = localStorage.getItem('token') || ''
-    const text = `${article.value.title} ${article.value.year || ''} ${article.value.dynasty || ''}`.trim()
+  if (sectionsHistory.value === null && article.value) {
+    const baseUrl = 'http://localhost:8080'
+    const token = userStore.token || ''
+    // 发送完整的碑文内容给AI，包括标题、朝代、年份和完整文本
+    const text = `${article.value.title} ${article.value.dynasty || ''} ${article.value.year || ''}\n\n${article.value.content || ''}`.trim()
     try {
       sectionsLoading.value = true
-      const data = await postInterpretationSections({ baseUrl, token, text })
+      const data = await postInterpretationSections({ baseUrl, token, text, inscriptionId: article.value.id })
       const s = data.sections || {}
       sectionsHistory.value = s.history_markdown || ''
       sectionsCulture.value = s.culture_markdown || ''
@@ -226,22 +404,51 @@ const fetchArticleInterpretation = async () => {
       // 将简化的 timeline 映射为 {year,event}
       // 如果包含 title/description，则合并
       if (Array.isArray(s.timeline)) {
-        // eslint-disable-next-line no-unused-vars
         timeline.value = s.timeline.map(t => ({ year: t.year, event: (t.title ? t.title + '：' : '') + (t.description || '') }))
+      } else {
+        // 如果AI没有返回时间线，尝试从Markdown内容中提取
+        timeline.value = extractTimeline(article.value.content)
+      }
+      
+      // 处理推荐阅读
+      if (Array.isArray(s.recommended_reading)) {
+        recommendedReading.value = s.recommended_reading
+      } else {
+        // 如果AI没有返回推荐阅读，尝试从Markdown内容中提取
+        recommendedReading.value = extractRecommendedReading(article.value.content)
       }
     } catch (e) {
       appStore.addNotification({ type: 'error', message: 'AI阐释生成失败', duration: 3000 })
+      // 如果AI调用失败，尝试从Markdown内容中提取
+      timeline.value = extractTimeline(article.value.content)
+      recommendedReading.value = extractRecommendedReading(article.value.content)
     } finally {
       sectionsLoading.value = false
     }
   }
 }
 
+// 监听路由变化，重新加载文章并滚动到顶部
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    loadArticle()
+    // 滚动到页面顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+})
+
 // 生命周期钩子
 onMounted(() => {
+  userStore.initUser()
   loadArticle()
-  fetchArticleInterpretation()
 })
+
+// 监听article变化，当article加载完成后调用AI生成阐释
+watch(article, (newArticle) => {
+  if (newArticle && sectionsHistory.value === null) {
+    fetchArticleInterpretation()
+  }
+}, { deep: true })
 </script>
 
 <template>
@@ -275,24 +482,24 @@ onMounted(() => {
           <div>
             <div class="flex items-center space-x-3 mb-3">
               <h1 class="text-3xl md:text-4xl font-serif font-bold text-primary">{{ article.title }}</h1>
-              <span class="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full font-medium">{{ article.dynasty }}名碑</span>
+              <span class="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full font-medium">{{ article.dynasty || '未知朝代' }}名碑</span>
             </div>
             <div class="flex flex-wrap items-center text-dark/60 space-x-4 text-sm">
               <div class="flex items-center">
                 <i class="fas fa-calendar-alt mr-1.5"></i>
-                <span>{{ article.year }}</span>
+                <span>{{ article.metadata?.publish_date ? new Date(article.metadata.publish_date).toLocaleDateString() : '未知日期' }}</span>
               </div>
               <div class="flex items-center">
                 <i class="fas fa-pen-fancy mr-1.5"></i>
-                <span>魏征 撰文</span>
+                <span>{{ article.author || '未知作者' }} 撰文</span>
+              </div>
+              <div class="flex items-center" v-if="article.metadata?.category">
+                <i class="fas fa-tag mr-1.5"></i>
+                <span>{{ article.metadata.category }}</span>
               </div>
               <div class="flex items-center">
-                <i class="fas fa-paint-brush mr-1.5"></i>
-                <span>欧阳询 书丹</span>
-              </div>
-              <div class="flex items-center">
-                <i class="fas fa-map-marker-alt mr-1.5"></i>
-                <span>{{ article.location }}</span>
+                <i class="fas fa-eye mr-1.5"></i>
+                <span>{{ article.stats?.views || 0 }} 次查看</span>
               </div>
             </div>
           </div>
@@ -327,40 +534,40 @@ onMounted(() => {
           <div class="lg:col-span-1">
             <div class="bg-white rounded-xl shadow-sm overflow-hidden sticky top-24">
               <div class="relative">
-                <img :alt="article.title" :src="article.image" class="w-full h-auto object-cover">
+                <img :alt="article.title" :src="article.cover_image || 'https://via.placeholder.com/400x600?text=No+Image'" class="w-full h-auto object-cover">
                 <div class="absolute top-3 right-3 bg-white/90 text-primary rounded-full px-3 py-1 text-sm font-medium flex items-center">
                   <i class="fas fa-eye mr-1.5"></i>
-                  <span>2.4k 次查看</span>
+                  <span>{{ article.stats?.views || 0 }} 次查看</span>
                 </div>
               </div>
               <div class="p-5">
                 <h3 class="text-lg font-semibold mb-3">碑刻信息</h3>
                 <ul class="space-y-3 text-sm">
-                  <li class="flex justify-between">
-                    <span class="text-dark/60">碑刻年代</span>
-                    <span class="font-medium">{{ article.year }}</span>
-                  </li>
-                  <li class="flex justify-between">
-                    <span class="text-dark/60">碑刻材质</span>
-                    <span class="font-medium">青石</span>
-                  </li>
-                  <li class="flex justify-between">
-                    <span class="text-dark/60">碑刻尺寸</span>
-                    <span class="font-medium">247×120×27cm</span>
-                  </li>
-                  <li class="flex justify-between">
-                    <span class="text-dark/60">现存地点</span>
-                    <span class="font-medium">{{ article.location }}博物馆</span>
-                  </li>
-                  <li class="flex justify-between">
-                    <span class="text-dark/60">发现时间</span>
-                    <span class="font-medium">{{ article.dynasty }}</span>
-                  </li>
-                  <li class="flex justify-between">
-                    <span class="text-dark/60">保护级别</span>
-                    <span class="font-medium">国家一级文物</span>
-                  </li>
-                </ul>
+                    <li class="flex justify-between">
+                      <span class="text-dark/60">碑刻年代</span>
+                      <span class="font-medium">{{ article.year || article.dynasty || '未知年代' }}</span>
+                    </li>
+                    <li class="flex justify-between">
+                      <span class="text-dark/60">文章作者</span>
+                      <span class="font-medium">{{ article.author || '未知' }}</span>
+                    </li>
+                    <li class="flex justify-between">
+                      <span class="text-dark/60">创建时间</span>
+                      <span class="font-medium">{{ article.created_at ? new Date(article.created_at).toLocaleDateString() : '未知' }}</span>
+                    </li>
+                    <li class="flex justify-between">
+                      <span class="text-dark/60">更新时间</span>
+                      <span class="font-medium">{{ article.updated_at ? new Date(article.updated_at).toLocaleDateString() : '未知' }}</span>
+                    </li>
+                    <li class="flex justify-between">
+                      <span class="text-dark/60">阅读时长</span>
+                      <span class="font-medium">{{ article.metadata?.read_time || 1 }} 分钟</span>
+                    </li>
+                    <li class="flex justify-between">
+                      <span class="text-dark/60">字数统计</span>
+                      <span class="font-medium">{{ article.metadata?.word_count || 0 }} 字</span>
+                    </li>
+                  </ul>
                 <div class="mt-5 pt-5 border-t border-gray-100">
                   <button class="w-full py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom flex items-center justify-center">
                     <i class="fas fa-search-plus mr-2"></i>
@@ -393,12 +600,12 @@ onMounted(() => {
                 </div>
                 <div class="flex">
                   <div class="w-1/2 p-4 border-r border-gray-200 bg-white/50 text-sm leading-relaxed overflow-y-auto h-48">
-                    维大唐贞观六年，岁次壬辰，春三月丁卯朔，十有八日甲申。皇帝避暑于九成宫，此宫隋之仁寿宫也。冠山抱水，择胜营建，
-                    跨谷为梁，分岩架阁，高下随形，因地制宜...
+                    <div v-if="article.content" v-html="extractOriginalText(article.content)"></div>
+                    <div v-else>暂无原文数据</div>
                   </div>
                   <div class="w-1/2 p-4 bg-white/50 text-sm leading-relaxed overflow-y-auto h-48">
-                    在大唐贞观六年，岁次壬辰，春季三月初一为丁卯日，十八日为甲申日。皇帝在九成宫避暑，此宫原为隋朝的仁寿宫。
-                    山峦环绕，溪水潺潺，择优而建。跨越山谷建造桥梁，依山势建造楼阁，高低错落，因地制宜...
+                    <div v-if="article.content" v-html="extractTranslationText(article.content)"></div>
+                    <div v-else>暂无译文数据</div>
                   </div>
                 </div>
               </div>
@@ -448,38 +655,27 @@ onMounted(() => {
                   <h3 class="text-2xl font-serif font-semibold text-primary mb-4">{{ article.title }}历史背景分析</h3>
                   
                   <!-- 历史背景内容 -->
-                  <div v-show="activeTab === 'history'" class="prose max-w-none text-dark/90 leading-relaxed mb-6" v-html="renderMarkdown(sectionsHistory || (sectionsLoading ? '### 正在生成历史背景...\n- 请稍候' : ''))"></div>
+                  <div v-show="activeTab === 'history'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
+                    <div v-if="article.content" v-html="renderMarkdown(extractHistoryBackground(article.content) || '### 暂无历史背景数据')"></div>
+                    <div v-else>暂无历史背景数据</div>
+                  </div>
 
                   <!-- 文化意义内容 -->
-                  <div v-show="activeTab === 'culture'" class="prose max-w-none text-dark/90 leading-relaxed mb-6" v-html="renderMarkdown(sectionsCulture || (sectionsLoading ? '### 正在生成文化意义...\n- 请稍候' : ''))"></div>
+                  <div v-show="activeTab === 'culture'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
+                    <div v-if="article.content" v-html="renderMarkdown(extractCulturalSignificance(article.content) || '### 暂无文化意义数据')"></div>
+                    <div v-else>暂无文化意义数据</div>
+                  </div>
 
                   <!-- 相关人物内容 -->
                   <div v-show="activeTab === 'figures'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
-                    <p class="mb-4">
-                      欧阳询（557年－641年），字本信，潭州临湘（今湖南长沙）人。初唐四大书法家之一，
-                      楷书成就最高，对后世影响极大。
-                    </p>
-                    <p class="mb-4">
-                      魏征（580年－643年），字玄成，钜鹿郡（今河北邢台）人。唐代著名政治家、史学家，
-                      贞观之治的重要功臣，以直言敢谏著称。
-                    </p>
-                    <p>
-                      唐太宗（598年－649年），李世民，唐朝第二位皇帝。开创"贞观之治"盛世，
-                      是中国历史上杰出的政治家、军事家。
-                    </p>
+                    <div v-if="article.content" v-html="renderMarkdown(extractRelatedFigures(article.content) || '### 暂无相关人物数据')"></div>
+                    <div v-else>暂无相关人物数据</div>
                   </div>
 
                   <!-- 延伸阅读内容 -->
                   <div v-show="activeTab === 'reading'" class="prose max-w-none text-dark/90 leading-relaxed mb-6">
-                    <p class="mb-4">
-                      《欧阳询楷书技法解析》 - 深入剖析欧阳询楷书的笔法特点和艺术风格，适合书法爱好者学习参考。
-                    </p>
-                    <p class="mb-4">
-                      《贞观之治与唐代文化》 - 全面介绍贞观时期的政治、经济和文化发展，帮助理解碑文产生的时代背景。
-                    </p>
-                    <p>
-                      《魏征传》 - 记录魏征生平事迹的经典文献，展现了一代名臣的风采和智慧。
-                    </p>
+                    <div v-if="article.content" v-html="renderMarkdown(extractFurtherReading(article.content) || '### 暂无延伸阅读数据')"></div>
+                    <div v-else>暂无延伸阅读数据</div>
                   </div>
 
                   <!-- AI对话入口 -->
@@ -521,19 +717,33 @@ onMounted(() => {
                       <i class="fas fa-history mr-2"></i>
                       相关时间线
                     </h4>
-                    <!-- TODO: 待接入AI生成的时间线数据 -->
-                    <div class="text-sm text-dark/60 flex items-center">
+                    <div v-if="timeline && timeline.length > 0" class="space-y-4">
+                      <div v-for="(item, index) in timeline" :key="index" class="relative pl-6 pb-4 last:pb-0">
+                        <div class="absolute left-0 top-0 w-3 h-3 bg-primary rounded-full mt-1.5 -ml-1.5 border-3 border-white"></div>
+                        <div class="absolute left-0 top-4 w-0.5 h-full bg-gray-200 -ml-0.25"></div>
+                        <div class="text-sm">
+                          <span class="font-semibold text-primary">{{ item.year }}</span>
+                          <span class="ml-2 text-dark/80">{{ item.event }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else-if="sectionsLoading" class="text-sm text-dark/60 flex items-center">
+                      <i class="fas fa-spinner fa-spin mr-2"></i>
+                      生成中...
+                    </div>
+                    <div v-else class="text-sm text-dark/60 flex items-center">
                       <i class="fas fa-hourglass-half mr-2"></i>
-                      等待生成...
+                      暂无时间线数据
                     </div>
                   </div>
 
-                  <!-- 相关人物（AI生成） -->
+                  <!-- 相关人物 -->
                   <div class="bg-light p-5 rounded-xl border border-gray-100">
                     <h4 class="text-lg font-semibold text-primary mb-4 flex items-center">
                       <i class="fas fa-users mr-2"></i>
                       相关人物
                     </h4>
+                    <!-- AI生成的相关人物 -->
                     <div v-if="sectionsFigures && sectionsFigures.length" class="space-y-3">
                       <div v-for="p in sectionsFigures" :key="p.name" class="flex items-center p-2 hover:bg-white rounded-md transition-custom">
                         <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
@@ -546,6 +756,11 @@ onMounted(() => {
                         </div>
                       </div>
                     </div>
+                    <!-- 从文章内容中提取的相关人物 -->
+                    <div v-else-if="article.content && extractRelatedFigures(article.content)" class="prose max-w-none text-dark/90 text-sm">
+                      <div v-html="renderMarkdown(extractRelatedFigures(article.content))"></div>
+                    </div>
+                    <!-- 无数据状态 -->
                     <div v-else class="text-sm text-dark/60">暂无人物信息，稍后重试或完善文本。</div>
                   </div>
 
@@ -555,10 +770,22 @@ onMounted(() => {
                       <i class="fas fa-book mr-2"></i>
                       推荐阅读
                     </h4>
-                    <!-- TODO: 待接入AI生成的推荐阅读数据 -->
-                    <div class="text-sm text-dark/60 flex items-center">
+                    <div v-if="recommendedReading && recommendedReading.length > 0" class="space-y-3">
+                      <div v-for="(item, index) in recommendedReading" :key="index" class="group">
+                        <a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between text-sm hover:text-primary transition-custom">
+                          <span class="text-dark/80 group-hover:text-primary line-clamp-2">{{ item.title }}</span>
+                          <i class="fas fa-external-link-alt text-xs text-primary/60 group-hover:text-primary transition-custom"></i>
+                        </a>
+                        <div v-else class="text-sm text-dark/80 line-clamp-2">{{ item.title }}</div>
+                      </div>
+                    </div>
+                    <div v-else-if="sectionsLoading" class="text-sm text-dark/60 flex items-center">
+                      <i class="fas fa-spinner fa-spin mr-2"></i>
+                      生成中...
+                    </div>
+                    <div v-else class="text-sm text-dark/60 flex items-center">
                       <i class="fas fa-hourglass-half mr-2"></i>
-                      等待生成...
+                      暂无推荐阅读数据
                     </div>
                   </div>
                 </div>
@@ -574,11 +801,42 @@ onMounted(() => {
           <i class="fas fa-th-large mr-2 text-accent"></i>
           相关碑刻推荐
         </h2>
-        <!-- TODO: 待接入AI生成的相关碑刻推荐数据 -->
-        <div class="bg-white rounded-xl p-8 shadow-sm text-center">
+        <div v-if="article.related_articles && article.related_articles.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div v-for="related in article.related_articles" :key="related.id" class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-custom">
+            <router-link :to="`/knowledge/article/${related.id}`" class="block">
+              <div class="h-36 overflow-hidden">
+                <img :src="related.cover_image || 'https://via.placeholder.com/400x200?text=No+Image'" :alt="related.title" class="w-full h-full object-cover transition-transform duration-300 hover:scale-105">
+              </div>
+              <div class="p-4">
+                <div class="flex justify-between items-center mb-2">
+                  <span v-if="related.dynasty" class="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                    {{ related.dynasty }}
+                  </span>
+                  <span v-if="related.category" class="text-xs bg-secondary/30 text-primary px-2 py-0.5 rounded">
+                    {{ related.category }}
+                  </span>
+                </div>
+                <h3 class="text-lg font-semibold mb-2 line-clamp-2 text-primary hover:text-primary/80 transition-custom">
+                  {{ related.title }}
+                </h3>
+                <p class="text-sm text-dark/70 line-clamp-2 mb-3">
+                  {{ related.excerpt }}
+                </p>
+                <div class="flex justify-between items-center text-xs text-dark/50">
+                  <span class="flex items-center">
+                    <i class="fas fa-eye mr-1"></i>
+                    {{ related.views || 0 }}
+                  </span>
+                  <span>{{ new Date(related.created_at).toLocaleDateString() }}</span>
+                </div>
+              </div>
+            </router-link>
+          </div>
+        </div>
+        <div v-else class="bg-white rounded-xl p-8 shadow-sm text-center">
           <div class="text-dark/60 flex items-center justify-center">
-            <i class="fas fa-hourglass-half mr-2"></i>
-            等待生成...
+            <i class="fas fa-info-circle mr-2"></i>
+            暂无相关碑刻推荐
           </div>
         </div>
       </div>

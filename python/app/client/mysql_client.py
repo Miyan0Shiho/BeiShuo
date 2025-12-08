@@ -992,19 +992,21 @@ class MySQLClient:
                 conditions = [c for c in conditions if 'dynasty' not in c.lower()]
                 params = [p for p in params if p != dynasty]
                 where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-                params = [p for p in params if p != dynasty]
-                params.extend([size, offset])
+                # 重新构建params列表，添加分页参数
+                new_params = params.copy()
+                new_params.extend([size, offset])
                 query = f"SELECT * FROM knowledge_articles {where_clause} ORDER BY created_at DESC {limit_clause}"
-                result = await self.execute_query(query, tuple(params))
+                result = await self.execute_query(query, tuple(new_params))
             elif category and ('category' in error_str or 'unknown column' in error_str):
                 # 移除category条件
                 conditions = [c for c in conditions if 'category' not in c.lower()]
                 params = [p for p in params if p != category]
                 where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-                params = [p for p in params if p != category]
-                params.extend([size, offset])
+                # 重新构建params列表，添加分页参数
+                new_params = params.copy()
+                new_params.extend([size, offset])
                 query = f"SELECT * FROM knowledge_articles {where_clause} ORDER BY created_at DESC {limit_clause}"
-                result = await self.execute_query(query, tuple(params))
+                result = await self.execute_query(query, tuple(new_params))
             else:
                 raise
         
@@ -1127,36 +1129,16 @@ class MySQLClient:
         }
     
     async def get_knowledge_categories(self) -> List[Dict[str, Any]]:
-        """获取知识库分类列表（如果表中有category字段）"""
-        try:
-            query = """
-                SELECT DISTINCT category, COUNT(*) as count 
-                FROM knowledge_articles 
-                WHERE category IS NOT NULL AND category != ''
-                GROUP BY category
-                ORDER BY count DESC
-            """
-            result = await self.execute_query(query)
-            return result if result else []
-        except Exception:
-            # 如果category字段不存在，返回空列表
-            return []
+        """获取知识库分类列表（由于knowledge_articles表中没有category字段，直接返回空列表）"""
+        # 根据数据库表结构，knowledge_articles表中没有category字段
+        # 暂时返回空列表，后续可以从文章内容或其他表中提取分类信息
+        return []
     
     async def get_knowledge_dynasties(self) -> List[Dict[str, Any]]:
-        """获取知识库朝代列表（如果表中有dynasty字段）"""
-        try:
-            query = """
-                SELECT DISTINCT dynasty, COUNT(*) as count 
-                FROM knowledge_articles 
-                WHERE dynasty IS NOT NULL AND dynasty != ''
-                GROUP BY dynasty
-                ORDER BY count DESC
-            """
-            result = await self.execute_query(query)
-            return result if result else []
-        except Exception:
-            # 如果dynasty字段不存在，返回空列表
-            return []
+        """获取知识库朝代列表（由于knowledge_articles表中没有dynasty字段，直接返回空列表）"""
+        # 根据数据库表结构，knowledge_articles表中没有dynasty字段
+        # 暂时返回空列表，后续可以从文章内容或其他表中提取朝代信息
+        return []
 
 # 创建全局MySQL客户端实例
 mysql_client = MySQLClient()

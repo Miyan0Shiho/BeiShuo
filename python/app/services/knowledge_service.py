@@ -76,6 +76,8 @@ class KnowledgeService:
             formatted["dynasty"] = article.get("dynasty")
         if "category" in article:
             formatted["category"] = article.get("category")
+        if "year" in article:
+            formatted["year"] = article.get("year")
         
         # 内容处理
         content = article.get("content", "")
@@ -123,7 +125,25 @@ class KnowledgeService:
         
         # 格式化数据
         items = result.get("items", [])
-        formatted_items = [self._format_article(item, include_content=False) for item in items]
+        formatted_items = []
+        for item in items:
+            formatted = self._format_article(item, include_content=False)
+            
+            # 获取文章标签
+            tags = await self.database_client.get_knowledge_tags(item.get("id", 0))
+            
+            # 从标签中提取朝代和年份信息
+            dynasties = ["夏", "商", "周", "秦", "汉", "三国", "晋", "南北朝", "隋", "唐", "五代十国", "宋", "辽", "金", "元", "明", "清", "民国", "现代"]
+            for tag in tags:
+                tag_name = tag.get("name", "").strip()
+                # 检查标签是否为朝代名称
+                if tag_name in dynasties:
+                    formatted["dynasty"] = tag_name
+                # 检查标签是否为年份（4位数字）
+                if re.match(r"^\d{4}$", tag_name):
+                    formatted["year"] = tag_name
+            
+            formatted_items.append(formatted)
         
         total = result.get("total", 0)
         total_pages = (total + size - 1) // size if size > 0 else 0
@@ -145,6 +165,34 @@ class KnowledgeService:
         
         return formatted_result
     
+    async def get_related_articles(
+        self, 
+        current_id: int, 
+        dynasty: Optional[str] = None, 
+        category: Optional[str] = None, 
+        tags: Optional[List[str]] = None,
+        limit: int = 6
+    ) -> List[Dict[str, Any]]:
+        """获取相关文章"""
+        # 从数据库获取文章列表
+        related_result = await self.database_client.get_knowledge_list(
+            page=0,
+            size=limit + 3,  # 获取更多结果，以便过滤后仍有足够数量
+            keyword=None,
+            dynasty=None,  # 不按朝代筛选
+            category=None  # 不按分类筛选
+        )
+        
+        related_items = related_result.get("items", []) if related_result else []
+        
+        # 过滤掉当前文章，并格式化数据
+        related = []
+        for item in related_items:
+            if item.get("id") != current_id:
+                related.append(self._format_article(item, include_content=False))
+        
+        return related[:limit]
+    
     async def get_by_id(self, knowledge_id: int) -> Optional[Dict[str, Any]]:
         """根据ID获取知识库详情"""
         knowledge = await self.database_client.get_knowledge_by_id(knowledge_id)
@@ -157,6 +205,18 @@ class KnowledgeService:
         # 获取标签
         tags = await self.database_client.get_knowledge_tags(knowledge_id)
         formatted["tags"] = [{"id": tag.get("id"), "name": tag.get("name"), "type": tag.get("type")} for tag in tags]
+        
+        # 从标签中提取朝代和年份信息
+        # 查找朝代标签（通常是中国朝代名称）
+        dynasties = ["夏", "商", "周", "秦", "汉", "三国", "晋", "南北朝", "隋", "唐", "五代十国", "宋", "辽", "金", "元", "明", "清", "民国", "现代"]
+        for tag in tags:
+            tag_name = tag.get("name", "").strip()
+            # 检查标签是否为朝代名称
+            if tag_name in dynasties:
+                formatted["dynasty"] = tag_name
+            # 检查标签是否为年份（4位数字）
+            if re.match(r"^\d{4}$", tag_name):
+                formatted["year"] = tag_name
         
         # 构建元数据
         formatted["metadata"] = {
@@ -175,6 +235,16 @@ class KnowledgeService:
             "comments": 0,  # 暂时没有评论功能
             "bookmarks": 0  # 可以通过favorites表查询
         }
+        
+        # 获取相关文章
+        tag_names = [tag.get("name") for tag in tags]
+        formatted["related_articles"] = await self.get_related_articles(
+            knowledge_id,
+            dynasty=formatted.get("dynasty"),
+            category=formatted.get("category"),
+            tags=tag_names,
+            limit=6
+        )
         
         return formatted
     

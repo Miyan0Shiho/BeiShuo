@@ -11,6 +11,7 @@ from app.LLM.models import Message, MessageStatus
 from app.RAG.references import contexts_to_references
 from app.LLM.streaming import llm_stream_generator, sse_response
 from app.client.database_client import DatabaseClient
+from app.utils.logger import logger
 import uuid
 import hashlib
 from pydantic import BaseModel

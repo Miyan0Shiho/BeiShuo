@@ -31,9 +31,6 @@ async def get_article_detail(
     try:
         result = await service.get_by_id(article_id)
         
-        # 获取相关文章（暂时返回空列表，后续可以实现基于标签或分类的推荐）
-        result["related_articles"] = []
-        
         return Result.ok(result)
     except Exception as e:
         if "NOT_FOUND" in str(e) or "不存在" in str(e):
