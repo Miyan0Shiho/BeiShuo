@@ -1,8 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/user'
+import { fetchKnowledgeHome } from '../api/knowledge'
 
 const router = useRouter()
+const userStore = useUserStore()
+const baseUrl = ref('http://localhost:8080')
 
 // 功能特性数据
 const features = ref([
@@ -73,40 +77,26 @@ const steps = ref([
 ])
 
 // 推荐碑文数据
-const recommendations = ref([
-  {
-    id: 1,
-    title: '《张迁碑》',
-    dynasty: '汉代',
-    image: '/images/多宝塔碑1.jpg',
-    description: '东汉隶书的代表作，碑文内容记载了张迁的生平事迹，书法风格古朴雄强。',
-    views: '2,341'
-  },
-  {
-    id: 2,
-    title: '《九成宫醴泉铭》',
-    dynasty: '唐代',
-    image: '/images/多宝塔碑1.jpg',
-    description: '唐代楷书经典，由魏征撰文，欧阳询书丹，记载了唐太宗在九成宫发现醴泉的故事。',
-    views: '3,782'
-  },
-  {
-    id: 3,
-    title: '《醉翁亭记》碑',
-    dynasty: '宋代',
-    image: '/images/多宝塔碑1.jpg',
-    description: '北宋文学家欧阳修的代表作，由苏轼手书刻石，文章与书法并称双绝。',
-    views: '1,956'
-  },
-  {
-    id: 4,
-    title: '《永乐大典》序碑',
-    dynasty: '明代',
-    image: '/images/多宝塔碑1.jpg',
-    description: '记载了明代《永乐大典》编纂过程的重要碑文，具有极高的文献价值。',
-    views: '1,423'
+const recommendations = ref([])
+const isLoadingRecommendations = ref(false)
+
+// 获取推荐碑文数据
+const loadRecommendations = async () => {
+  try {
+    isLoadingRecommendations.value = true
+    const homeData = await fetchKnowledgeHome(baseUrl.value, userStore.token || '')
+    recommendations.value = homeData.featured || []
+  } catch (error) {
+    console.error('获取推荐碑文失败:', error)
+  } finally {
+    isLoadingRecommendations.value = false
   }
-])
+}
+
+// 组件挂载时加载数据
+onMounted(() => {
+  loadRecommendations()
+})
 
 // 时间线数据
 // TODO: 待接入AI生成的时间线数据

@@ -154,6 +154,27 @@ class DatabaseClient:
         logger.debug(f"DatabaseClient.get_knowledge_dynasties result: {result}")
         return result
     
+    async def execute_query(self, query: str, args: Optional[tuple] = None) -> List[Dict[str, Any]]:
+        """执行查询语句"""
+        logger.debug(f"DatabaseClient.execute_query: query={query}, args={args}")
+        result = await self.client.execute_query(query, args)
+        logger.debug(f"DatabaseClient.execute_query result: {result}")
+        return result
+    
+    async def execute_update(self, query: str, args: Optional[tuple] = None) -> int:
+        """执行更新语句"""
+        logger.debug(f"DatabaseClient.execute_update: query={query}, args={args}")
+        result = await self.client.execute_update(query, args)
+        logger.debug(f"DatabaseClient.execute_update result: {result}")
+        return result
+    
+    async def increment_knowledge_views(self, article_id: int) -> int:
+        """增加文章查看次数"""
+        logger.debug(f"DatabaseClient.increment_knowledge_views: article_id={article_id}")
+        result = await self.client.increment_knowledge_views(article_id)
+        logger.debug(f"DatabaseClient.increment_knowledge_views result: {result}")
+        return result
+    
     # ========== 收藏相关 ==========
     
     async def add_favorite(self, user_id: int, favorite_type: str, target_id: int) -> bool:

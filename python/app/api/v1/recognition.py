@@ -315,6 +315,7 @@ async def start_recognition(
             import tempfile
             import shutil
             import os
+            import uuid
             
             # 创建临时目录（如果不存在）
             temp_dir = os.path.join(os.getcwd(), "temp_oss_images")

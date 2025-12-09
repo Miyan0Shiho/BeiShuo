@@ -152,3 +152,20 @@ async def get_dynasties():
     finally:
         await service.close()
 
+@router.post("/articles/{article_id}/views")
+async def increment_article_views(
+    article_id: int = Path(..., description="文章ID")
+):
+    """增加文章查看次数"""
+    service = KnowledgeService()
+    try:
+        result = await service.increment_views(article_id)
+        if result:
+            return Result.ok(None, "查看次数更新成功")
+        else:
+            return Result.fail(ResultCode.KNOWLEDGE_NOT_FOUND, "文章不存在或更新失败")
+    except Exception as e:
+        return Result.fail(ResultCode.INTERNAL_SERVER_ERROR, f"更新查看次数失败: {str(e)}")
+    finally:
+        await service.close()
+
