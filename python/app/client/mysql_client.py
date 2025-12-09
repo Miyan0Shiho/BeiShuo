@@ -949,7 +949,8 @@ class MySQLClient:
         size: int = 10,
         keyword: Optional[str] = None,
         dynasty: Optional[str] = None,
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        tags: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """查询知识库列表"""
         # 构建查询条件
@@ -970,6 +971,21 @@ class MySQLClient:
         if category:
             conditions.append("category = %s")
             params.append(category)
+        
+        # 标签筛选
+        if tags:
+            tag_list = [t.strip() for t in tags.split(',') if t.strip()]
+            if tag_list:
+                tag_placeholders = ','.join(['%s'] * len(tag_list))
+                conditions.append(f"""
+                    id IN (
+                        SELECT DISTINCT atm.article_id 
+                        FROM article_tag_map atm
+                        INNER JOIN tags t ON atm.tag_id = t.id
+                        WHERE t.name IN ({tag_placeholders})
+                    )
+                """)
+                params.extend(tag_list)
         
         if conditions:
             where_clause = "WHERE " + " AND ".join(conditions)

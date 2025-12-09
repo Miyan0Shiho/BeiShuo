@@ -45,6 +45,7 @@ async def search_knowledge(
     type: Optional[str] = Query("all", description="搜索类型: all|articles|inscriptions"),
     category: Optional[str] = Query(None, description="分类筛选"),
     dynasty: Optional[str] = Query(None, description="朝代筛选"),
+    tags: Optional[str] = Query(None, description="标签筛选，多个标签用逗号分隔"),
     page: int = Query(1, ge=1, description="页码，从1开始"),
     per_page: int = Query(20, ge=1, le=100, description="每页数量")
 ):
@@ -71,7 +72,7 @@ async def search_knowledge(
         search_result = await service.search(
             keyword=q,
             dynasty=dynasty,
-            tags=None,  # 暂时不支持标签搜索
+            tags=tags,  # 启用标签筛选
             page=page_index,
             size=per_page
         )
@@ -110,7 +111,8 @@ async def get_knowledge_list(
     size: int = Query(10, ge=1, le=100, description="每页数量"),
     keyword: Optional[str] = Query(None, description="关键词搜索"),
     dynasty: Optional[str] = Query(None, description="朝代筛选"),
-    category: Optional[str] = Query(None, description="分类筛选")
+    category: Optional[str] = Query(None, description="分类筛选"),
+    tags: Optional[str] = Query(None, description="标签筛选，多个标签用逗号分隔")
 ):
     """获取知识库列表"""
     service = KnowledgeService()
@@ -120,7 +122,8 @@ async def get_knowledge_list(
             size=size,
             keyword=keyword,
             dynasty=dynasty,
-            category=category
+            category=category,
+            tags=tags
         )
         return Result.ok(result)
     except Exception as e:

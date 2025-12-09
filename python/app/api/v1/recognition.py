@@ -46,6 +46,14 @@ def _normalize_ocr(data: Dict[str, Any]) -> Dict[str, Any]:
         avg_conf = round(sum(confidences) / len(confidences), 2)
     elif isinstance(data.get("text_angel_confidence"), (int, float)):
         avg_conf = float(data.get("text_angel_confidence"))
+    
+    # 将置信度转换为百分比格式（0-100）
+    # 如果置信度已经是0-1之间的小数，转换为百分比；如果已经是百分比，保持不变
+    if avg_conf <= 1.0:
+        confidence_percent = round(avg_conf * 100, 2)
+    else:
+        confidence_percent = round(avg_conf, 2)
+    
     return {
         "width": width,
         "height": height,
@@ -54,7 +62,7 @@ def _normalize_ocr(data: Dict[str, Any]) -> Dict[str, Any]:
         "text_lines": text_lines,
         "full_text": full_text or "",
         "word_count": word_count,
-        "confidence": avg_conf,
+        "confidence": confidence_percent,
         "layout": data.get("layout") or None,
     }
 
@@ -274,6 +282,9 @@ async def start_recognition(
         # 移除识别ID和任务ID的详细输出
         logger.debug("OCR识别结果生成完成")
 
+        # 置信度已经是百分比格式（在_normalize_ocr中已转换）
+        confidence_value = norm.get("confidence", 0.0)
+        
         result = {
             "task_id": task_id,
             "status": "completed",
@@ -283,7 +294,7 @@ async def start_recognition(
                 "recognition_id": recognition_id,
                 "text": norm.get("full_text", ""),
                 "word_count": norm.get("word_count", 0),
-                "confidence": norm.get("confidence", 0.0),
+                "confidence": confidence_value,  # 已经是百分比格式（0-100）
                 "width": norm.get("width", 0),
                 "height": norm.get("height", 0),
                 "text_angel": norm.get("text_angel"),
@@ -428,24 +439,44 @@ async def get_recognition_history(
         
         # 转换为前端期望的格式
         recognition_list = []
-        for item in page_result.list:
+        # page_result 现在返回的是格式化后的数据，字段名为下划线格式
+        items = page_result.get("list", []) if isinstance(page_result, dict) else (page_result.list if hasattr(page_result, 'list') else [])
+        
+        for item in items:
+            # 处理置信度：如果是0-1之间的小数，转换为百分比；如果已经是百分比，保持不变
+            confidence_value = item.get("confidence", 0.0)
+            if isinstance(confidence_value, (int, float)):
+                if confidence_value <= 1.0:
+                    confidence_percent = round(float(confidence_value) * 100, 2)
+                else:
+                    confidence_percent = round(float(confidence_value), 2)
+            else:
+                confidence_percent = 0.0
+            
+            # 使用格式化后的下划线字段名（cover_image_url）
+            image_url = item.get("cover_image_url", "")
+            
             recognition_item = {
                 "id": item.get("id"),
                 "title": item.get("title", ""),
-                "image_url": item.get("imageUrl", ""),
-                "original_text": item.get("text", ""),
-                "confidence": item.get("confidence", 0.0),
+                "image_url": image_url,
+                "original_text": item.get("description", ""),  # 使用description字段
+                "confidence": confidence_percent,  # 百分比格式（0-100）
                 "dynasty": item.get("dynasty", ""),
-                "created_at": item.get("createdAt", datetime.now(timezone.utc).isoformat()),
-                "is_favorited": item.get("isFavorited", False),
+                "created_at": item.get("created_at", datetime.now(timezone.utc).isoformat()),
+                "is_favorited": item.get("is_favorited", False),
                 "tags": item.get("tags", [])
             }
             recognition_list.append(recognition_item)
         
+        # page_result 现在返回的是格式化后的数据，包含 total 和 totalPages
+        total = page_result.get("total", 0) if isinstance(page_result, dict) else (page_result.total if hasattr(page_result, 'total') else 0)
+        total_pages = page_result.get("totalPages", 0) if isinstance(page_result, dict) else ((page_result.totalPages if hasattr(page_result, 'totalPages') else (total + per_page - 1) // per_page if per_page > 0 else 0))
+        
         pagination = {
             "current_page": page,
-            "total_pages": page_result.totalPages if hasattr(page_result, 'totalPages') else (page_result.total + per_page - 1) // per_page,
-            "total_count": page_result.total,
+            "total_pages": total_pages,
+            "total_count": total,
             "per_page": per_page
         }
         

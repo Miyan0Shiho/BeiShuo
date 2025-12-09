@@ -3,6 +3,8 @@ import re
 import logging
 from app.services.knowledge_service import KnowledgeService
 from app.client.database_client import DatabaseClient
+from app.client.oss_client import oss_client
+from app.config import settings
 
 # 配置日志记录器
 logger = logging.getLogger(__name__)
@@ -67,7 +69,7 @@ class RecommendationService:
         
         # 使用关键词匹配查询
         query = """
-            SELECT id, title, author, content, views, created_at
+            SELECT id, title, author, content, cover_image_url, views, created_at
             FROM knowledge_articles 
             WHERE 
         """
@@ -111,7 +113,7 @@ class RecommendationService:
         2. 返回结果
         """
         query = """
-            SELECT id, title, author, content, views, created_at
+            SELECT id, title, author, content, cover_image_url, views, created_at
             FROM knowledge_articles 
             ORDER BY RAND() 
             LIMIT %s
@@ -159,11 +161,31 @@ class RecommendationService:
         Returns:
             格式化后的文章数据
         """
+        # 处理封面图URL（可能是OSS路径或完整URL）
+        cover_image_url = article.get("cover_image_url")
+        cover_image = None
+        if cover_image_url:
+            # 如果已经是完整URL，直接使用
+            if cover_image_url.startswith('http://') or cover_image_url.startswith('https://'):
+                cover_image = cover_image_url
+            else:
+                # 如果是OSS路径，转换为可访问的URL
+                object_name = cover_image_url.lstrip('/')
+                # 移除bucket名称前缀（如果存在）
+                if object_name.startswith('beiwen1/'):
+                    object_name = object_name[8:]
+                try:
+                    cover_image = oss_client.get_file_url(object_name)
+                except Exception:
+                    # 如果OSS转换失败，尝试构建基础URL
+                    cover_image = f"https://{settings.aliyun_oss_domain}/{object_name}"
+        
         return {
             "id": article.get("id"),
             "title": article.get("title", ""),
             "author": article.get("author", "未知作者"),
             "excerpt": self._extract_excerpt(article.get("content", "")),
+            "cover_image": cover_image,  # 添加封面图URL
             "views": article.get("views", 0),
             "created_at": article.get("created_at"),
         }
@@ -255,11 +277,24 @@ class RecommendationService:
                 else:
                     object_path = f'/uploads/{object_path}'
             
+            # 处理置信度：转换为百分比格式（0-100）
+            confidence_value = record.get("confidence", 0)
+            if confidence_value:
+                if isinstance(confidence_value, (int, float)):
+                    if float(confidence_value) <= 1.0:
+                        confidence_percent = round(float(confidence_value) * 100, 2)
+                    else:
+                        confidence_percent = round(float(confidence_value), 2)
+                else:
+                    confidence_percent = 0.0
+            else:
+                confidence_percent = 0.0
+            
             history.append({
                 "id": record.get("id"),
                 "status": record.get("status"),
                 "created_at": record.get("created_at"),
-                "confidence": round(float(record.get("confidence", 0)) * 100, 2) if record.get("confidence") else 0,
+                "confidence": confidence_percent,  # 百分比格式（0-100）
                 "image_path": object_path,
                 "inscription_title": record.get("inscription_title", "未知碑文"),
                 "recognition_text": record.get("recognition_text", "")

@@ -94,11 +94,12 @@ class KnowledgeService:
         size: int = 10,
         keyword: Optional[str] = None,
         dynasty: Optional[str] = None,
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        tags: Optional[str] = None
     ) -> Dict[str, Any]:
         """获取知识库列表"""
         # 生成缓存键
-        cache_key = f"knowledge:list:{page}:{size}:{keyword or ''}:{dynasty or ''}:{category or ''}"
+        cache_key = f"knowledge:list:{page}:{size}:{keyword or ''}:{dynasty or ''}:{category or ''}:{tags or ''}"
         
         # 先查缓存
         cached_result = await self.redis_client.get(cache_key)
@@ -111,7 +112,8 @@ class KnowledgeService:
             size=size,
             keyword=keyword,
             dynasty=dynasty,
-            category=category
+            category=category,
+            tags=tags
         )
         
         if not result:
@@ -131,6 +133,8 @@ class KnowledgeService:
             
             # 获取文章标签
             tags = await self.database_client.get_knowledge_tags(item.get("id", 0))
+            # 添加标签到返回结果
+            formatted["tags"] = [{"id": tag.get("id"), "name": tag.get("name"), "type": tag.get("type")} for tag in tags]
             
             # 从标签中提取朝代和年份信息
             dynasties = ["夏", "商", "周", "秦", "汉", "三国", "晋", "南北朝", "隋", "唐", "五代十国", "宋", "辽", "金", "元", "明", "清", "民国", "现代"]
@@ -280,7 +284,13 @@ class KnowledgeService:
         
         # 格式化数据
         items = result.get("items", [])
-        formatted_items = [self._format_article(item, include_content=False) for item in items]
+        formatted_items = []
+        for item in items:
+            formatted = self._format_article(item, include_content=False)
+            # 获取文章标签
+            tags = await self.database_client.get_knowledge_tags(item.get("id", 0))
+            formatted["tags"] = [{"id": tag.get("id"), "name": tag.get("name"), "type": tag.get("type")} for tag in tags]
+            formatted_items.append(formatted)
         
         formatted_result = {
             "items": formatted_items,
