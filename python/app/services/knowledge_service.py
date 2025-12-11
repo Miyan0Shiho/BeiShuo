@@ -349,6 +349,11 @@ class KnowledgeService:
         dynasties = await self.database_client.get_knowledge_dynasties()
         return [{"name": dyn.get("dynasty"), "count": dyn.get("count", 0)} for dyn in dynasties]
     
+    async def increment_views(self, article_id: int) -> bool:
+        """增加文章查看次数"""
+        affected_rows = await self.database_client.increment_knowledge_views(article_id)
+        return affected_rows > 0
+    
     async def close(self):
         """关闭客户端连接"""
         await self.database_client.close()

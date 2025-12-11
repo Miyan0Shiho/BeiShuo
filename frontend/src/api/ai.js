@@ -96,3 +96,57 @@ export async function startRecognition({ baseUrl, token, imageUrl, imageBase64, 
   const msg = data && data.message ? data.message : '识别失败'
   throw new Error(msg)
 }
+
+export async function fetchRecognitionHistory({ baseUrl, token, page = 1, size = 10 }) {
+  const url = `${baseUrl}/api/v1/recommendation/recognition/history?page=${page - 1}&size=${size}`
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(url, { method: 'GET', headers })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = await res.json()
+  if (data && data.success) {
+    // 适配API返回格式：将list转换为records，并格式化字段
+    const formattedRecords = (data.data.list || []).map(record => ({
+      id: record.id,
+      preview: record.recognition_text || record.inscription_title || '识别记录',
+      date: record.created_at,
+      confidence: record.confidence,
+      image_path: record.image_path,
+      recognition_text: record.recognition_text
+    }))
+    return {
+      records: formattedRecords,
+      total: data.data.total || 0,
+      page: data.data.page + 1, // 后端从0开始，前端从1开始
+      size: data.data.size || size
+    }
+  }
+  const msg = data && data.message ? data.message : '获取识别历史失败'
+  throw new Error(msg)
+}
+
+export async function fetchRecommendedInscriptions({ baseUrl, token, recognition_id, text, page = 1, size = 10 }) {
+  const url = `${baseUrl}/api/v1/recommendation/inscriptions`
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const body = {
+    recognition_id: recognition_id || undefined,
+    text: text || undefined,
+    page: page,
+    size: size
+  }
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = await res.json()
+  if (data && data.success) {
+    // 适配API返回格式：直接返回的数组转换为records
+    return {
+      records: data.data || [],
+      total: data.data ? data.data.length : 0,
+      page: page,
+      size: size
+    }
+  }
+  const msg = data && data.message ? data.message : '获取推荐碑文失败'
+  throw new Error(msg)
+}

@@ -1,11 +1,15 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { postChat, streamChatFetch, postInterpretationSections, uploadImage, startRecognition as startRecognitionApi } from '../api/ai'
+import { ref, computed, watch, onMounted } from 'vue'
+import { postChat, streamChatFetch, postInterpretationSections, uploadImage, startRecognition as startRecognitionApi, fetchRecognitionHistory, fetchRecommendedInscriptions } from '../api/ai'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
 const appStore = useAppStore()
+const userStore = useUserStore()
+
+const baseUrl = ref('http://localhost:8080')
 
 // 标签页状态
 const activeTab = ref('status')
@@ -324,51 +328,78 @@ const saveForm = ref({
 const availableTags = ['汉代碑文', '唐代碑文', '宋代碑文', '名人碑刻', '地方历史']
 
 // 历史记录
-const recentHistory = ref([
-    {
-        id: 1,
-        name: '李白墓碑文',
-        preview: '维大唐开元二十有九年，岁次辛巳，秋八月丁丑朔，十三日己丑...',
-        date: '今天 14:30',
-        confidence: 98.7
-    },
-    {
-        id: 2,
-        name: '兰亭集序',
-        preview: '永和九年，岁在癸丑，暮春之初，会于会稽山阴之兰亭，修禊事也...',
-        date: '昨天 09:15',
-        confidence: 97.5
-    },
-    {
-        id: 3,
-        name: '天下第一行书',
-        preview: '天下第一行书《兰亭集序》，东晋王羲之书，被誉为"天下第一行书"...',
-        date: '2023-10-28 16:42',
-        confidence: 96.8
-    }
-])
+const recentHistory = ref([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+const totalRecords = ref(0)
+const isLoadingHistory = ref(false)
 
 // 推荐碑文
-const recommendations = ref([
-    {
-        id: 1,
-        title: '汉代隶书碑文精选',
-        dynasty: '汉代',
-        description: '此碑文展示了汉代隶书的典型特征，笔画浑厚有力，结构端庄稳重，是研究汉代书法艺术的重要资料。'
-    },
-    {
-        id: 2,
-        title: '唐代楷书墓志铭',
-        dynasty: '唐代',
-        description: '该墓志铭采用标准的唐代楷书书写，字体端庄秀丽，结构严谨，体现了唐代书法的巅峰水平。'
-    },
-    {
-        id: 3,
-        title: '魏晋时期碑文残片',
-        dynasty: '魏晋',
-        description: '此残片保留了魏晋时期书法艺术的特点，字体介于隶书与楷书之间，展现了书法演变的重要阶段。'
+const recommendations = ref([])
+const isLoadingRecommendations = ref(false)
+
+// 获取识别历史
+const loadRecognitionHistory = async () => {
+    try {
+        isLoadingHistory.value = true
+        const data = await fetchRecognitionHistory({
+            baseUrl: baseUrl.value,
+            token: userStore.token,
+            page: currentPage.value,
+            size: pageSize.value
+        })
+        recentHistory.value = data.records || []
+        totalRecords.value = data.total || 0
+    } catch (error) {
+        console.error('获取识别历史失败:', error)
+        recentHistory.value = []
+        totalRecords.value = 0
+    } finally {
+        isLoadingHistory.value = false
     }
-])
+}
+
+// 获取推荐碑文
+const loadRecommendedInscriptions = async () => {
+    try {
+        isLoadingRecommendations.value = true
+        const data = await fetchRecommendedInscriptions({
+            baseUrl: baseUrl.value,
+            token: userStore.token,
+            text: recognitionResult.value.text,
+            recognition_id: recognitionId.value,
+            page: 1,
+            size: 3
+        })
+        recommendations.value = data.records || []
+    } catch (error) {
+        console.error('获取推荐碑文失败:', error)
+    } finally {
+        isLoadingRecommendations.value = false
+    }
+}
+
+// 查看识别记录
+const viewModalOpen = ref(false)
+const currentViewItem = ref(null)
+
+const viewRecognition = (item) => {
+    currentViewItem.value = item
+    viewModalOpen.value = true
+}
+
+const closeViewModal = () => {
+    viewModalOpen.value = false
+    currentViewItem.value = null
+}
+
+// 组件挂载时加载数据
+onMounted(() => {
+    loadRecognitionHistory()
+    if (recognitionResult.value.text) {
+        loadRecommendedInscriptions()
+    }
+})
 
 // 相关人物
 const relatedFigures = ref([
@@ -1369,20 +1400,53 @@ const dislikeResult = async () => {
                     <i class="fas fa-lightbulb mr-3 text-accent"></i>
                     相关碑文推荐
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- 加载状态 -->
+                <div v-if="isLoadingRecommendations" class="flex justify-center items-center py-10">
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin text-2xl text-primary mb-2"></i>
+                        <p class="text-dark/60">加载中...</p>
+                    </div>
+                </div>
+                
+                <!-- 空数据状态 -->
+                <div v-else-if="recommendations.length === 0" class="flex justify-center items-center py-10">
+                    <div class="text-center text-dark/60">
+                        <i class="fas fa-lightbulb mb-2 text-xl"></i>
+                        <p>暂无相关碑文推荐</p>
+                    </div>
+                </div>
+                
+                <!-- 数据列表 -->
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div v-for="item in recommendations" :key="item.id"
                         class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-custom border border-gray-100 cursor-pointer">
-                        <div class="h-48 overflow-hidden bg-gray-100 flex items-center justify-center">
-                            <i class="fas fa-monument text-gray-300 text-5xl"></i>
+                        <!-- 图片显示 -->
+                        <div class="h-48 overflow-hidden bg-gray-100">
+                            <!-- 从excerpt中提取图片链接 -->
+                            <img 
+                                v-if="item.cover_image || (item.excerpt && item.excerpt.includes('图片链接：'))" 
+                                :src="item.cover_image || (item.excerpt.match(/- 图片链接：(.*?)\n/)?.[1] || '')" 
+                                :alt="item.title" 
+                                class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                                @error="(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }"
+                            />
+                            <!-- 本地占位图 -->
+                            <div class="h-full bg-gray-100 flex items-center justify-center" style="display: none;">
+                                <i class="fas fa-monument text-gray-300 text-5xl"></i>
+                            </div>
                         </div>
                         <div class="p-5">
                             <h4 class="text-lg font-serif font-medium text-dark mb-2">{{ item.title }}</h4>
-                            <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ item.description }}</p>
-                            <a href="javascript:void(0);"
-                                class="text-primary text-sm font-medium flex items-center hover:text-accent transition-custom">
+                            <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ item.description || item.excerpt }}</p>
+                            <!-- 查看详情跳转 -->
+                            <router-link 
+                                :to="`/knowledge/article/${item.id}`" 
+                                class="text-primary text-sm font-medium flex items-center hover:text-accent transition-custom"
+                            >
                                 查看详情
                                 <i class="fas fa-arrow-right ml-2 text-xs"></i>
-                            </a>
+                            </router-link>
                         </div>
                     </div>
                 </div>
@@ -1395,76 +1459,143 @@ const dislikeResult = async () => {
                     最近识别记录
                 </h2>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="bg-gray-50 border-b border-gray-200">
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                        图片</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                        识别内容</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                        时间</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                        置信度</th>
-                                    <th
-                                        class="px-6 py-3 text-right text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                        操作</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                <tr v-for="item in recentHistory" :key="item.id"
-                                    class="hover:bg-gray-50 transition-custom">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="w-12 h-12 rounded bg-gray-100 flex items-center justify-center">
-                                            <i class="fas fa-image text-gray-400"></i>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm text-dark line-clamp-2 max-w-xs">{{ item.preview }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-dark/70">{{ item.date }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                                            {{ item.confidence }}%
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            class="text-primary hover:text-accent mr-3 transition-custom">查看</button>
-                                        <button
-                                            class="text-accent hover:text-primary mr-3 transition-custom">保存到我的碑文</button>
-                                        <button class="text-dark/70 hover:text-dark transition-custom">删除</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    
+                    <!-- 加载状态 -->
+                    <div v-if="isLoadingHistory" class="flex justify-center items-center py-10">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin text-2xl text-primary mb-2"></i>
+                            <p class="text-dark/60">加载中...</p>
+                        </div>
                     </div>
-                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                        <div class="text-sm text-dark/70">显示 1 至 3，共 12 条记录</div>
-                        <div class="flex space-x-1">
-                            <button
-                                class="px-3 py-1 border border-gray-300 rounded-md text-dark/50 hover:bg-gray-100 disabled:opacity-50"
-                                disabled>
-                                上一页
-                            </button>
-                            <button class="px-3 py-1 border border-primary bg-primary text-white rounded-md">1</button>
-                            <button
-                                class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">2</button>
-                            <button
-                                class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">3</button>
-                            <button
-                                class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">4</button>
-                            <button
-                                class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">下一页</button>
+                    
+                    <!-- 空数据状态 -->
+                    <div v-else-if="recentHistory.length === 0" class="flex justify-center items-center py-10">
+                        <div class="text-center text-dark/60">
+                            <i class="fas fa-inbox mb-2 text-xl"></i>
+                            <p>暂无识别记录</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 数据列表 -->
+                    <div v-else>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b border-gray-200">
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
+                                            图片</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
+                                            识别内容</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
+                                            时间</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
+                                            置信度</th>
+                                        <th
+                                            class="px-6 py-3 text-right text-xs font-medium text-dark/70 uppercase tracking-wider">
+                                            操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    <tr v-for="item in recentHistory" :key="item.id"
+                                        class="hover:bg-gray-50 transition-custom">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="w-12 h-12 rounded bg-gray-100 overflow-hidden relative">
+                                                <img v-if="item.image_path" 
+                                                     :src="`${baseUrl}${item.image_path}`" 
+                                                     :alt="item.preview" 
+                                                     class="w-full h-full object-cover"
+                                                     @error="$event.target.style.display = 'none'"
+                                                />
+                                                <i v-else class="fas fa-image text-gray-400 absolute w-12 h-12 flex items-center justify-center"></i>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm text-dark line-clamp-2 max-w-xs">{{ item.preview || '无识别内容' }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-dark/70">{{ item.date || item.created_at }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                                {{ item.confidence }}%
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button @click="viewRecognition(item)"
+                                                class="text-primary hover:text-accent mr-3 transition-custom">查看</button>
+                                            <button
+                                                class="text-accent hover:text-primary mr-3 transition-custom">保存到我的碑文</button>
+                                            <button class="text-dark/70 hover:text-dark transition-custom">删除</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                            <div class="text-sm text-dark/70">显示 {{ (currentPage - 1) * pageSize + 1 }} 至 {{ Math.min(currentPage * pageSize, totalRecords) }}，共 {{ totalRecords }} 条记录</div>
+                            <div class="flex space-x-1">
+                                <button
+                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/50 hover:bg-gray-100 disabled:opacity-50"
+                                    :disabled="currentPage === 1">
+                                    上一页
+                                </button>
+                                <button class="px-3 py-1 border border-primary bg-primary text-white rounded-md">1</button>
+                                <button
+                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">2</button>
+                                <button
+                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">3</button>
+                                <button
+                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">4</button>
+                                <button
+                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">下一页</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- 查看识别记录弹窗 -->
+            <teleport to="body">
+                <transition name="modal-fade">
+                    <div v-if="viewModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div @click="closeViewModal" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+                        <div class="relative bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <div
+                                class="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
+                                <h3 class="text-xl font-semibold text-dark">识别记录详情</h3>
+                                <button @click="closeViewModal" class="text-dark/70 hover:text-dark transition-custom">
+                                    <i class="fas fa-times text-xl"></i>
+                                </button>
+                            </div>
+                            <div class="p-6">
+                                <!-- 识别图片 -->
+                                <div class="mb-6">
+                                    <h4 class="text-lg font-semibold text-dark mb-3">识别图片</h4>
+                                    <div class="bg-gray-100 rounded-lg overflow-hidden">
+                                        <img v-if="currentViewItem.image_path" 
+                                             :src="`${baseUrl}${currentViewItem.image_path}`" 
+                                             :alt="currentViewItem.preview" 
+                                             class="w-full h-auto max-h-96 object-contain"
+                                        />
+                                        <div v-else class="h-64 bg-gray-100 flex items-center justify-center">
+                                            <i class="fas fa-image text-gray-300 text-5xl"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 识别结果 -->
+                                <div>
+                                    <h4 class="text-lg font-semibold text-dark mb-3">识别结果</h4>
+                                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-dark/90 whitespace-pre-wrap">
+                                        {{ currentViewItem.recognition_text || '暂无识别文本' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </transition>
+            </teleport>
         </div>
 
         <!-- 上传图片弹窗 -->

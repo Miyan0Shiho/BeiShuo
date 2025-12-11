@@ -1040,6 +1040,16 @@ class MySQLClient:
         result = await self.execute_query(query, (article_id,))
         return result if result else []
     
+    async def increment_knowledge_views(self, article_id: int) -> int:
+        """增加文章查看次数"""
+        query = """
+            UPDATE knowledge_articles 
+            SET views = views + 1 
+            WHERE id = %s
+        """
+        affected_rows = await self.execute_update(query, (article_id,))
+        return affected_rows
+    
     async def search_knowledge(
         self,
         keyword: str,
