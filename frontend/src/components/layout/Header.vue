@@ -181,9 +181,7 @@ onUnmounted(() => {
         <div class="flex items-center space-x-4">
           <template v-if="userStore.isLoggedIn">
             <div class="flex items-center space-x-3">
-              <img :src="userStore.user?.avatar || '/images/default-avatar.png'" :alt="userStore.user?.name"
-                class="w-8 h-8 rounded-full object-cover">
-              <span class="hidden sm:block text-sm font-medium">{{ userStore.user?.name }}</span>
+              <span class="text-sm font-medium">用户：{{ userStore.user?.name }}</span>
             </div>
             <button @click="handleLogout" class="text-sm text-red-600 hover:text-red-700 font-medium">
               退出
