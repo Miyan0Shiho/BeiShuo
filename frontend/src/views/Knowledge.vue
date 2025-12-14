@@ -27,7 +27,7 @@ const chatConversationId = ref('')
 const chatExpanded = ref(false)
 
 // API配置
-const baseUrl = ref('http://localhost:8080')
+const baseUrl = ref(window.location.origin + '/api/v1')
 
 // 获取知识库数据
 const loadKnowledgeData = async () => {
@@ -198,7 +198,7 @@ const renderMarkdown = (md) => {
 const sendChatQuestion = async () => {
   const q = chatQuestion.value.trim()
   if (!q) return
-  const baseUrl = 'http://localhost:8080'
+  const baseUrl = window.location.origin
   const token = userStore.token || ''
   const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
   chatMessages.value.push(userMsg)

@@ -1,7 +1,7 @@
 // 知识库相关API调用
 // 该文件包含知识库相关的所有API调用函数
 export async function fetchKnowledgeHome(baseUrl, token) {
-  const url = `${baseUrl}/api/v1/knowledge/home`
+  const url = `${baseUrl}/knowledge/home`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(url, { method: 'GET', headers })
@@ -21,7 +21,7 @@ export async function fetchKnowledgeList(baseUrl, token, params = {}) {
   if (dynasty) searchParams.append('dynasty', dynasty)
   if (category) searchParams.append('category', category)
   
-  const url = `${baseUrl}/api/v1/knowledge/list?${searchParams.toString()}`
+  const url = `${baseUrl}/knowledge/list?${searchParams.toString()}`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(url, { method: 'GET', headers })
@@ -33,7 +33,7 @@ export async function fetchKnowledgeList(baseUrl, token, params = {}) {
 }
 
 export async function fetchArticleDetail(baseUrl, token, articleId) {
-  const url = `${baseUrl}/api/v1/knowledge/articles/${articleId}`
+  const url = `${baseUrl}/knowledge/articles/${articleId}`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(url, { method: 'GET', headers })
@@ -54,7 +54,7 @@ export async function searchKnowledge(baseUrl, token, params = {}) {
   searchParams.append('page', page)
   searchParams.append('per_page', per_page)
   
-  const url = `${baseUrl}/api/v1/knowledge/search?${searchParams.toString()}`
+  const url = `${baseUrl}/knowledge/search?${searchParams.toString()}`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(url, { method: 'GET', headers })
@@ -66,7 +66,7 @@ export async function searchKnowledge(baseUrl, token, params = {}) {
 }
 
 export async function fetchKnowledgeCategories(baseUrl, token) {
-  const url = `${baseUrl}/api/v1/knowledge/categories`
+  const url = `${baseUrl}/knowledge/categories`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(url, { method: 'GET', headers })
@@ -78,7 +78,7 @@ export async function fetchKnowledgeCategories(baseUrl, token) {
 }
 
 export async function fetchKnowledgeDynasties(baseUrl, token) {
-  const url = `${baseUrl}/api/v1/knowledge/dynasties`
+  const url = `${baseUrl}/knowledge/dynasties`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(url, { method: 'GET', headers })
@@ -97,7 +97,7 @@ export async function fetchKnowledgeDynasties(baseUrl, token) {
  * @returns {Promise<void>} - 无返回值
  */
 export async function incrementArticleViews(baseUrl, token, articleId) {
-  const url = `${baseUrl}/api/v1/knowledge/articles/${articleId}/views`
+  const url = `${baseUrl}/knowledge/articles/${articleId}/views`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(url, { method: 'POST', headers })

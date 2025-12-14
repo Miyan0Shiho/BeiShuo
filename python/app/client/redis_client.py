@@ -26,21 +26,38 @@ class RedisClient(BaseHTTPClient):
         except Exception:
             return False
     
+    async def get(self, key: str) -> Optional[Any]:
+        """别名：获取缓存（兼容旧调用）"""
+        return await self.get_value(key)
+    
     async def get_value(self, key: str) -> Optional[Any]:
         """获取缓存"""
-        return await super().get("/cache/get", params={"key": key})
+        try:
+            return await super().get("/cache/get", params={"key": key})
+        except Exception:
+            return None
     
     async def delete_key(self, key: str) -> bool:
         """删除缓存"""
         return await super().delete("/cache/delete", params={"key": key})
     
+    async def delete(self, key: str) -> bool:
+        """别名：删除缓存（兼容旧调用）"""
+        return await self.delete_key(key)
+    
     async def exists(self, key: str) -> bool:
         """检查key是否存在"""
-        result = await super().get("/cache/exists", params={"key": key})
+        try:
+            result = await super().get("/cache/exists", params={"key": key})
+        except Exception:
+            result = False
         return result if isinstance(result, bool) else False
     
     async def search_keys(self, pattern: str) -> list:
         """模糊搜索key"""
-        result = await super().get("/cache/search", params={"pattern": pattern})
+        try:
+            result = await super().get("/cache/search", params={"pattern": pattern})
+        except Exception:
+            result = []
         return result if isinstance(result, list) else []
 

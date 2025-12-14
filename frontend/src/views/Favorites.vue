@@ -223,7 +223,60 @@
           </div>
         </div>
         <!-- 识别记录列表 -->
-        <div class="space-y-4">
+        <div v-if="loading" class="space-y-4">
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 p-6 text-center">
+            <i class="fas fa-spinner fa-spin text-primary"></i>
+          </div>
+        </div>
+        <div v-else-if="filteredItems.length > 0" class="space-y-4">
+          <div v-for="it in filteredItems" :key="it.id" 
+            class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-custom cursor-pointer"
+            @click="router.push(`/my-inscriptions/${it.id}`)"
+          >
+            <div class="p-5">
+              <div class="flex flex-col md:flex-row md:items-start md:justify-between">
+                <div class="flex-grow">
+                  <div class="flex items-start">
+                    <div class="flex-shrink-0 mr-4">
+                      <img :alt="it.title" class="w-20 h-20 object-cover rounded-lg" :src="it.cover_image || it.image_url || 'https://via.placeholder.com/80x80?text=No+Image'">
+                    </div>
+                    <div class="flex-grow">
+                      <h3 class="font-semibold text-lg text-primary mb-1">{{ it.title }}</h3>
+                      <p class="text-dark/70 text-sm line-clamp-2 mb-2">{{ it.content }}</p>
+                      <div class="flex flex-wrap gap-2 mb-2">
+                        <span v-if="it.dynasty" class="text-xs bg-secondary/30 text-primary px-2 py-1 rounded-full">{{ it.dynasty }}</span>
+                        <span v-if="it.category" class="text-xs bg-gray-100 text-dark/60 px-2 py-1 rounded-full">{{ it.category }}</span>
+                      </div>
+                      <div class="flex justify-between items-center">
+                        <span class="text-xs text-dark/50">{{ it.created_at || '' }}</span>
+                        <div class="flex space-x-2" @click.stop>
+                          <button @click="editItem(it.id)" class="text-dark/50 hover:text-primary transition-custom p-1" title="编辑">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button @click="toggleFavorite(it.id)" class="transition-all duration-300 p-1 transform active:scale-110" title="收藏">
+                            <i :class="[
+                                favorites.includes(it.id) ? 'fas fa-heart' : 'far fa-heart',
+                                'transition-colors duration-300'
+                              ]"
+                              :style="{ color: favorites.includes(it.id) ? '#ff0000' : '#cccccc', fontSize: '1.1em' }"
+                            ></i>
+                          </button>
+                          <button @click="downloadItem(it.id)" class="text-dark/50 hover:text-primary transition-custom p-1" title="下载">
+                            <i class="fas fa-download"></i>
+                          </button>
+                          <button @click="deleteItem(it.id)" class="text-dark/50 hover:text-red-500 transition-custom p-1" title="删除">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="false" class="space-y-4">
           <!-- 识别记录项1 -->
           <div
             class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-custom">
@@ -411,8 +464,19 @@
             </div>
           </div>
         </div>
+        <div v-if="filteredItems.length > 0" class="mt-8 flex justify-center">
+          <nav class="flex items-center space-x-1">
+            <button @click="prevPage" class="px-3 py-2 rounded-md border border-gray-300 text-dark/50 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="page === 1">
+              <i class="fas fa-chevron-left text-xs"></i>
+            </button>
+            <button class="px-4 py-2 rounded-md bg-primary text-white border border-primary">{{ page }}</button>
+            <button @click="nextPage" class="px-3 py-2 rounded-md border border-gray-300 text-dark/70 hover:bg-gray-50">
+              <i class="fas fa-chevron-right text-xs"></i>
+            </button>
+          </nav>
+        </div>
         <!-- 分页 -->
-        <div class="mt-8 flex justify-center">
+        <div v-if="false" class="mt-8 flex justify-center">
           <nav class="flex items-center space-x-1">
             <button
               class="px-3 py-2 rounded-md border border-gray-300 text-dark/50 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -434,7 +498,35 @@
 
       <!-- [MODULE] h8i_我的碑文页面:我的收藏 -->
       <div v-if="activeTab === 'my-collections'" class="tab-content">
-        <div class="bg-white rounded-xl p-8 text-center border border-gray-200">
+        <div v-if="favoritesLoading" class="bg-white rounded-xl p-8 text-center border border-gray-200">
+          <i class="fas fa-spinner fa-spin text-primary"></i>
+        </div>
+        <div v-else-if="favoritesItems.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div v-for="fav in favoritesItems" :key="fav.id" 
+            class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-custom border border-gray-100 cursor-pointer"
+            @click="router.push(`/knowledge/article/${fav.id}`)"
+          >
+            <div class="h-36 overflow-hidden bg-gray-100">
+              <img :src="fav.cover_image || 'https://via.placeholder.com/400x200?text=No+Image'" :alt="fav.title" class="w-full h-full object-cover transition-transform duration-300 hover:scale-105">
+            </div>
+            <div class="p-4">
+              <div class="flex justify-between items-center mb-2">
+                <span v-if="fav.dynasty" class="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">{{ fav.dynasty }}</span>
+                <span v-if="fav.category" class="text-xs bg-secondary/30 text-primary px-2 py-0.5 rounded">{{ fav.category }}</span>
+              </div>
+              <h3 class="text-lg font-semibold mb-2 line-clamp-2 text-primary hover:text-primary/80 transition-custom">
+                {{ fav.title }}
+              </h3>
+              <p class="text-sm text-dark/70 line-clamp-2 mb-3">
+                {{ fav.content }}
+              </p>
+              <div class="flex justify-between items-center text-xs text-dark/50">
+                <span>{{ fav.created_at ? new Date(fav.created_at).toLocaleDateString() : '' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="bg-white rounded-xl p-8 text-center border border-gray-200">
           <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
             <i class="fas fa-heart text-2xl text-gray-400"></i>
           </div>
@@ -473,74 +565,196 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
+import { listMyInscriptions, deleteInscription } from '../api/inscription'
+import { fetchArticleDetail } from '../api/knowledge'
 
+const router = useRouter()
 const appStore = useAppStore()
 
-// 响应式数据
 const activeTab = ref('my-recognitions')
 const searchQuery = ref('')
 const showPublish = ref(false)
 const showImport = ref(false)
-const favorites = ref([2, 3]) // 示例数据：已收藏的项目ID
+const favorites = ref([])
+const items = ref([])
+const loading = ref(false)
+const page = ref(1)
+const size = ref(10)
+const total = ref(0)
+const favoritesItems = ref([])
+const favoritesLoading = ref(false)
 
-// 显示发布弹窗
+const filteredItems = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return items.value
+  return (items.value || []).filter(it => {
+    const title = (it.title || '').toLowerCase()
+    const content = (it.content || '').toLowerCase()
+    return title.includes(q) || content.includes(q)
+  })
+})
+
 const showPublishModal = () => {
   showPublish.value = true
 }
 
-// 显示导入弹窗
 const showImportModal = () => {
   showImport.value = true
 }
 
-// 确认发布
 const confirmPublish = () => {
-  const selected = document.querySelector('input[name="inscription"]:checked')
+  const selected = document.querySelector('input[name=\"inscription\"]:checked')
   if (selected) {
-    alert(`确认发布: ${selected.value}`)
     showPublish.value = false
   } else {
-    alert('请选择要发布的碑文')
+    appStore.addNotification({ type: 'error', message: '请选择要发布的碑文', duration: 2000 })
   }
 }
 
-// 确认导入
 const confirmImport = () => {
-  const selected = document.querySelector('input[name="import-inscription"]:checked')
+  const selected = document.querySelector('input[name=\"import-inscription\"]:checked')
   if (selected) {
-    alert(`确认导入: ${selected.value}`)
     showImport.value = false
   } else {
-    alert('请选择要导入的碑文')
+    appStore.addNotification({ type: 'error', message: '请选择要导入的碑文', duration: 2000 })
   }
 }
 
-// 编辑项目
 const editItem = (id) => {
-  alert(`编辑碑文: ${id}`)
+  appStore.addNotification({ type: 'info', message: `编辑碑文 ${id}`, duration: 2000 })
 }
 
-// 切换收藏状态
 const toggleFavorite = (id) => {
   const index = favorites.value.indexOf(id)
-  if (index > -1) {
-    favorites.value.splice(index, 1)
+  const isAdding = index === -1
+  
+  // Optimistic update
+  if (isAdding) {
+    favorites.value = [...favorites.value, id] // Create new array reference
   } else {
-    favorites.value.push(id)
+    favorites.value = favorites.value.filter(fid => fid !== id) // Create new array reference
+  }
+  
+  try {
+    localStorage.setItem('favorites', JSON.stringify(favorites.value))
+    if (activeTab.value === 'my-collections') {
+      loadCollections()
+    }
+    // appStore.addNotification({ type: 'success', message: isAdding ? '收藏成功' : '已取消收藏', duration: 1000 })
+  } catch (e) {
+    // Rollback
+    const stored = localStorage.getItem('favorites')
+    favorites.value = stored ? JSON.parse(stored) : []
+    appStore.addNotification({ type: 'error', message: '操作失败，请重试', duration: 2000 })
   }
 }
 
-// 下载项目
 const downloadItem = (id) => {
-  alert(`下载碑文: ${id}`)
+  appStore.addNotification({ type: 'success', message: `已开始下载 ${id}`, duration: 2000 })
 }
 
-// 删除项目
-const deleteItem = (id) => {
-  if (confirm('确定要删除这条碑文记录吗？')) {
-    alert(`删除碑文: ${id}`)
+const deleteItem = async (id) => {
+  if (!confirm('确定要删除这条碑文记录吗？')) return
+  try {
+    const baseUrl = window.location.origin
+    const token = localStorage.getItem('token') || ''
+    await deleteInscription({ baseUrl, token, id })
+    items.value = (items.value || []).filter(it => String(it.id) !== String(id))
+    total.value = Math.max(0, total.value - 1)
+    appStore.addNotification({ type: 'success', message: '删除成功', duration: 2000 })
+  } catch (e) {
+    appStore.addNotification({ type: 'error', message: '删除失败，请稍后重试', duration: 3000 })
+  }
+}
+
+const loadList = async () => {
+  try {
+    loading.value = true
+    const baseUrl = window.location.origin
+    const token = localStorage.getItem('token') || ''
+    console.log('加载我的碑文列表, page:', page.value)
+    const data = await listMyInscriptions({ baseUrl, token, page: page.value, size: size.value, q: searchQuery.value })
+    const list = Array.isArray(data.list) ? data.list : (Array.isArray(data.records) ? data.records : [])
+    const remoteItems = (list || []).map(it => ({
+      id: it.id,
+      title: it.title || '我的碑文',
+      content: it.content || it.text || '',
+      dynasty: it.dynasty || '',
+      category: it.category || '',
+      created_at: it.created_at || it.date || '',
+      image_url: it.image_url || '',
+      cover_image: it.cover_image || '',
+      confidence: it.confidence || 0
+    }))
+    items.value = remoteItems
+    total.value = parseInt(data.total || 0, 10) || 0
+  } catch (e) {
+    items.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+const prevPage = async () => {
+  if (page.value <= 1) return
+  page.value -= 1
+  await loadList()
+}
+
+const nextPage = async () => {
+  const maxPage = Math.max(1, Math.ceil(total.value / size.value))
+  if (page.value >= maxPage) return
+  page.value += 1
+  await loadList()
+}
+
+onMounted(() => {
+  const stored = localStorage.getItem('favorites')
+  if (stored) {
+    try {
+      favorites.value = JSON.parse(stored)
+    } catch (e) {
+      favorites.value = []
+    }
+  }
+  loadList()
+  loadCollections()
+})
+
+const loadCollections = async () => {
+  try {
+    favoritesLoading.value = true
+    const ids = JSON.parse(localStorage.getItem('favorites') || '[]')
+    if (!Array.isArray(ids) || ids.length === 0) {
+      favoritesItems.value = []
+      return
+    }
+    const baseUrl = window.location.origin + '/api/v1'
+    const token = localStorage.getItem('token') || ''
+    const results = []
+    for (const id of ids) {
+      try {
+        const article = await fetchArticleDetail(baseUrl, token, id)
+        results.push({
+          id: article.id,
+          title: article.title || '收藏碑文',
+          content: article.excerpt || article.description || '',
+          dynasty: article.dynasty || '',
+          category: article.metadata?.category || '',
+          created_at: article.created_at || '',
+          image_url: article.cover_image || '',
+          cover_image: article.cover_image || '',
+          confidence: 0
+        })
+      } catch {}
+    }
+    favoritesItems.value = results
+  } finally {
+    favoritesLoading.value = false
   }
 }
 </script>

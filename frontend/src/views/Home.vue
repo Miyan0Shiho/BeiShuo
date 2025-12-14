@@ -6,7 +6,7 @@ import { fetchKnowledgeHome } from '../api/knowledge'
 
 const router = useRouter()
 const userStore = useUserStore()
-const baseUrl = ref('http://localhost:8080')
+const baseUrl = ref(window.location.origin + '/api/v1')
 
 // 功能特性数据
 const features = ref([

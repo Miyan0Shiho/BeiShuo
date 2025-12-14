@@ -12,6 +12,20 @@ class DatabaseClient:
         """初始化数据库客户端，使用MySQLClient"""
         self.client = mysql_client
         logger.info("DatabaseClient initialized with MySQLClient")
+        self._db_last_error_time = 0
+        self._db_circuit_break_duration = 30  # 熔断时间30秒
+
+    def _is_db_available(self):
+        import time
+        if time.time() - self._db_last_error_time < self._db_circuit_break_duration:
+            return False
+        return True
+
+    def _mark_db_failed(self):
+        import time
+        self._db_last_error_time = time.time()
+        logger.warning(f"Database marked as failed, circuit break for {self._db_circuit_break_duration}s")
+
     
     async def close(self):
         """关闭数据库连接，这里实际上是调用mysql_client的disconnect方法"""
@@ -60,41 +74,220 @@ class DatabaseClient:
     ) -> Optional[Dict[str, Any]]:
         """查询碑文列表"""
         logger.debug(f"DatabaseClient.get_inscription_list: user_id={user_id}, page={page}, size={size}, sort={sort}, keyword={keyword}")
-        result = await self.client.get_inscription_list(user_id, page, size, sort, keyword)
-        logger.debug(f"DatabaseClient.get_inscription_list result: {result}")
-        return result
+        
+        db_items = []
+        db_total = 0
+        
+        try:
+            if self._is_db_available():
+                try:
+                    result = await self.client.get_inscription_list(user_id, page, size, sort, keyword)
+                    logger.debug(f"DatabaseClient.get_inscription_list result: {result}")
+                    if result and "items" in result:
+                        db_items = result.get("items", []) or []
+                        db_total = int(result.get("total", 0) or 0)
+                    elif isinstance(result, dict):
+                        db_items = result.get("list", []) or []
+                        db_total = int(result.get("total", 0) or 0)
+                except Exception as e:
+                    logger.error(f"MySQL get_inscription_list failed: {e}")
+                    self._mark_db_failed()
+            
+            # 读取本地保存的数据并置顶合并
+            local_items = await self._local_list(user_id)
+            if keyword:
+                kw = keyword.lower()
+                local_items = [it for it in local_items if kw in (it.get("title","").lower() + it.get("content","").lower())]
+            
+            combined = (local_items or []) + (db_items or [])
+            # 分页切片
+            start = page * size
+            end = start + size
+            page_items = combined[start:end]
+            total = len(combined) if local_items else db_total
+            total_pages = (total + size - 1) // size if size > 0 else 0
+            
+            return {
+                "list": page_items,
+                "total": total,
+                "page": page,
+                "size": size,
+                "totalPages": total_pages
+            }
+        except Exception as e:
+            logger.error(f"get_inscription_list failed completely: {e}")
+            return {"list": [], "total": 0, "page": page, "size": size, "totalPages": 0}
     
     async def get_inscription_by_id(self, inscription_id: int) -> Optional[Dict[str, Any]]:
         """根据ID查询碑文详情"""
         logger.debug(f"DatabaseClient.get_inscription_by_id: inscription_id={inscription_id}")
-        result = await self.client.get_inscription_by_id(inscription_id)
-        logger.debug(f"DatabaseClient.get_inscription_by_id result: {result}")
-        return result
+        
+        # 优化：如果是大整数ID（时间戳），优先查本地文件
+        is_local_id = False
+        try:
+            if int(inscription_id) > 1000000000000:  # 毫秒级时间戳是13位，10^12
+                is_local_id = True
+        except:
+            pass
+            
+        if is_local_id:
+            # 尝试从本地查找
+            local = await self._find_local_by_id(inscription_id)
+            if local:
+                return local
+        
+        # 尝试查数据库
+        try:
+            if self._is_db_available():
+                result = await self.client.get_inscription_by_id(inscription_id)
+                logger.debug(f"DatabaseClient.get_inscription_by_id result: {result}")
+                if result:
+                    return result
+        except Exception as e:
+            logger.error(f"MySQL get_inscription_by_id failed: {e}")
+            self._mark_db_failed()
+            
+        # 如果不是本地ID（即数据库ID），且数据库失败了，再尝试本地找一下（防止误判）
+        if not is_local_id:
+             return await self._find_local_by_id(inscription_id)
+        
+        return None
+
+    async def _find_local_by_id(self, inscription_id):
+        import os, json
+        uploads = settings.file_upload_path
+        if os.path.isdir(uploads):
+            for name in os.listdir(uploads):
+                if not name.startswith("inscriptions_") or not name.endswith(".json"):
+                    continue
+                try:
+                    with open(os.path.join(uploads, name), "r", encoding="utf-8") as fp:
+                        data = json.load(fp)
+                    for it in data:
+                        if str(it.get("id")) == str(inscription_id):
+                            return it
+                except Exception:
+                    continue
+        return None
     
     async def create_inscription(self, inscription_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """创建碑文记录"""
         logger.debug(f"DatabaseClient.create_inscription: inscription_data={inscription_data}")
-        result = await self.client.create_inscription(inscription_data)
-        logger.debug(f"DatabaseClient.create_inscription result: {result}")
-        return result
+        try:
+            if self._is_db_available():
+                try:
+                    result = await self.client.create_inscription(inscription_data)
+                    logger.debug(f"DatabaseClient.create_inscription result: {result}")
+                    return result
+                except Exception as e:
+                    logger.error(f"MySQL create_inscription failed: {e}")
+                    self._mark_db_failed()
+            raise Exception("Database unavailable")
+        except Exception as e:
+            logger.error(f"create_inscription failed, fallback to local storage: {e}")
+            import os, json, time
+            user_id = inscription_data.get("userId") or inscription_data.get("creator_user_id") or 0
+            item = {
+                "id": int(time.time() * 1000),
+                "title": inscription_data.get("title",""),
+                "content": inscription_data.get("text",""),
+                "dynasty": inscription_data.get("dynasty",""),
+                "status": inscription_data.get("status","active"),
+                "image_url": inscription_data.get("image_url") or inscription_data.get("imageUrl",""),
+                "userId": user_id,
+                "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            await self._local_append(user_id, item)
+            return item
     
     async def update_inscription(self, inscription_id: int, inscription_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """更新碑文"""
         logger.debug(f"DatabaseClient.update_inscription: inscription_id={inscription_id}, inscription_data={inscription_data}")
-        # 暂时使用模拟实现
-        return None
+        try:
+            raise Exception("not implemented")
+        except Exception:
+            # 本地更新
+            import os, json
+            uploads = settings.file_upload_path
+            if not os.path.isdir(uploads):
+                return None
+            for name in os.listdir(uploads):
+                if not name.startswith("inscriptions_") or not name.endswith(".json"):
+                    continue
+                path = os.path.join(uploads, name)
+                try:
+                    with open(path, "r", encoding="utf-8") as fp:
+                        data = json.load(fp)
+                    changed = False
+                    target = None
+                    for it in data:
+                        if str(it.get("id")) == str(inscription_id):
+                            for k,v in inscription_data.items():
+                                if k == "corrected_text":
+                                    it["content"] = v or it.get("content","")
+                                else:
+                                    it[k] = v
+                            target = it
+                            changed = True
+                            break
+                    if changed:
+                        with open(path, "w", encoding="utf-8") as fp:
+                            json.dump(data, fp, ensure_ascii=False, indent=2)
+                        return target
+                except Exception:
+                    continue
+            return None
     
     async def delete_inscription(self, inscription_id: int) -> bool:
         """删除碑文"""
         logger.debug(f"DatabaseClient.delete_inscription: inscription_id={inscription_id}")
-        # 暂时使用模拟实现
-        return True
+        try:
+            raise Exception("not implemented")
+        except Exception:
+            import os, json
+            uploads = settings.file_upload_path
+            if not os.path.isdir(uploads):
+                return False
+            for name in os.listdir(uploads):
+                if not name.startswith("inscriptions_") or not name.endswith(".json"):
+                    continue
+                path = os.path.join(uploads, name)
+                try:
+                    with open(path, "r", encoding="utf-8") as fp:
+                        data = json.load(fp)
+                    next_data = [it for it in data if str(it.get("id")) != str(inscription_id)]
+                    if len(next_data) != len(data):
+                        with open(path, "w", encoding="utf-8") as fp:
+                            json.dump(next_data, fp, ensure_ascii=False, indent=2)
+                        return True
+                except Exception:
+                    continue
+            return False
     
     async def search_inscriptions(self, keyword: str) -> Optional[List[Dict[str, Any]]]:
         """模糊搜索碑文"""
         logger.debug(f"DatabaseClient.search_inscriptions: keyword={keyword}")
-        # 暂时使用模拟实现
-        return []
+        try:
+            raise Exception("not implemented")
+        except Exception:
+            # 本地搜索
+            import os, json
+            uploads = settings.file_upload_path
+            results: List[Dict[str, Any]] = []
+            if os.path.isdir(uploads):
+                for name in os.listdir(uploads):
+                    if not name.startswith("inscriptions_") or not name.endswith(".json"):
+                        continue
+                    try:
+                        with open(os.path.join(uploads, name), "r", encoding="utf-8") as fp:
+                            data = json.load(fp)
+                        kw = keyword.lower()
+                        for it in data:
+                            if kw in (it.get("title","").lower() + it.get("content","").lower()):
+                                results.append(it)
+                    except Exception:
+                        continue
+            return results
     
     # ========== 知识库相关 ==========
     
@@ -278,4 +471,33 @@ class DatabaseClient:
         result = await self.client.set_llm_cache(cache_key, cache_data, ttl)
         logger.debug(f"DatabaseClient.set_llm_cache result: {result}")
         return result
+
+    async def _local_list(self, user_id: int) -> List[Dict[str, Any]]:
+        import os, json
+        uploads = settings.file_upload_path
+        os.makedirs(uploads, exist_ok=True)
+        path = os.path.join(uploads, f"inscriptions_{user_id or 0}.json")
+        if not os.path.isfile(path):
+            return []
+        try:
+            with open(path, "r", encoding="utf-8") as fp:
+                return json.load(fp)
+        except Exception:
+            return []
+
+    async def _local_append(self, user_id: int, item: Dict[str, Any]) -> None:
+        import os, json
+        uploads = settings.file_upload_path
+        os.makedirs(uploads, exist_ok=True)
+        path = os.path.join(uploads, f"inscriptions_{user_id or 0}.json")
+        data: List[Dict[str, Any]] = []
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as fp:
+                    data = json.load(fp)
+            except Exception:
+                data = []
+        data.insert(0, item)
+        with open(path, "w", encoding="utf-8") as fp:
+            json.dump(data, fp, ensure_ascii=False, indent=2)
 

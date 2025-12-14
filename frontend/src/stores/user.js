@@ -6,7 +6,7 @@ export const useUserStore = defineStore('user', () => {
   // 状态
   const user = ref(null)
   const token = ref(null)
-  const baseUrl = ref(import.meta.env.VITE_BACKEND_BASE || 'http://localhost:8080')
+  const baseUrl = ref(window.location.origin)
   const isLoggedIn = computed(() => !!token.value)
   
   // 登录

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { postChat, streamChatFetch, postInterpretationSections, uploadImage, startRecognition as startRecognitionApi, fetchRecognitionHistory, fetchRecommendedInscriptions } from '../api/ai'
+import { createInscription } from '../api/inscription'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
 import { useUserStore } from '../stores/user'
@@ -9,7 +10,7 @@ const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
 
-const baseUrl = ref('http://localhost:8080')
+const baseUrl = ref(window.location.origin)
 
 // 标签页状态
 const activeTab = ref('status')
@@ -393,6 +394,28 @@ const closeViewModal = () => {
     currentViewItem.value = null
 }
 
+const saveHistoryItem = async (item) => {
+    try {
+        const baseUrl = window.location.origin
+        const token = localStorage.getItem('token') || ''
+        const title = (item.inscription_title || item.preview || '识别记录').slice(0, 100)
+        const text = item.recognition_text || item.preview || ''
+        const image_url = item.image_path ? `${baseUrl}${item.image_path}` : ''
+        await createInscription({ baseUrl, token, title, text, image_url, dynasty: '', status: 'active' })
+        appStore.addNotification({
+            type: 'success',
+            message: '记录已保存到我的碑文',
+            duration: 2000
+        })
+    } catch (e) {
+        appStore.addNotification({
+            type: 'error',
+            message: '保存失败，请稍后重试',
+            duration: 3000
+        })
+    }
+}
+
 // 组件挂载时加载数据
 onMounted(() => {
     loadRecognitionHistory()
@@ -503,7 +526,7 @@ const confirmUpload = () => {
 const startRecognition = async () => {
     recognitionState.value = 'processing'
     processingProgress.value = 0
-    const baseUrl = 'http://localhost:8080'
+    const baseUrl = window.location.origin
     const token = localStorage.getItem('token') || ''
     try {
         // 上传图片
@@ -613,6 +636,9 @@ const startRecognition = async () => {
         recognitionState.value = 'completed'
         activeTab.value = 'result'
         appStore.addNotification({ type: 'success', message: '识别完成', duration: 2000 })
+        
+        // 刷新历史记录
+        loadRecognitionHistory()
     } catch (e) {
         appStore.addNotification({ type: 'error', message: '识别失败，请稍后重试', duration: 3000 })
         recognitionState.value = 'waiting'
@@ -634,7 +660,7 @@ const switchInterpretationTab = (tab) => {
 const showInterpretation = async () => {
     activeTab.value = 'interpretation'
     if (!sectionsHistory.value && recognitionResult.value?.text) {
-        const baseUrl = 'http://localhost:8080'
+        const baseUrl = window.location.origin
         const token = localStorage.getItem('token') || ''
         try {
             sectionsLoading.value = true
@@ -703,7 +729,7 @@ const confirmCorrection = () => {
 }
 
 const saveCorrections = async () => {
-    const baseUrl = 'http://localhost:8080'
+    const baseUrl = window.location.origin
     const token = localStorage.getItem('token') || ''
     const correctedText = (textLines.value || []).map(tl => tl.text || '').join('\n') || recognitionResult.value.text || ''
     const corrections = []
@@ -762,6 +788,42 @@ const toggleTag = (tag) => {
     }
 }
 
+const saveInscription = async () => {
+    try {
+        const baseUrl = window.location.origin
+        const token = localStorage.getItem('token') || ''
+        if (!token) {
+            appStore.addNotification({
+                type: 'error',
+                message: '未登录，无法保存。请先登录后再保存',
+                duration: 3000
+            })
+            return
+        }
+        const title = saveForm.value.title.trim()
+        const text = (textLines.value || []).map(tl => tl.text || '').join('\n') || recognitionResult.value.text || ''
+        const image_url = originalImageUrl.value || ''
+        const dynasty = recognitionResult.value.dynasty || ''
+        await createInscription({ baseUrl, token, title, text, image_url, dynasty, status: 'active' })
+        console.log('保存碑文成功:', title)
+        appStore.addNotification({
+            type: 'success',
+            message: `已保存"${title}"到我的碑文`,
+            duration: 3000
+        })
+        closeSaveModal()
+        // 刷新历史记录以更新状态
+        loadRecognitionHistory()
+    } catch (e) {
+        console.error('保存碑文失败:', e)
+        appStore.addNotification({
+            type: 'error',
+            message: `保存失败: ${e.message || '未知错误'}`,
+            duration: 5000
+        })
+    }
+}
+
 const confirmSave = () => {
     if (!saveForm.value.title.trim()) {
         appStore.addNotification({
@@ -772,27 +834,13 @@ const confirmSave = () => {
         return
     }
 
-    if (saveForm.value.tags.length === 0) {
-        appStore.addNotification({
-            type: 'error',
-            message: '请至少选择一个标签',
-            duration: 2000
-        })
-        return
-    }
-
-    appStore.addNotification({
-        type: 'success',
-        message: '保存成功',
-        duration: 2000
-    })
-    closeSaveModal()
+    saveInscription()
 }
 
 const sendAiQuestion = async () => {
     const q = aiQuestion.value.trim()
     if (!q) return
-    const baseUrl = 'http://localhost:8080'
+    const baseUrl = window.location.origin
     const token = localStorage.getItem('token') || ''
     const userMsg = { id: Date.now() + '-u', role: 'user', content: q, status: 'success', references: [], created_at: new Date().toISOString() }
     messages.value.push(userMsg)
@@ -858,7 +906,7 @@ const dislikeResult = async () => {
         }
         
         // 调用API删除OCR缓存
-        const baseUrl = 'http://localhost:8080'
+        const baseUrl = window.location.origin
         const token = localStorage.getItem('token') || ''
         const url = `${baseUrl}/api/v1/recognition/result/${imageHash}/dislike`
         const headers = { 'Content-Type': 'application/json' }
@@ -1526,6 +1574,7 @@ const dislikeResult = async () => {
                                             <button @click="viewRecognition(item)"
                                                 class="text-primary hover:text-accent mr-3 transition-custom">查看</button>
                                             <button
+                                                @click="saveHistoryItem(item)"
                                                 class="text-accent hover:text-primary mr-3 transition-custom">保存到我的碑文</button>
                                             <button class="text-dark/70 hover:text-dark transition-custom">删除</button>
                                         </td>

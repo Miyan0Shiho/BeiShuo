@@ -43,6 +43,12 @@ const router = createRouter({
       component: () => import("../views/Favorites.vue"),
       meta: { title: "我的碑文 - 碑说" },
     },
+    {
+      path: "/my-inscriptions/:id",
+      name: "MyInscriptionDetail",
+      component: () => import("../views/MyInscriptionDetail.vue"),
+      meta: { title: "我的碑文详情 - 碑说" },
+    },
   ],
 });
 
