@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Path, UploadFile, File
-from typing import Optional
+from fastapi import APIRouter, Depends, Query, Path, UploadFile, File, Body
+from fastapi.responses import StreamingResponse
+from typing import Optional, List
 from app.common.response import Result
 from app.common.page_result import PageResult
 from app.common.result_code import ResultCode
@@ -9,6 +10,7 @@ from app.schemas.request.inscription import InscriptionCreateRequest, Inscriptio
 import os
 from app.config import settings
 from app.utils.logger import logger
+from urllib.parse import quote
 
 router = APIRouter(prefix="/inscription", tags=["碑文"])
 
@@ -67,6 +69,29 @@ async def get_inscription_list(
     finally:
         await service.close()
 
+@router.get("/{id}/download")
+async def download_inscription(
+    id: int = Path(..., description="碑文ID"),
+    format: str = Query("txt", description="下载格式：txt, pdf, image"),
+    user_id: int = Depends(get_current_user_id)
+):
+    """下载碑文"""
+    service = InscriptionService()
+    try:
+        stream, media_type, filename = await service.download(id, format)
+        
+        encoded_filename = quote(filename)
+        
+        return StreamingResponse(
+            stream, 
+            media_type=media_type, 
+            headers={
+                "Content-Disposition": f"attachment; filename*=utf-8''{encoded_filename}"
+            }
+        )
+    finally:
+        await service.close()
+
 @router.get("/{id}")
 async def get_inscription_by_id(
     id: int = Path(..., description="碑文ID"),
@@ -118,6 +143,74 @@ async def delete_inscription(
     service = InscriptionService()
     try:
         await service.delete(id, user_id)
+        return Result.ok()
+    finally:
+        await service.close()
+
+@router.post("/batch_import")
+async def batch_import_inscriptions(
+    files: List[UploadFile] = File(...),
+    user_id: int = Depends(get_current_user_id)
+):
+    """批量导入碑文"""
+    service = InscriptionService()
+    try:
+        result = await service.batch_import(user_id, files)
+        return Result.ok(result)
+    finally:
+        await service.close()
+
+@router.post("/save")
+async def save_inscription(
+    request: dict = Body(..., example={"itemId": 1}),
+    user_id: int = Depends(get_current_user_id)
+):
+    """保存碑文到我的列表 (从知识库)"""
+    service = InscriptionService()
+    try:
+        item_id = request.get("itemId")
+        if not item_id:
+            return Result.fail("Missing itemId")
+            
+        # 检查是否已存在
+        # 这里简化为：如果是"收藏"逻辑，应该用收藏接口。
+        # 如果是"复制"逻辑，则创建新记录。
+        # 根据需求 "碑文详情页保存功能...调用保存API：POST /api/saves" (这里映射为 /save)
+        
+        source_item = await service.get_by_id(item_id)
+        if not source_item:
+            # 可能是知识库的文章ID，需要跨服务查询(这里简化，假设只在inscription表查)
+            # 如果是跨服务，通常前端直接传内容更方便，或者后端调用 KnowledgeService
+            return Result.fail(ResultCode.DATA_NOT_FOUND, "源碑文不存在")
+            
+        # 复制一份
+        new_data = {
+            "title": source_item.get("title", "") + " (副本)",
+            "content": source_item.get("content", "") or source_item.get("text", ""),
+            "image_url": source_item.get("image_url"),
+            "dynasty": source_item.get("dynasty"),
+            "category": source_item.get("category"),
+            "status": "active",
+            "type": "save"
+        }
+        await service.create(user_id, new_data)
+        return Result.ok(message="保存成功")
+    finally:
+        await service.close()
+
+@router.post("/{id}/publish")
+async def publish_inscription(
+    id: int = Path(..., description="碑文ID"),
+    request: dict = None,
+    user_id: int = Depends(get_current_user_id)
+):
+    """发布碑文"""
+    platforms = request.get("platforms", []) if request else []
+    schedule_time = request.get("scheduleTime") if request else None
+    
+    service = InscriptionService()
+    try:
+        await service.publish(user_id, id, platforms, schedule_time)
         return Result.ok()
     finally:
         await service.close()

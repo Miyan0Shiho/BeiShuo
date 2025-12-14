@@ -47,6 +47,7 @@ const recognitionResult = ref({
 })
 
 const recognitionId = ref('')
+const savedInscriptionId = ref(null)
 const textLines = ref([])
 const recognitionOptions = ref({
     det_mode: 'sp',
@@ -525,6 +526,7 @@ const confirmUpload = () => {
 
 const startRecognition = async () => {
     recognitionState.value = 'processing'
+    savedInscriptionId.value = null
     processingProgress.value = 0
     const baseUrl = window.location.origin
     const token = localStorage.getItem('token') || ''
@@ -948,6 +950,58 @@ const dislikeResult = async () => {
         })
     }
 }
+
+const saveAndNavigateToDetails = async (item = null) => {
+    const baseUrl = window.location.origin
+    const token = localStorage.getItem('token') || ''
+    if (!token) {
+        appStore.addNotification({
+            type: 'warning',
+            message: '请先登录以查看详情和编辑',
+            duration: 3000
+        })
+        return
+    }
+
+    // 如果是当前结果且已保存，直接跳转
+    if (!item && savedInscriptionId.value) {
+        router.push(`/my-inscriptions/${savedInscriptionId.value}`)
+        return
+    }
+
+    try {
+        let title, text, image_url, dynasty
+        
+        if (item) {
+            // From history item
+            title = (item.inscription_title || item.preview || '识别记录').slice(0, 100)
+            text = item.recognition_text || item.preview || ''
+            image_url = item.image_path ? `${baseUrl}${item.image_path}` : ''
+            dynasty = ''
+        } else {
+            // From current result
+            title = (recognitionResult.value.text || '').slice(0, 20) || '未命名碑文'
+            text = recognitionResult.value.text || ''
+            image_url = originalImageUrl.value || ''
+            dynasty = recognitionResult.value.dynasty || ''
+        }
+
+        appStore.addNotification({ type: 'info', message: '正在前往详情页...', duration: 1000 })
+        const data = await createInscription({ baseUrl, token, title, text, image_url, dynasty, status: 'active' })
+        
+        if (data && data.id) {
+            if (!item) savedInscriptionId.value = data.id
+            router.push(`/my-inscriptions/${data.id}`)
+        }
+    } catch (e) {
+        console.error('进入详情页失败:', e)
+        appStore.addNotification({
+            type: 'error',
+            message: '无法进入详情页，请稍后重试',
+            duration: 3000
+        })
+    }
+}
 </script>
 
 <template>
@@ -983,12 +1037,14 @@ const dislikeResult = async () => {
                             ]">
                                 图片上传
                             </button>
+                            <!-- 隐藏校对标签页
                             <button @click="switchTab('proofread')" :class="[
                                 'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
                                 activeTab === 'proofread' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'
                             ]">
                                 详细校对
                             </button>
+                            -->
                             <button @click="switchTab('result')" :class="[
                                 'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
                                 activeTab === 'result' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'
@@ -1231,11 +1287,6 @@ const dislikeResult = async () => {
                                     title="下载文本">
                                     <i class="fas fa-download"></i>
                                 </button>
-                                <button
-                                    class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom"
-                                    title="编辑文本">
-                                    <i class="fas fa-edit"></i>
-                                </button>
                                 <button @click="dislikeResult"
                                     class="p-2 text-dark/70 hover:text-red-500 hover:bg-gray-100 rounded-md transition-custom"
                                     title="不满意结果">
@@ -1273,9 +1324,10 @@ const dislikeResult = async () => {
                                 <i v-else class="fas fa-book-reader mr-2"></i>
                                 查看AI阐释
                             </button>
-                            <button
-                                class="px-4 py-3 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom">
-                                <i class="fas fa-share-alt"></i>
+                            <button @click="saveAndNavigateToDetails()"
+                                class="px-6 py-3 border border-gray-300 text-primary rounded-md hover:bg-primary/5 transition-custom flex items-center font-medium">
+                                <i class="fas fa-external-link-alt mr-2"></i>
+                                查看详情与编辑
                             </button>
                         </div>
                     </div>
@@ -1284,11 +1336,7 @@ const dislikeResult = async () => {
                     <div v-show="activeTab === 'interpretation'" class="p-6 md:p-8">
                         <!-- 顶部操作按钮 -->
                         <div class="flex justify-end mb-6">
-                            <button @click="openSaveModal"
-                                class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-custom flex items-center">
-                                <i class="fas fa-bookmark mr-2"></i>
-                                保存到我的碑文
-                            </button>
+                            <!-- 移除保存按钮 -->
                         </div>
                         <div v-if="sectionsLoading" class="mb-4 flex items-center text-dark/70 text-sm">
                             <i class="fas fa-spinner fa-spin mr-2 text-primary"></i>
@@ -1571,11 +1619,8 @@ const dislikeResult = async () => {
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button @click="viewRecognition(item)"
-                                                class="text-primary hover:text-accent mr-3 transition-custom">查看</button>
-                                            <button
-                                                @click="saveHistoryItem(item)"
-                                                class="text-accent hover:text-primary mr-3 transition-custom">保存到我的碑文</button>
+                                            <button @click="saveAndNavigateToDetails(item)"
+                                                class="text-primary hover:text-accent mr-3 transition-custom">查看详情</button>
                                             <button class="text-dark/70 hover:text-dark transition-custom">删除</button>
                                         </td>
                                     </tr>

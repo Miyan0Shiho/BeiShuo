@@ -18,6 +18,28 @@ const articles = ref([])
 const categories = ref(['全部推荐'])
 const dynasties = ref([])
 const loading = ref(false)
+const recommendationPage = ref(1)
+const showPreferences = ref(false)
+const showTagModal = ref(false)
+const selectedTagInfo = ref(null)
+const favorites = ref([])
+
+// Mock Tag Library
+const tagLibrary = {
+  '唐代': { description: '中国历史上最强盛的朝代之一，书法艺术达到高峰，楷书、草书均有极大发展。', example: '颜真卿《多宝塔碑》' },
+  '汉代': { description: '隶书发展的鼎盛时期，碑刻数量众多，风格多样。', example: '《张迁碑》、《曹全碑》' },
+  '楷书': { description: '楷书也叫正楷、真书、正书。由隶书逐渐演变而来，更趋简化，横平竖直。', example: '欧阳询《九成宫醴泉铭》' },
+  '行书': { description: '介于楷书和草书之间的一种字体，书写流畅，实用性强。', example: '王羲之《兰亭序》' },
+  '草书': { description: '结构简省、笔画连绵。有章草、今草、狂草之分。', example: '怀素《自叙帖》' },
+  '隶书': { description: '字形多呈宽扁，横画长而竖画短，讲究“蚕头燕尾”、“一波三折”。', example: '《曹全碑》' },
+  '墓志铭': { description: '记录死者生平事迹的石刻，埋于墓中。', example: '《张黑女墓志》' },
+  '碑刻': { description: '刻在石碑上的文字，多为记事、颂德。', example: '《颜氏家庙碑》' }
+}
+
+const preferences = ref({
+  dynasties: [],
+  categories: []
+})
 
 // AI对话相关数据
 const chatQuestion = ref('')
@@ -64,11 +86,22 @@ const loadKnowledgeData = async () => {
 const filteredArticles = computed(() => {
   let filtered = articles.value
 
-  // 按分类过滤
+  // 按分类过滤 (单选)
   if (selectedCategory.value !== '全部推荐') {
     filtered = filtered.filter(article => {
       return article.dynasty?.includes(selectedCategory.value.replace('碑文', '')) ||
         article.category?.includes(selectedCategory.value)
+    })
+  }
+  
+  // 按偏好过滤 (多选)
+  if (preferences.value.dynasties.length > 0 || preferences.value.categories.length > 0) {
+    filtered = filtered.filter(article => {
+      const matchDynasty = preferences.value.dynasties.length === 0 || 
+        preferences.value.dynasties.some(d => article.dynasty?.includes(d))
+      const matchCategory = preferences.value.categories.length === 0 || 
+        preferences.value.categories.some(c => article.category?.includes(c))
+      return matchDynasty && matchCategory
     })
   }
 
@@ -89,8 +122,37 @@ const filteredArticles = computed(() => {
 // 换一批功能
 const refreshRecommendations = async () => {
   isRefreshing.value = true
+  recommendationPage.value += 1
   try {
-    await loadKnowledgeData()
+    // 使用 fetchKnowledgeList 获取新的一页数据
+    const data = await fetchKnowledgeList(baseUrl.value, userStore.token || '', {
+      page: recommendationPage.value,
+      size: 6 // 每次获取6条
+    })
+    
+    if (data && (data.items || data.list)) {
+      const newItems = data.items || data.list
+      if (newItems.length > 0) {
+        // 智能去重：过滤掉当前已存在的
+        const currentIds = new Set(articles.value.map(a => a.id))
+        const uniqueItems = newItems.filter(item => !currentIds.has(item.id))
+        
+        if (uniqueItems.length > 0) {
+          articles.value = uniqueItems
+        } else {
+          // 如果去重后没有新数据，且页码已经很大，可能数据循环了，重置页码
+          recommendationPage.value = 0
+          const retryData = await fetchKnowledgeList(baseUrl.value, userStore.token || '', { page: 0, size: 6 })
+          articles.value = retryData.items || retryData.list || []
+        }
+      } else {
+         // 没有更多数据，回到第一页
+         recommendationPage.value = 0
+         const retryData = await fetchKnowledgeList(baseUrl.value, userStore.token || '', { page: 0, size: 6 })
+         articles.value = retryData.items || retryData.list || []
+      }
+    }
+
     appStore.addNotification({
       type: 'success',
       message: '已刷新推荐内容',
@@ -98,14 +160,20 @@ const refreshRecommendations = async () => {
     })
   } catch (error) {
     console.error('刷新推荐内容失败:', error)
-    appStore.addNotification({
-      type: 'error',
-      message: '刷新推荐内容失败',
-      duration: 3000
-    })
+    // 降级：如果列表接口失败，尝试重新加载首页数据
+    try {
+      await loadKnowledgeData()
+    } catch(e) {}
   } finally {
     isRefreshing.value = false
   }
+}
+
+// 查看标签详情
+const viewTagInfo = (tag) => {
+  const info = tagLibrary[tag] || { description: '暂无详细描述', example: '暂无示例' }
+  selectedTagInfo.value = { name: tag, ...info }
+  showTagModal.value = true
 }
 
 // 获取推荐标签
@@ -236,37 +304,46 @@ const sendChatQuestion = async () => {
 // 收藏功能
 const toggleFavorite = (article, event) => {
   event.stopPropagation()
-  const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-  const index = favorites.indexOf(article.id)
-
+  const index = favorites.value.indexOf(article.id)
+  
   if (index > -1) {
-    favorites.splice(index, 1)
-    appStore.addNotification({
-      type: 'info',
-      message: '已取消收藏',
-      duration: 2000
-    })
+    favorites.value = favorites.value.filter(id => id !== article.id)
+    appStore.addNotification({ type: 'info', message: '已取消收藏', duration: 2000 })
   } else {
-    favorites.push(article.id)
-    appStore.addNotification({
-      type: 'success',
-      message: '收藏成功',
-      duration: 2000
-    })
+    favorites.value = [...favorites.value, article.id]
+    appStore.addNotification({ type: 'success', message: '收藏成功', duration: 2000 })
   }
-
-  localStorage.setItem('favorites', JSON.stringify(favorites))
+  
+  localStorage.setItem('favorites', JSON.stringify(favorites.value))
 }
 
 // 检查是否已收藏
 const isFavorited = (articleId) => {
-  const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-  return favorites.includes(articleId)
+  return favorites.value.includes(articleId)
+}
+
+// 保存偏好设置
+const savePreferences = () => {
+  localStorage.setItem('knowledge_preferences', JSON.stringify(preferences.value))
+  showPreferences.value = false
+  appStore.addNotification({ type: 'success', message: '偏好设置已保存', duration: 2000 })
 }
 
 onMounted(() => {
   userStore.initUser()
   loadKnowledgeData()
+  
+  // 加载收藏
+  const storedFav = localStorage.getItem('favorites')
+  if (storedFav) {
+    try { favorites.value = JSON.parse(storedFav) } catch (e) { favorites.value = [] }
+  }
+  
+  // 加载偏好
+  const storedPref = localStorage.getItem('knowledge_preferences')
+  if (storedPref) {
+    try { preferences.value = JSON.parse(storedPref) } catch (e) {}
+  }
 })
 
 // 监听搜索查询变化
@@ -293,17 +370,12 @@ watch(searchQuery, (newQuery) => {
             </p>
           </div>
           <div class="mt-4 md:mt-0 flex space-x-3">
-            <button @click="refreshRecommendations" :disabled="isRefreshing"
-              class="px-4 py-2 bg-white border border-primary text-primary rounded-md font-medium hover:bg-primary/5 transition-custom flex items-center disabled:opacity-50">
-              <i :class="isRefreshing ? 'fas fa-spinner fa-spin' : 'fas fa-sync-alt'" class="mr-2"></i>
-              换一批
-            </button>
-            <button
+            <button @click="showPreferences = true"
               class="px-4 py-2 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center">
-              <i class="fas fa-sliders-h mr-2"></i>
-              调整偏好
+              <i class="fas fa-filter mr-2"></i>
+              筛选
             </button>
-            <router-link to="/favorites"
+            <router-link to="/favorites?tab=my-collections"
               class="px-4 py-2 bg-white border border-primary text-primary rounded-md font-medium hover:bg-primary/5 transition-custom flex items-center">
               <i class="fas fa-heart mr-2"></i>
               我的收藏
@@ -333,8 +405,11 @@ watch(searchQuery, (newQuery) => {
 
       <!-- 推荐标签 -->
       <div class="mb-4">
-        <div class="flex items-center mb-2">
+        <div class="flex items-center justify-between mb-2">
           <h3 class="text-sm font-medium text-dark/70">推荐标签</h3>
+          <button @click="showTagModal = true" class="text-xs text-primary hover:text-accent flex items-center">
+            标签图谱 <i class="fas fa-book-open ml-1"></i>
+          </button>
         </div>
         <div class="flex overflow-x-auto pb-2 gap-2 scrollbar-hide">
           <!-- 全部推荐 -->
@@ -580,6 +655,83 @@ watch(searchQuery, (newQuery) => {
           <div v-if="chatLoading" class="mt-2 text-xs text-gray-500 flex items-center justify-center">
             <i class="fas fa-spinner fa-spin mr-1"></i>
             正在生成...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 偏好设置弹窗 -->
+    <div v-if="showPreferences" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg w-full max-w-lg max-h-[90vh] flex flex-col animate-fade-in-up">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-medium text-primary">筛选</h3>
+          <button @click="showPreferences = false" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="px-6 py-4 flex-grow overflow-y-auto">
+          <div class="mb-6">
+            <h4 class="font-medium text-dark mb-3">朝代偏好</h4>
+            <div class="flex flex-wrap gap-2">
+              <label v-for="dyn in dynasties" :key="dyn.id" class="inline-flex items-center px-3 py-2 rounded-full border cursor-pointer transition-custom"
+                :class="preferences.dynasties.includes(dyn.name) ? 'bg-primary/10 border-primary text-primary' : 'border-gray-200 hover:bg-gray-50'">
+                <input type="checkbox" :value="dyn.name" v-model="preferences.dynasties" class="hidden">
+                <span>{{ dyn.name }}</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <h4 class="font-medium text-dark mb-3">分类偏好</h4>
+            <div class="flex flex-wrap gap-2">
+              <label v-for="cat in categories.filter(c => c !== '全部推荐' && !c.includes('碑文'))" :key="cat" class="inline-flex items-center px-3 py-2 rounded-full border cursor-pointer transition-custom"
+                :class="preferences.categories.includes(cat) ? 'bg-primary/10 border-primary text-primary' : 'border-gray-200 hover:bg-gray-50'">
+                <input type="checkbox" :value="cat" v-model="preferences.categories" class="hidden">
+                <span>{{ cat }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+          <button @click="preferences = { dynasties: [], categories: [] }" class="px-4 py-2 text-dark/70 hover:text-dark">重置</button>
+          <button @click="savePreferences" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">保存设置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 标签详情弹窗 -->
+    <div v-if="showTagModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col animate-fade-in-up">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-medium text-primary">{{ selectedTagInfo ? selectedTagInfo.name : '标签图谱' }}</h3>
+          <button @click="showTagModal = false; selectedTagInfo = null" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="px-6 py-4 flex-grow overflow-y-auto">
+          <div v-if="selectedTagInfo">
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-gray-500 uppercase mb-1">描述</h4>
+              <p class="text-dark/80">{{ selectedTagInfo.description }}</p>
+            </div>
+            <div class="mb-6">
+              <h4 class="text-sm font-semibold text-gray-500 uppercase mb-1">典型示例</h4>
+              <p class="text-primary">{{ selectedTagInfo.example }}</p>
+            </div>
+            <button @click="selectCategory(selectedTagInfo.name); showTagModal = false; selectedTagInfo = null" 
+              class="w-full py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
+              查看相关碑文
+            </button>
+          </div>
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div v-for="(info, name) in tagLibrary" :key="name" 
+              class="p-4 border border-gray-100 rounded-lg hover:shadow-md cursor-pointer transition-custom"
+              @click="selectedTagInfo = { name, ...info }">
+              <div class="flex justify-between items-center mb-2">
+                <h4 class="font-semibold text-primary">{{ name }}</h4>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+              </div>
+              <p class="text-sm text-dark/60 line-clamp-2">{{ info.description }}</p>
+            </div>
           </div>
         </div>
       </div>

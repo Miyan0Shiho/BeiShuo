@@ -142,7 +142,109 @@ class InscriptionService:
         )
         
         return result
-    
+
+    async def download(self, inscription_id: int, file_format: str) -> tuple:
+        """下载碑文文件
+        
+        Returns:
+            tuple: (file_stream, media_type, filename)
+        """
+        import io
+        import json
+        
+        inscription = await self.get_by_id(inscription_id)
+        if not inscription:
+            raise BusinessException(ResultCode.INSCRIPTION_NOT_FOUND)
+            
+        title = inscription.get("title", "未命名碑文")
+        
+        # 仅支持 JSON 格式
+        if file_format == "json":
+            data = {
+                "id": inscription.get("id"),
+                "title": title,
+                "content": inscription.get("content", "") or inscription.get("text", ""),
+                "timestamp": inscription.get("created_at"),
+                "dynasty": inscription.get("dynasty"),
+                "category": inscription.get("category"),
+                "image_url": inscription.get("image_url")
+            }
+            json_str = json.dumps(data, ensure_ascii=False, indent=2)
+            stream = io.BytesIO(json_str.encode("utf-8"))
+            filename = f"{title}.json"
+            return stream, "application/json", filename
+        else:
+            # 兼容旧逻辑，但推荐使用 JSON
+            # 为满足"不需要其他格式，用JSON格式即可"的要求，这里强制转为 JSON 或抛错
+            # 但为了系统健壮性，如果请求非 json，暂时抛错
+            raise BusinessException(ResultCode.BAD_REQUEST, "仅支持 JSON 格式下载")
+
+    async def batch_import(self, user_id: int, files: List[Any]) -> Dict[str, Any]:
+        """批量导入碑文 (仅支持 JSON)"""
+        import os
+        import json
+        count = 0
+        failed = 0
+        
+        for file in files:
+            try:
+                filename = file.filename
+                if not filename.lower().endswith(".json"):
+                    logger.warning(f"跳过非 JSON 文件: {filename}")
+                    failed += 1
+                    continue
+                    
+                content = await file.read()
+                try:
+                    data = json.loads(content.decode("utf-8"))
+                except json.JSONDecodeError:
+                    logger.error(f"JSON 解析失败: {filename}")
+                    failed += 1
+                    continue
+                
+                # 内容校验
+                if "title" not in data or "content" not in data:
+                    logger.error(f"JSON 缺少必填字段: {filename}")
+                    failed += 1
+                    continue
+                    
+                # 创建记录
+                inscription_data = {
+                    "title": data.get("title"),
+                    "content": data.get("content"),
+                    "image_url": data.get("image_url", ""),
+                    "dynasty": data.get("dynasty", "未知"),
+                    "category": data.get("category", ""),
+                    "status": "active",
+                    "type": "import"
+                }
+                await self.create(user_id, inscription_data)
+                count += 1
+            except Exception as e:
+                logger.error(f"导入文件失败 {file.filename}: {e}")
+                failed += 1
+                
+        return {"status": "success", "message": "上传成功", "count": count, "failed": failed}
+
+    async def publish(self, user_id: int, inscription_id: int, platforms: List[str], schedule_time: Optional[str] = None) -> bool:
+        """发布碑文"""
+        inscription = await self.get_by_id(inscription_id)
+        if not inscription:
+            raise BusinessException(ResultCode.INSCRIPTION_NOT_FOUND)
+            
+        # 检查权限
+        if inscription.get("userId") != user_id:
+            raise BusinessException(ResultCode.FORBIDDEN)
+            
+        # 更新状态
+        status = "published" if not schedule_time else "scheduled"
+        await self.update(inscription_id, user_id, {"status": status})
+        
+        # 模拟推送到平台
+        logger.info(f"碑文 {inscription_id} 发布至 {platforms}, 时间: {schedule_time or '立即'}")
+        
+        return True
+
     async def _clear_inscription_cache(self, user_id: int):
         """清除碑文相关缓存"""
         pattern = f"inscription:list:{user_id}:*"

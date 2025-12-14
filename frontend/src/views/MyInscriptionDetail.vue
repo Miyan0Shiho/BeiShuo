@@ -22,6 +22,7 @@ const sectionsLoading = ref(false)
 const timeline = ref([])
 const correctedText = ref('')
 const errorMessage = ref('')
+const isEditing = ref(false)
 
 const inscriptionId = computed(() => parseInt(route.params.id, 10))
 
@@ -155,6 +156,15 @@ const fetchInterpretation = async () => {
   }
 }
 
+const startEditing = () => {
+  isEditing.value = true
+}
+
+const cancelEditing = () => {
+  isEditing.value = false
+  correctedText.value = (inscription.value.corrected_text || inscription.value.content || '')
+}
+
 const saveCorrections = async () => {
   try {
     const baseUrl = window.location.origin
@@ -162,9 +172,36 @@ const saveCorrections = async () => {
     await updateInscription({ baseUrl, token, id: inscriptionId.value, title: inscription.value.title, correctedText: correctedText.value, status: inscription.value.status })
     appStore.addNotification({ type: 'success', message: '已保存校对结果', duration: 2000 })
     errorMessage.value = ''
+    isEditing.value = false
+    // Reload to update view
+    loadInscription()
   } catch (e) {
     errorMessage.value = (e && e.message) ? e.message : '保存失败'
     appStore.addNotification({ type: 'error', message: '保存失败', duration: 3000 })
+  }
+}
+
+const saveAsNew = async () => {
+  try {
+    const baseUrl = window.location.origin + '/api/v1'
+    const token = userStore.token || localStorage.getItem('token') || ''
+    const response = await fetch(`${baseUrl}/inscription/save`, {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ itemId: inscriptionId.value })
+    })
+    
+    if (response.ok) {
+        appStore.addNotification({ type: 'success', message: '已保存副本到我的碑文', duration: 2000 })
+    } else {
+        const err = await response.json()
+        throw new Error(err.message || '保存失败')
+    }
+  } catch (e) {
+    appStore.addNotification({ type: 'error', message: e.message || '保存副本失败', duration: 3000 })
   }
 }
 
@@ -234,10 +271,25 @@ onMounted(() => {
             </div>
           </div>
           <div class="flex space-x-3 mt-4 md:mt-0">
-            <button @click="saveCorrections" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-dark/70 hover:bg-gray-50 transition-custom flex items-center">
-              <i class="fas fa-save mr-2"></i>
-              保存校对
+            <button @click="saveAsNew" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-dark/70 hover:bg-gray-50 transition-custom flex items-center">
+              <i class="fas fa-copy mr-2"></i>
+              另存副本
             </button>
+            <template v-if="!isEditing">
+              <button @click="startEditing" class="px-4 py-2 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center">
+                <i class="fas fa-edit mr-2"></i>
+                编辑内容
+              </button>
+            </template>
+            <template v-else>
+              <button @click="cancelEditing" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-dark/70 hover:bg-gray-50 transition-custom">
+                取消
+              </button>
+              <button @click="saveCorrections" class="px-4 py-2 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center">
+                <i class="fas fa-save mr-2"></i>
+                保存修改
+              </button>
+            </template>
           </div>
         </div>
       </div>
@@ -273,14 +325,20 @@ onMounted(() => {
             <div class="bg-white rounded-xl shadow-sm p-6 md:p-8 mb-8">
               <div class="mb-6">
                 <h2 class="text-2xl font-serif font-bold text-primary">识别文本</h2>
-                <div class="grid md:grid-cols-2 gap-4 mt-4">
-                  <div class="border border-gray-200 rounded-lg p-4 bg-white/50">
-                    <h4 class="font-medium text-dark mb-2">原始识别</h4>
-                    <div class="text-sm leading-relaxed whitespace-pre-wrap">{{ inscription.content || '' }}</div>
+                <div class="mt-4">
+                  <div v-if="!isEditing" class="border border-gray-200 rounded-lg p-6 bg-white/50 min-h-[200px] hover:bg-gray-50 transition-colors">
+                    <div class="text-dark/90 leading-relaxed whitespace-pre-wrap text-lg font-serif">{{ correctedText || inscription.content }}</div>
+                    <div v-if="!correctedText && !inscription.content" class="text-dark/40 text-center py-8">暂无内容</div>
                   </div>
-                  <div class="border border-gray-200 rounded-lg p-4 bg-white/50">
-                    <h4 class="font-medium text-dark mb-2">人工校对</h4>
-                    <textarea v-model="correctedText" class="w-full h-40 border border-gray-300 rounded-md p-2 text-sm"></textarea>
+                  <div v-else class="grid md:grid-cols-2 gap-6">
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 h-[500px] flex flex-col">
+                      <h4 class="font-medium text-dark/60 mb-2 text-sm flex-shrink-0">原始识别结果 (参考)</h4>
+                      <div class="text-sm leading-relaxed whitespace-pre-wrap overflow-y-auto flex-grow p-2 bg-white rounded border border-gray-100">{{ inscription.content || '无原始内容' }}</div>
+                    </div>
+                    <div class="h-[500px] flex flex-col">
+                      <h4 class="font-medium text-primary mb-2 text-sm flex-shrink-0">编辑内容</h4>
+                      <textarea v-model="correctedText" class="w-full flex-grow border border-gray-300 rounded-md p-4 text-base focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary font-serif resize-none" placeholder="在此输入校对后的内容..."></textarea>
+                    </div>
                   </div>
                 </div>
               </div>
