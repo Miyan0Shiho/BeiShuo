@@ -1,6 +1,5 @@
 from typing import Optional, Dict, Any, List
 from app.client.database_client import DatabaseClient
-from app.client.redis_client import RedisClient
 from app.client.oss_client import oss_client
 from app.core.exceptions import BusinessException
 from app.common.result_code import ResultCode
@@ -12,7 +11,6 @@ class KnowledgeService:
     
     def __init__(self):
         self.database_client = DatabaseClient()
-        self.redis_client = RedisClient()
     
     def _convert_oss_url(self, url_or_path: Optional[str]) -> Optional[str]:
         """将OSS路径转换为可访问的URL"""
@@ -97,15 +95,7 @@ class KnowledgeService:
         category: Optional[str] = None
     ) -> Dict[str, Any]:
         """获取知识库列表"""
-        # 生成缓存键
-        cache_key = f"knowledge:list:{page}:{size}:{keyword or ''}:{dynasty or ''}:{category or ''}"
-        
-        # 先查缓存
-        cached_result = await self.redis_client.get(cache_key)
-        if cached_result:
-            return cached_result
-        
-        # 查数据库
+        # 直接查数据库，不再使用Redis缓存
         result = await self.database_client.get_knowledge_list(
             page=page,
             size=size,
@@ -155,13 +145,6 @@ class KnowledgeService:
             "size": size,
             "totalPages": total_pages
         }
-        
-        # 缓存结果
-        await self.redis_client.set(
-            cache_key,
-            formatted_result,
-            timeout=settings.cache_knowledge_list_ttl
-        )
         
         return formatted_result
     
@@ -265,15 +248,7 @@ class KnowledgeService:
         size: int = 20
     ) -> Dict[str, Any]:
         """搜索知识库"""
-        # 生成缓存键
-        cache_key = f"search:knowledge:{keyword}:{dynasty or ''}:{tags or ''}:{page}:{size}"
-        
-        # 先查缓存
-        cached_result = await self.redis_client.get(cache_key)
-        if cached_result:
-            return cached_result
-        
-        # 查数据库
+        # 直接查数据库，不再使用Redis缓存
         result = await self.database_client.search_knowledge(keyword, dynasty, tags, page, size)
         if not result:
             result = {"items": [], "total": 0, "page": page, "size": size}
@@ -288,13 +263,6 @@ class KnowledgeService:
             "page": page,
             "size": size
         }
-        
-        # 缓存结果
-        await self.redis_client.set(
-            cache_key,
-            formatted_result,
-            timeout=settings.cache_search_result_ttl
-        )
         
         return formatted_result
     
@@ -357,5 +325,4 @@ class KnowledgeService:
     async def close(self):
         """关闭客户端连接"""
         await self.database_client.close()
-        await self.redis_client.close()
 

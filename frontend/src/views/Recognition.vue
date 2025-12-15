@@ -1037,14 +1037,12 @@ const saveAndNavigateToDetails = async (item = null) => {
                             ]">
                                 图片上传
                             </button>
-                            <!-- 隐藏校对标签页
                             <button @click="switchTab('proofread')" :class="[
                                 'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
                                 activeTab === 'proofread' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'
                             ]">
                                 详细校对
                             </button>
-                            -->
                             <button @click="switchTab('result')" :class="[
                                 'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
                                 activeTab === 'result' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'

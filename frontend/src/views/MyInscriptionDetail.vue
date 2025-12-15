@@ -299,7 +299,7 @@ onMounted(() => {
           <div class="lg:col-span-1">
             <div class="bg-white rounded-xl shadow-sm overflow-hidden sticky top-24">
               <div class="relative">
-                <img :alt="inscription.title" :src="inscription.image_url || 'https://via.placeholder.com/400x600?text=No+Image'" class="w-full h-auto object-cover">
+                <img :alt="inscription.title" :src="inscription.cover_image_url || inscription.image_url || 'https://via.placeholder.com/400x600?text=No+Image'" class="w-full h-auto object-cover">
               </div>
               <div class="p-5">
                 <h3 class="text-lg font-semibold mb-3">碑刻信息</h3>
@@ -327,13 +327,13 @@ onMounted(() => {
                 <h2 class="text-2xl font-serif font-bold text-primary">识别文本</h2>
                 <div class="mt-4">
                   <div v-if="!isEditing" class="border border-gray-200 rounded-lg p-6 bg-white/50 min-h-[200px] hover:bg-gray-50 transition-colors">
-                    <div class="text-dark/90 leading-relaxed whitespace-pre-wrap text-lg font-serif">{{ correctedText || inscription.content }}</div>
-                    <div v-if="!correctedText && !inscription.content" class="text-dark/40 text-center py-8">暂无内容</div>
+                    <div class="text-dark/90 leading-relaxed whitespace-pre-wrap text-lg font-serif">{{ correctedText || inscription.text || inscription.content }}</div>
+                    <div v-if="!correctedText && !inscription.text && !inscription.content" class="text-dark/40 text-center py-8">暂无内容</div>
                   </div>
                   <div v-else class="grid md:grid-cols-2 gap-6">
                     <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 h-[500px] flex flex-col">
                       <h4 class="font-medium text-dark/60 mb-2 text-sm flex-shrink-0">原始识别结果 (参考)</h4>
-                      <div class="text-sm leading-relaxed whitespace-pre-wrap overflow-y-auto flex-grow p-2 bg-white rounded border border-gray-100">{{ inscription.content || '无原始内容' }}</div>
+                      <div class="text-sm leading-relaxed whitespace-pre-wrap overflow-y-auto flex-grow p-2 bg-white rounded border border-gray-100">{{ inscription.text || inscription.content || '无原始内容' }}</div>
                     </div>
                     <div class="h-[500px] flex flex-col">
                       <h4 class="font-medium text-primary mb-2 text-sm flex-shrink-0">编辑内容</h4>

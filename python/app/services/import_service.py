@@ -1,5 +1,4 @@
 from typing import List, Dict, Any, Optional
-from app.client.redis_client import RedisClient
 from app.client.database_client import DatabaseClient
 from app.core.exceptions import BusinessException
 from app.common.result_code import ResultCode
@@ -10,7 +9,6 @@ import io
 
 class ImportService:
     def __init__(self):
-        self.redis_client = RedisClient()
         self.database_client = DatabaseClient()
 
     async def upload_files(self, user_id: int, files: List[Any]) -> Dict[str, Any]:
@@ -60,32 +58,34 @@ class ImportService:
                         if len(payload_list) == 1:
                             items.append({"filename": filename, "status": "failed", "reason": msg})
                         # 对于列表导入，这里简化处理：如果部分失败，记录警告日志，不中断整个文件处理
-                        # 或者我们可以将每条记录视为独立的导入项？
-                        # 当前逻辑是 items 对应 files，如果一个 file 含多条，我们需要决定如何报告
-                        # 方案：将每个 item 作为一个独立的导入结果？
-                        # 这样会导致 items 数量 > files 数量，前端可能困惑
-                        # 简单方案：如果文件中任何一条成功，则视为文件成功，但可以在 reason 中备注
                         continue
 
                     try:
-                        import_id = f"imp:{user_id}:{int(time.time()*1000)}:{os.urandom(4).hex()}"
-                        data = {
-                            "id": import_id,
-                            "userId": user_id,
-                            "filename": filename, # 仍关联原文件名
+                        # 直接插入到inscriptions表中
+                        inscription_data = {
                             "title": item.get("title") or "未命名",
-                            "content": item.get("content") or "",
-                            "source_id": item.get("id"),
-                            "timestamp": item.get("timestamp"),
-                            "dynasty": item.get("dynasty"),
-                            "category": item.get("category"),
-                            "image_url": item.get("image_url"),
-                            "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                            "description": item.get("content") or "",
+                            "dynasty": item.get("dynasty", "未知"),
+                            "style": item.get("category", ""),
+                            "cover_image_url": item.get("image_url", ""),
+                            "status": "pending",
+                            "userId": user_id
                         }
-                        if await self.redis_client.set(import_id, data, timeout=24*3600):
-                            file_success_count += 1
-                        else:
-                            logger.error(f"Save import item failed: Redis set returned False for {import_id}")
+                        
+                        # 使用inscription_service的create方法或者直接插入数据库
+                        query = "INSERT INTO inscriptions (title, description, dynasty, style, cover_image_url, status, creator_user_id) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                        await self.database_client.execute_update(
+                            query, 
+                            (inscription_data["title"], 
+                             inscription_data["description"], 
+                             inscription_data["dynasty"], 
+                             inscription_data["style"], 
+                             inscription_data["cover_image_url"], 
+                             inscription_data["status"], 
+                             user_id)
+                        )
+                        file_success_count += 1
+                        logger.info(f"导入记录成功: {inscription_data['title']}")
                     except Exception as e:
                         logger.error(f"Save import item failed: {e}")
                 
@@ -118,46 +118,79 @@ class ImportService:
         return summary
 
     async def list_imports(self, user_id: int) -> List[Dict[str, Any]]:
-        # Use search_keys instead of lrange
-        pattern = f"imp:{user_id}:*"
-        keys = await self.redis_client.search_keys(pattern)
+        # 直接查询inscriptions表中用户创建的碑文记录
+        query = "SELECT id, title, description, dynasty, style, cover_image_url, status, created_at FROM inscriptions WHERE creator_user_id = %s ORDER BY created_at DESC"
+        results = await self.database_client.execute_query(query, (user_id,))
         
-        results = []
-        for imp_id in keys:
-            data = await self.redis_client.get(imp_id)
-            if data:
-                results.append(data)
+        # 格式化结果
+        formatted_results = []
+        for row in results:
+            formatted_results.append({
+                "id": str(row["id"]),
+                "userId": user_id,
+                "title": row["title"],
+                "content": row["description"],
+                "dynasty": row["dynasty"],
+                "category": row["style"],
+                "image_url": row["cover_image_url"],
+                "status": row["status"],
+                "created_at": row["created_at"]
+            })
         
-        # Sort by created_at desc
-        results.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-        return results
+        return formatted_results
 
     async def get_import(self, user_id: int, import_id: str) -> Optional[Dict[str, Any]]:
-        data = await self.redis_client.get(import_id)
-        if not data or data.get("userId") != user_id:
+        # 直接查询inscriptions表，根据ID获取碑文记录
+        query = "SELECT id, title, description, dynasty, style, cover_image_url, status, created_at FROM inscriptions WHERE id = %s AND creator_user_id = %s"
+        results = await self.database_client.execute_query(query, (int(import_id), user_id))
+        
+        if not results:
             return None
-        return data
+        
+        row = results[0]
+        return {
+            "id": str(row["id"]),
+            "userId": user_id,
+            "title": row["title"],
+            "content": row["description"],
+            "dynasty": row["dynasty"],
+            "category": row["style"],
+            "image_url": row["cover_image_url"],
+            "status": row["status"],
+            "created_at": row["created_at"]
+        }
 
     async def publish(self, user_id: int, import_id: str, category: Optional[str], tags: Optional[List[str]]) -> Dict[str, Any]:
-        data = await self.get_import(user_id, import_id)
-        if not data:
+        # 从inscriptions表中获取记录
+        query = "SELECT id, title, description FROM inscriptions WHERE id = %s AND creator_user_id = %s"
+        results = await self.database_client.execute_query(query, (int(import_id), user_id))
+        
+        if not results:
             raise BusinessException(ResultCode.DATA_NOT_FOUND, "导入记录不存在")
-        title = data.get("title","").strip()
-        content = data.get("content","").strip()
+        
+        row = results[0]
+        title = row["title"].strip()
+        content = row["description"].strip()
+        
         if not title or not content:
             raise BusinessException(ResultCode.BAD_REQUEST, "标题或内容为空")
+        
         try:
             keywords = self._extract_keywords(content)
             excerpt = self._extract_excerpt(content)
+            
+            # 插入到knowledge_articles表中
             sql = "INSERT INTO knowledge_articles(title, content, category, created_at) VALUES (%s, %s, %s, NOW())"
             await self.database_client.execute_update(sql, (title, content, category or None))
+            
+            # 更新inscriptions表中记录的状态
+            update_sql = "UPDATE inscriptions SET status = 'published' WHERE id = %s"
+            await self.database_client.execute_update(update_sql, (int(import_id),))
+            
         except Exception as e:
             logger.error(f"publish insert failed: {e}")
-        try:
-            await self._clear_knowledge_cache()
-        except Exception:
-            pass
-        await self.redis_client.delete(import_id)
+            raise BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "发布失败")
+        
         return {"status": "success", "message": "发布成功", "keywords": keywords, "summary": excerpt}
 
     def _extract_keywords(self, text: str) -> List[str]:
@@ -170,17 +203,9 @@ class ImportService:
         return [w for w,_ in ranked[:8]]
 
     def _extract_excerpt(self, text: str) -> str:
-        s = text.strip().replace("\r","")
+        s = text.strip().replace("\r","").replace("\n"," ")
         return s[:200] + ("..." if len(s) > 200 else "")
 
-    async def _clear_knowledge_cache(self):
-        keys = await self.redis_client.search_keys("knowledge:list:*")
-        for k in keys:
-            await self.redis_client.delete(k)
-        keys = await self.redis_client.search_keys("search:knowledge:*")
-        for k in keys:
-            await self.redis_client.delete(k)
-
     async def close(self):
-        await self.redis_client.close()
+        """关闭客户端连接"""
         await self.database_client.close()

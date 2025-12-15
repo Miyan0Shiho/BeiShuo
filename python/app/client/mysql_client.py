@@ -53,13 +53,13 @@ class MySQLClient:
         async with self.pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 try:
-                    logger.debug(f"Executing query: {query} with args: {args}")
+                    logger.info(f"执行查询: {query}, 参数: {args}")
                     await cur.execute(query, args)
                     result = await cur.fetchall()
-                    logger.debug(f"Query result: {result}")
+                    logger.info(f"查询结果: {result}")
                     return result
                 except Exception as e:
-                    logger.error(f"Error executing query: {query}, args: {args}, error: {e}")
+                    logger.error(f"查询失败: {query}, 参数: {args}, 错误: {e}", exc_info=True)
                     raise
     
     async def execute_update(self, query: str, args: Optional[tuple] = None) -> int:
@@ -70,13 +70,13 @@ class MySQLClient:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
                 try:
-                    logger.debug(f"Executing update: {query} with args: {args}")
+                    logger.info(f"执行更新: {query}, 参数: {args}")
                     await cur.execute(query, args)
                     affected_rows = cur.rowcount
-                    logger.debug(f"Update affected {affected_rows} rows")
+                    logger.info(f"更新影响行数: {affected_rows}")
                     return affected_rows
                 except Exception as e:
-                    logger.error(f"Error executing update: {query}, args: {args}, error: {e}")
+                    logger.error(f"更新失败: {query}, 参数: {args}, 错误: {e}", exc_info=True)
                     raise
     
     # ========== 用户相关 ==========    
@@ -160,25 +160,75 @@ class MySQLClient:
     
     async def get_inscription_by_id(self, inscription_id: int) -> Optional[Dict[str, Any]]:
         """根据ID查询碑文详情"""
+        # 查询碑文基本信息
         query = "SELECT * FROM inscriptions WHERE id = %s"
+        logger.info(f"执行查询: {query}, 参数: {inscription_id}")
         result = await self.execute_query(query, (inscription_id,))
-        return result[0] if result else None
+        logger.info(f"查询结果: {result}")
+        
+        if not result:
+            logger.warning(f"未找到ID为 {inscription_id} 的碑文记录")
+            return None
+        
+        inscription = result[0]
+        
+        # 查询碑文文本内容
+        text_query = """
+        SELECT itv.content, itv.version, it.language
+        FROM inscription_text it
+        LEFT JOIN inscription_text_versions itv ON it.latest_version_id = itv.id
+        WHERE it.inscription_id = %s
+        """
+        logger.info(f"执行文本查询: {text_query}, 参数: {inscription_id}")
+        text_result = await self.execute_query(text_query, (inscription_id,))
+        logger.info(f"文本查询结果: {text_result}")
+        
+        if text_result:
+            # 如果有文本内容，添加到返回结果中
+            inscription['text'] = text_result[0]['content']
+            inscription['text_version'] = text_result[0]['version']
+            inscription['language'] = text_result[0]['language']
+            logger.info(f"找到文本内容: 版本 {text_result[0]['version']}, 语言 {text_result[0]['language']}")
+        else:
+            # 如果没有文本内容，初始化空值
+            inscription['text'] = ""
+            inscription['text_version'] = 0
+            inscription['language'] = "zh"
+            logger.info(f"未找到文本内容，初始化空值")
+        
+        logger.info(f"最终返回的碑文记录: {inscription}")
+        return inscription
     
     async def create_inscription(self, inscription_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """创建碑文记录"""
         # 确保creator_user_id存在且有效
         creator_user_id = inscription_data.get('creator_user_id', 1)
         
-        # 构建INSERT语句，只包含必要的字段
+        # 检查status字段，确保使用有效的值
+        valid_status_values = ['pending', 'processing', 'completed', 'failed']
+        status = inscription_data.get('status', 'pending')
+        # 如果status不是有效值，使用默认值'pending'
+        if status not in valid_status_values:
+            logger.warning(f"Invalid status value: {status}, using default value 'pending' instead")
+            status = 'pending'
+        
+        # 获取文本内容
+        text_content = inscription_data.get('content', '') or inscription_data.get('description', '') or ''
+        
+        # 构建INSERT语句，包含所有必要的字段
         query = """
-        INSERT INTO inscriptions (title, creator_user_id, status, protection_level)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO inscriptions (title, description, cover_image_url, creator_user_id, status, protection_level, dynasty, style)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
         args = (
             inscription_data['title'],
+            text_content[:1000],  # description限制为1000字符
+            inscription_data.get('image_url', '') or inscription_data.get('cover_image_url', ''),
             creator_user_id,
-            inscription_data.get('status', 'pending'),
-            inscription_data.get('protection_level', 'general')
+            status,
+            inscription_data.get('protection_level', 'general'),
+            inscription_data.get('dynasty', ''),
+            inscription_data.get('category', '') or inscription_data.get('style', '')
         )
         
         logger.debug(f"执行碑文插入: query={query}, args={args}")
@@ -197,42 +247,40 @@ class MySQLClient:
                     logger.debug(f"碑文插入影响行数: {affected_rows}")
                     
                     if affected_rows > 0:
-                        # 获取最后插入的ID - 使用LAST_INSERT_ID()
-                        logger.debug("获取最后插入的ID")
-                        
-                        # 1. 使用cursor.lastrowid获取ID
+                        # 获取最后插入的ID
                         last_id = cur.lastrowid
                         logger.debug(f"使用cursor.lastrowid获取到的碑文ID: {last_id}")
                         
-                        # 2. 使用LAST_INSERT_ID()获取ID
-                        await cur.execute("SELECT LAST_INSERT_ID() as id")
-                        last_insert_result = await cur.fetchone()
-                        if last_insert_result:
-                            last_insert_id = last_insert_result[0]
-                            logger.debug(f"使用LAST_INSERT_ID()获取到的碑文ID: {last_insert_id}")
-                            last_id = last_insert_id
-                        
-                        # 3. 验证碑刻记录是否真的存在于数据库中
-                        logger.debug(f"验证碑刻记录是否存在: id={last_id}")
-                        await cur.execute("SELECT id FROM inscriptions WHERE id = %s", (last_id,))
-                        exists_result = await cur.fetchone()
-                        
-                        if exists_result:
-                            db_id = exists_result[0]
-                            logger.debug(f"碑刻记录存在于数据库中: id={db_id}")
-                        else:
-                            # 碑刻记录不存在，使用固定的inscription_id=4（已知存在）
-                            logger.error(f"碑刻记录不存在于数据库中: id={last_id}，使用固定的inscription_id=4")
-                            last_id = 4
-                            
-                            # 再次验证固定ID是否存在
-                            await cur.execute("SELECT id FROM inscriptions WHERE id = %s", (last_id,))
-                            fixed_exists = await cur.fetchone()
-                            if fixed_exists:
-                                logger.debug(f"固定碑刻记录存在: id={last_id}")
-                            else:
-                                logger.error(f"固定碑刻记录也不存在: id={last_id}")
-                                return None
+                        # 如果有文本内容，创建文本记录
+                        if text_content:
+                            try:
+                                # 创建文本版本记录
+                                text_version_query = """
+                                INSERT INTO inscription_text_versions (version, content, user_id)
+                                VALUES (1, %s, %s)
+                                """
+                                await cur.execute(text_version_query, (text_content, creator_user_id))
+                                text_version_id = cur.lastrowid
+                                logger.debug(f"创建文本版本记录成功: text_version_id={text_version_id}")
+                                
+                                # 创建文本主记录
+                                text_query = """
+                                INSERT INTO inscription_text (inscription_id, language, latest_version_id)
+                                VALUES (%s, 'zh', %s)
+                                """
+                                await cur.execute(text_query, (last_id, text_version_id))
+                                text_id = cur.lastrowid
+                                logger.debug(f"创建文本主记录成功: text_id={text_id}")
+                                
+                                # 更新文本版本记录的text_id
+                                update_text_version_query = """
+                                UPDATE inscription_text_versions SET text_id = %s WHERE id = %s
+                                """
+                                await cur.execute(update_text_version_query, (text_id, text_version_id))
+                                logger.debug(f"更新文本版本记录的text_id成功")
+                            except Exception as text_e:
+                                logger.error(f"创建碑文文本记录异常: {text_e}")
+                                # 继续执行，不影响碑文基本记录的创建
                         
                         # 获取完整的碑文记录
                         logger.debug(f"根据ID {last_id} 获取完整的碑文记录")
@@ -247,8 +295,9 @@ class MySQLClient:
                                 'id': last_id,
                                 'title': inscription_data['title'],
                                 'creator_user_id': creator_user_id,
-                                'status': inscription_data.get('status', 'pending'),
-                                'protection_level': inscription_data.get('protection_level', 'general')
+                                'status': status,
+                                'protection_level': inscription_data.get('protection_level', 'general'),
+                                'text': text_content
                             }
                     logger.error(f"创建碑文记录失败: 影响行数为0, query={query}, args={args}")
                     return None
@@ -886,61 +935,69 @@ class MySQLClient:
         # 从传入的cache_data中提取需要的字段
         reply = cache_data.get('reply', {})
         
-        # 1. 首先创建一个新的消息记录
-        logger.debug(f"创建消息记录...")
-        message_query = """
-        INSERT INTO messages (conversation_id, parent_message_id, role, content, format, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        """
-        message_args = (
-            4,  # 使用有效的conversation_id=4
-            None,  # parent_message_id - 暂时为空
-            'assistant',  # role
-            reply.get('content', ''),  # content
-            'markdown',  # format
-            None  # metadata
-        )
+        if not self.pool:
+            await self.connect()
         
-        try:
-            # 执行消息插入
-            affected_rows = await self.execute_update(message_query, message_args)
-            if affected_rows <= 0:
-                logger.error(f"创建消息记录失败")
-                return False
-            
-            # 获取刚插入的消息ID
-            last_id_query = "SELECT LAST_INSERT_ID() as id"
-            last_id_result = await self.execute_query(last_id_query)
-            if not last_id_result:
-                logger.error(f"获取消息ID失败")
-                return False
-            
-            message_id = last_id_result[0]['id']
-            logger.debug(f"创建消息记录成功: message_id={message_id}")
-            
-            # 2. 使用新创建的消息ID插入LLM缓存
-            query = """
-            INSERT INTO llm_cache (prompt_key, context_fingerprint, message_id, citations_fingerprint, model_key, model_provider, token_count, hit_count)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE hit_count = hit_count + 1, updated_at = CURRENT_TIMESTAMP
-            """
-            args = (
-                cache_key,
-                '',  # context_fingerprint - 暂时为空
-                message_id,  # 使用新创建的message_id
-                '',  # citations_fingerprint - 暂时为空
-                'default',  # model_key
-                'default',  # model_provider
-                len(reply.get('content', '')) // 4,  # 粗略估计token_count
-                1
-            )
-            
-            affected_rows = await self.execute_update(query, args)
-            logger.info(f"LLM缓存设置成功: cache_key={cache_key}, affected_rows={affected_rows}")
-            return affected_rows > 0
-        except Exception as e:
-            logger.error(f"LLM缓存设置失败: cache_key={cache_key}, error={e}")
-            return False
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                try:
+                    # 1. 首先创建一个新的消息记录
+                    logger.debug(f"创建消息记录...")
+                    message_query = """
+                    INSERT INTO messages (conversation_id, parent_message_id, role, content, format, metadata)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """
+                    message_args = (
+                        4,  # 使用有效的conversation_id=4
+                        None,  # parent_message_id - 暂时为空
+                        'assistant',  # role
+                        reply.get('content', ''),  # content
+                        'markdown',  # format
+                        None  # metadata
+                    )
+                    
+                    # 执行消息插入
+                    await cur.execute(message_query, message_args)
+                    affected_rows = cur.rowcount
+                    if affected_rows <= 0:
+                        logger.error(f"创建消息记录失败")
+                        return False
+                    
+                    # 获取刚插入的消息ID - 使用cursor.lastrowid属性获取实际插入的自增ID
+                    message_id = cur.lastrowid
+                    if not message_id:
+                        logger.error(f"获取消息ID失败: lastrowid返回空值")
+                        return False
+                    
+                    logger.debug(f"使用cursor.lastrowid获取到的消息ID: {message_id}")
+                    logger.debug(f"创建消息记录成功: message_id={message_id}")
+                    
+                    # 2. 使用新创建的消息ID插入LLM缓存
+                    query = """
+                    INSERT INTO llm_cache (prompt_key, context_fingerprint, message_id, citations_fingerprint, model_key, model_provider, token_count, hit_count)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE hit_count = hit_count + 1, updated_at = CURRENT_TIMESTAMP
+                    """
+                    args = (
+                        cache_key,
+                        '',  # context_fingerprint - 暂时为空
+                        message_id,  # 使用新创建的message_id
+                        '',  # citations_fingerprint - 暂时为空
+                        'default',  # model_key
+                        'default',  # model_provider
+                        len(reply.get('content', '')) // 4,  # 粗略估计token_count
+                        1
+                    )
+                    
+                    await cur.execute(query, args)
+                    affected_rows = cur.rowcount
+                    await conn.commit()
+                    logger.info(f"LLM缓存设置成功: cache_key={cache_key}, affected_rows={affected_rows}")
+                    return affected_rows > 0
+                except Exception as e:
+                    await conn.rollback()
+                    logger.error(f"LLM缓存设置失败: cache_key={cache_key}, error={e}")
+                    return False
     
     # ========== 知识库相关 ==========    
     async def get_knowledge_list(

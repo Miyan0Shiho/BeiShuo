@@ -224,20 +224,34 @@
           </div>
         </div>
         <div v-else-if="filteredItems.length > 0" class="space-y-4">
+          <!-- 调试信息：输出filteredItems数组内容 -->
+          <div v-if="false" class="bg-yellow-50 p-4 rounded-lg text-sm">
+            <h4 class="font-medium mb-2">调试信息 - filteredItems:</h4>
+            <pre class="whitespace-pre-wrap text-xs overflow-auto max-h-40 bg-white p-2 rounded">{{ JSON.stringify(filteredItems, null, 2) }}</pre>
+          </div>
+          
           <div v-for="it in filteredItems" :key="it.id" 
             class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-custom cursor-pointer"
             @click="router.push(`/my-inscriptions/${it.id}`)"
           >
+            <!-- 调试信息：输出当前项的图片相关字段 -->
+            <div v-if="false" class="bg-blue-50 p-2 rounded text-xs">
+              ID: {{ it.id }}<br>
+              cover_image_url: {{ it.cover_image_url }}<br>
+              image_url: {{ it.image_url }}<br>
+              cover_image: {{ it.cover_image }}<br>
+              最终图片URL: {{ it.cover_image_url || it.image_url || it.cover_image || 'https://via.placeholder.com/80x80?text=No+Image' }}
+            </div>
             <div class="p-5">
               <div class="flex flex-col md:flex-row md:items-start md:justify-between">
                 <div class="flex-grow">
                   <div class="flex items-start">
                     <div class="flex-shrink-0 mr-4">
-                      <img :alt="it.title" class="w-20 h-20 object-cover rounded-lg" :src="it.cover_image || it.image_url || 'https://via.placeholder.com/80x80?text=No+Image'">
+                      <img :alt="it.title" class="w-20 h-20 object-cover rounded-lg" :src="it.cover_image_url || it.image_url || it.cover_image || 'https://via.placeholder.com/80x80?text=No+Image'">
                     </div>
                     <div class="flex-grow">
                       <h3 class="font-semibold text-lg text-primary mb-1">{{ it.title }}</h3>
-                      <p class="text-dark/70 text-sm line-clamp-2 mb-2">{{ it.content }}</p>
+                      <p class="text-dark/70 text-sm line-clamp-2 mb-2">{{ it.text || it.content }}</p>
                       <div class="flex flex-wrap gap-2 mb-2">
                         <span v-if="it.dynasty" class="text-xs bg-secondary/30 text-primary px-2 py-1 rounded-full">{{ it.dynasty }}</span>
                         <span v-if="it.category" class="text-xs bg-gray-100 text-dark/60 px-2 py-1 rounded-full">{{ it.category }}</span>
@@ -933,17 +947,30 @@ const loadList = async () => {
     console.log('加载我的碑文列表, page:', page.value)
     const data = await listMyInscriptions({ baseUrl, token, page: page.value, size: size.value, q: searchQuery.value })
     const list = Array.isArray(data.list) ? data.list : (Array.isArray(data.records) ? data.records : [])
-    const remoteItems = (list || []).map(it => ({
-      id: it.id,
-      title: it.title || '我的碑文',
-      content: it.content || it.text || '',
-      dynasty: it.dynasty || '',
-      category: it.category || '',
-      created_at: it.created_at || it.date || '',
-      image_url: it.image_url || '',
-      cover_image: it.cover_image || '',
-      confidence: it.confidence || 0
-    }))
+    // 调试：输出原始数据结构
+    console.log('API返回的原始数据:', list)
+    
+    const remoteItems = (list || []).map(it => {
+      // 调试：输出每个项的原始数据
+      console.log('原始项数据:', it)
+      
+      return {
+        id: it.id,
+        title: it.title || '我的碑文',
+        content: it.content || it.text || '',
+        dynasty: it.dynasty || '',
+        category: it.category || '',
+        created_at: it.created_at || it.date || '',
+        image_url: it.image_url || '',
+        cover_image: it.cover_image || '',
+        // 添加cover_image_url字段的映射
+        cover_image_url: it.cover_image_url || '',
+        confidence: it.confidence || 0
+      }
+    })
+    
+    // 调试：输出处理后的items
+    console.log('处理后的items:', remoteItems)
     items.value = remoteItems
     total.value = parseInt(data.total || 0, 10) || 0
   } catch (e) {

@@ -71,8 +71,33 @@ class InterpretationService:
         except Exception as e:
             logger.warning(f"本地RAG检索失败: {e}")
             return []
+    
+    async def generate_interpretation_cache_key(self, text: str, inscription_id: Optional[int]) -> str:
+        """生成AI阐释缓存键"""
+        import hashlib
+        cache_input = f"interpretation:{text}:{inscription_id}"
+        return hashlib.md5(cache_input.encode()).hexdigest()
 
     async def generate_sections(self, text: str, inscription_id: Optional[int] = None):
+        # 生成缓存键
+        cache_key = await self.generate_interpretation_cache_key(text, inscription_id)
+        
+        # 检查数据库缓存
+        cached_response = await self.database_client.get_llm_cache(cache_key)
+        if cached_response:
+            logger.info(f"AI阐释缓存命中: cache_key={cache_key}, inscription_id={inscription_id}")
+            # 解析缓存内容
+            try:
+                cache_data = cached_response.get('reply', {}).get('content', '')
+                if cache_data:
+                    sections = json.loads(cache_data)
+                    # 构造空的refs，因为缓存中没有保存refs
+                    refs = []
+                    return sections, refs
+            except Exception as e:
+                logger.error(f"解析AI阐释缓存失败: {e}")
+        
+        # 缓存未命中，生成阐释
         contexts = await self._get_rag_context(text, inscription_id)
         # 构造提示，约束为严格 JSON 输出
         system = (
@@ -232,6 +257,17 @@ class InterpretationService:
                 sections["figures"] = obj.get("figures") or []
                 sections["timeline"] = obj.get("timeline") or []
                 sections["recommended_reading"] = obj.get("recommended_reading") or []
+        
+        # 将结果存入数据库缓存
+        cache_data = {
+            "reply": {
+                "content": json.dumps(sections),
+                "type": "interpretation",
+                "sources": [],
+                "suggestions": []
+            }
+        }
+        await self.database_client.set_llm_cache(cache_key, cache_data)
         
         refs = contexts_to_references(contexts)
         logger.info(f"AI阐释章节生成成功: inscription_id={inscription_id}, timeline_count={len(sections['timeline'])}")

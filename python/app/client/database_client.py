@@ -120,64 +120,87 @@ class DatabaseClient:
     
     async def get_inscription_by_id(self, inscription_id: int) -> Optional[Dict[str, Any]]:
         """根据ID查询碑文详情"""
-        logger.debug(f"DatabaseClient.get_inscription_by_id: inscription_id={inscription_id}")
+        logger.info(f"DatabaseClient.get_inscription_by_id: inscription_id={inscription_id}")
         
         # 优化：如果是大整数ID（时间戳），优先查本地文件
         is_local_id = False
         try:
             if int(inscription_id) > 1000000000000:  # 毫秒级时间戳是13位，10^12
                 is_local_id = True
-        except:
+                logger.info(f"get_inscription_by_id: inscription_id={inscription_id} 是本地ID")
+        except Exception as e:
+            logger.error(f"get_inscription_by_id: 解析inscription_id失败: {e}")
             pass
             
         if is_local_id:
             # 尝试从本地查找
+            logger.info(f"get_inscription_by_id: 优先从本地查找")
             local = await self._find_local_by_id(inscription_id)
             if local:
+                logger.info(f"get_inscription_by_id: 从本地找到结果: {local}")
                 return local
+            logger.info(f"get_inscription_by_id: 本地查找失败，尝试数据库查找")
         
         # 尝试查数据库
         try:
             if self._is_db_available():
+                logger.info(f"get_inscription_by_id: 尝试从数据库查找")
                 result = await self.client.get_inscription_by_id(inscription_id)
-                logger.debug(f"DatabaseClient.get_inscription_by_id result: {result}")
+                logger.info(f"DatabaseClient.get_inscription_by_id MySQL result: {result}")
                 if result:
                     return result
         except Exception as e:
             logger.error(f"MySQL get_inscription_by_id failed: {e}")
             self._mark_db_failed()
-            
+        
         # 如果不是本地ID（即数据库ID），且数据库失败了，再尝试本地找一下（防止误判）
         if not is_local_id:
-             return await self._find_local_by_id(inscription_id)
+            logger.info(f"get_inscription_by_id: 数据库查找失败，再次尝试本地查找")
+            return await self._find_local_by_id(inscription_id)
         
+        logger.warning(f"get_inscription_by_id: 未找到inscription_id={inscription_id} 的结果")
         return None
 
     async def _find_local_by_id(self, inscription_id):
+        """从本地存储中查找碑文"""
+        logger.info(f"DatabaseClient._find_local_by_id: inscription_id={inscription_id}")
         import os, json
         uploads = settings.file_upload_path
+        logger.info(f"_find_local_by_id: uploads directory={uploads}")
         if os.path.isdir(uploads):
-            for name in os.listdir(uploads):
+            logger.info(f"_find_local_by_id: uploads directory exists")
+            files = os.listdir(uploads)
+            logger.info(f"_find_local_by_id: found {len(files)} files in uploads")
+            for name in files:
                 if not name.startswith("inscriptions_") or not name.endswith(".json"):
+                    logger.debug(f"_find_local_by_id: skipping file {name} (not inscription JSON)")
                     continue
+                logger.info(f"_find_local_by_id: processing file {name}")
                 try:
                     with open(os.path.join(uploads, name), "r", encoding="utf-8") as fp:
                         data = json.load(fp)
+                    logger.info(f"_find_local_by_id: loaded {len(data)} items from {name}")
                     for it in data:
                         if str(it.get("id")) == str(inscription_id):
+                            logger.info(f"_find_local_by_id found: {it}")
                             return it
-                except Exception:
+                except Exception as e:
+                    logger.error(f"Local storage read error in _find_local_by_id: {e}")
                     continue
+        else:
+            logger.warning(f"_find_local_by_id: uploads directory not found")
+        logger.warning(f"_find_local_by_id: no result found for inscription_id={inscription_id}")
         return None
     
     async def create_inscription(self, inscription_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """创建碑文记录"""
-        logger.debug(f"DatabaseClient.create_inscription: inscription_data={inscription_data}")
+        logger.info(f"DatabaseClient.create_inscription: inscription_data={inscription_data}")
         try:
             if self._is_db_available():
+                logger.info(f"create_inscription: 尝试从数据库创建碑文")
                 try:
                     result = await self.client.create_inscription(inscription_data)
-                    logger.debug(f"DatabaseClient.create_inscription result: {result}")
+                    logger.info(f"DatabaseClient.create_inscription MySQL result: {result}")
                     return result
                 except Exception as e:
                     logger.error(f"MySQL create_inscription failed: {e}")
@@ -187,17 +210,20 @@ class DatabaseClient:
             logger.error(f"create_inscription failed, fallback to local storage: {e}")
             import os, json, time
             user_id = inscription_data.get("userId") or inscription_data.get("creator_user_id") or 0
+            logger.info(f"create_inscription: 开始创建本地碑文记录，user_id={user_id}")
             item = {
                 "id": int(time.time() * 1000),
                 "title": inscription_data.get("title",""),
                 "content": inscription_data.get("text",""),
                 "dynasty": inscription_data.get("dynasty",""),
-                "status": inscription_data.get("status","active"),
+                "status": inscription_data.get("status","pending"),
                 "image_url": inscription_data.get("image_url") or inscription_data.get("imageUrl",""),
                 "userId": user_id,
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
             }
+            logger.info(f"create_inscription: 本地碑文记录内容: {item}")
             await self._local_append(user_id, item)
+            logger.info(f"create_inscription: 本地碑文记录创建成功")
             return item
     
     async def update_inscription(self, inscription_id: int, inscription_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:

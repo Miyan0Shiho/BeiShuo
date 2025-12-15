@@ -1,9 +1,7 @@
 from typing import Optional, Dict, Any, List
 from app.client.database_client import DatabaseClient
-from app.client.redis_client import RedisClient
 from app.core.exceptions import BusinessException
 from app.common.result_code import ResultCode
-from app.config import settings
 from app.utils.logger import logger
 
 class InscriptionService:
@@ -11,7 +9,6 @@ class InscriptionService:
     
     def __init__(self):
         self.database_client = DatabaseClient()
-        self.redis_client = RedisClient()
     
     async def get_list(
         self,
@@ -22,15 +19,7 @@ class InscriptionService:
         keyword: Optional[str] = None
     ) -> Dict[str, Any]:
         """获取碑文列表"""
-        # 生成缓存键
-        cache_key = f"inscription:list:{user_id}:{page}:{size}:{sort or ''}:{keyword or ''}"
-        
-        # 先查缓存
-        cached_result = await self.redis_client.get(cache_key)
-        if cached_result:
-            return cached_result
-        
-        # 查数据库
+        # 直接查数据库，不再使用Redis缓存
         result = await self.database_client.get_inscription_list(
             user_id=user_id,
             page=page,
@@ -48,37 +37,36 @@ class InscriptionService:
                 "totalPages": 0
             }
         
-        # 缓存结果
-        await self.redis_client.set(
-            cache_key,
-            result,
-            timeout=settings.cache_inscription_list_ttl
-        )
-        
         return result
     
     async def get_by_id(self, inscription_id: int) -> Optional[Dict[str, Any]]:
         """根据ID获取碑文详情"""
+        logger.info(f"开始获取碑文详情: inscription_id={inscription_id}")
         inscription = await self.database_client.get_inscription_by_id(inscription_id)
+        logger.info(f"获取碑文详情结果: inscription={inscription}")
         return inscription
     
     async def create(self, user_id: int, inscription_data: Dict[str, Any]) -> Dict[str, Any]:
         """创建碑文"""
+        logger.info(f"开始创建碑文: user_id={user_id}, inscription_data={inscription_data}")
         inscription_data["userId"] = user_id
         inscription = await self.database_client.create_inscription(inscription_data)
+        logger.info(f"创建碑文结果: inscription={inscription}")
+        
         if not inscription:
             raise BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "碑文创建失败")
-        
-        # 清除相关缓存
-        await self._clear_inscription_cache(user_id)
         
         logger.info(f"碑文创建成功: inscription_id={inscription.get('id')}, user_id={user_id}")
         return inscription
     
     async def update(self, inscription_id: int, user_id: int, inscription_data: Dict[str, Any]) -> Dict[str, Any]:
         """更新碑文"""
+        logger.info(f"开始更新碑文: inscription_id={inscription_id}, user_id={user_id}, inscription_data={inscription_data}")
+        
         # 先检查碑文是否存在
         inscription = await self.database_client.get_inscription_by_id(inscription_id)
+        logger.info(f"检查碑文是否存在结果: inscription={inscription}")
+        
         if not inscription:
             raise BusinessException(ResultCode.INSCRIPTION_NOT_FOUND)
         
@@ -88,11 +76,10 @@ class InscriptionService:
         
         # 更新碑文
         result = await self.database_client.update_inscription(inscription_id, inscription_data)
+        logger.info(f"更新碑文结果: result={result}")
+        
         if not result:
             raise BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "碑文更新失败")
-        
-        # 清除相关缓存
-        await self._clear_inscription_cache(user_id)
         
         logger.info(f"碑文更新成功: inscription_id={inscription_id}")
         return result
@@ -113,33 +100,15 @@ class InscriptionService:
         if not success:
             raise BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "碑文删除失败")
         
-        # 清除相关缓存
-        await self._clear_inscription_cache(user_id)
-        
         logger.info(f"碑文删除成功: inscription_id={inscription_id}")
         return True
     
     async def search(self, keyword: str) -> List[Dict[str, Any]]:
         """模糊搜索碑文"""
-        # 生成缓存键
-        cache_key = f"search:inscription:{keyword}"
-        
-        # 先查缓存
-        cached_result = await self.redis_client.get(cache_key)
-        if cached_result:
-            return cached_result
-        
-        # 查数据库
+        # 直接查数据库，不再使用Redis缓存
         result = await self.database_client.search_inscriptions(keyword)
         if not result:
             result = []
-        
-        # 缓存结果
-        await self.redis_client.set(
-            cache_key,
-            result,
-            timeout=settings.cache_search_result_ttl
-        )
         
         return result
 
@@ -215,7 +184,7 @@ class InscriptionService:
                     "image_url": data.get("image_url", ""),
                     "dynasty": data.get("dynasty", "未知"),
                     "category": data.get("category", ""),
-                    "status": "active",
+                    "status": "pending",
                     "type": "import"
                 }
                 await self.create(user_id, inscription_data)
@@ -236,8 +205,8 @@ class InscriptionService:
         if inscription.get("userId") != user_id:
             raise BusinessException(ResultCode.FORBIDDEN)
             
-        # 更新状态
-        status = "published" if not schedule_time else "scheduled"
+        # 更新状态 - 使用inscriptions表中status字段的有效值
+        status = "completed" if not schedule_time else "processing"
         await self.update(inscription_id, user_id, {"status": status})
         
         # 模拟推送到平台
@@ -245,21 +214,7 @@ class InscriptionService:
         
         return True
 
-    async def _clear_inscription_cache(self, user_id: int):
-        """清除碑文相关缓存"""
-        pattern = f"inscription:list:{user_id}:*"
-        keys = await self.redis_client.search_keys(pattern)
-        for key in keys:
-            await self.redis_client.delete(key)
-        
-        # 清除搜索缓存
-        pattern = "search:inscription:*"
-        keys = await self.redis_client.search_keys(pattern)
-        for key in keys:
-            await self.redis_client.delete(key)
-    
     async def close(self):
         """关闭客户端连接"""
         await self.database_client.close()
-        await self.redis_client.close()
 
