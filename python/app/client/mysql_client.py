@@ -924,9 +924,45 @@ class MySQLClient:
     # ========== LLM缓存相关 ==========    
     async def get_llm_cache(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """获取LLM响应缓存"""
-        query = "SELECT * FROM llm_cache WHERE prompt_key = %s"
+        logger.info(f"开始获取LLM缓存: cache_key={cache_key}")
+        
+        # 先查询llm_cache表获取缓存索引
+        query = """
+        SELECT lc.*, m.content
+        FROM llm_cache lc
+        LEFT JOIN messages m ON lc.message_id = m.id
+        WHERE lc.prompt_key = %s
+        """
         result = await self.execute_query(query, (cache_key,))
-        return result[0] if result else None
+        
+        if result and len(result) > 0:
+            cache_record = result[0]
+            logger.info(f"LLM缓存命中: cache_key={cache_key}, message_id={cache_record.get('message_id')}")
+            
+            # 构建完整的缓存响应
+            try:
+                cached_reply = {
+                    "content": cache_record.get("content", ""),
+                    "type": "unknown",
+                    "sources": [],
+                    "suggestions": []
+                }
+                cache_data = {
+                    "reply": cached_reply,
+                    "cache_info": {
+                        "cache_key": cache_key,
+                        "message_id": cache_record.get("message_id"),
+                        "hit_count": cache_record.get("hit_count"),
+                        "created_at": cache_record.get("created_at"),
+                        "updated_at": cache_record.get("updated_at")
+                    }
+                }
+                return cache_data
+            except Exception as e:
+                logger.error(f"解析LLM缓存记录失败: {e}")
+        
+        logger.info(f"LLM缓存未命中: cache_key={cache_key}")
+        return None
     
     async def set_llm_cache(self, cache_key: str, cache_data: Dict[str, Any], ttl: int = 3600) -> bool:
         """设置LLM响应缓存"""

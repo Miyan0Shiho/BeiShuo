@@ -26,6 +26,24 @@ class InterpretationService:
         dynasty: Optional[str] = None
     ) -> str:
         """生成AI阐释"""
+        # 生成缓存键
+        cache_key = await self.generate_interpretation_cache_key(text, inscription_id)
+        
+        # 检查数据库缓存
+        cached_response = await self.database_client.get_llm_cache(cache_key)
+        if cached_response:
+            logger.info(f"AI阐释缓存命中: cache_key={cache_key}, inscription_id={inscription_id}")
+            # 解析缓存内容
+            try:
+                # 从cached_response中提取阐释内容
+                cached_content = cached_response.get("reply", {}).get("content", "")
+                if cached_content:
+                    logger.info(f"直接使用缓存的AI阐释: cache_key={cache_key}")
+                    return cached_content
+            except Exception as e:
+                logger.error(f"解析AI阐释缓存失败: {e}")
+        
+        # 缓存未命中，继续生成
         # 获取RAG上下文
         context_list = await self._get_rag_context(text, inscription_id)
         context = "\n".join(context_list) if context_list else None
@@ -40,32 +58,150 @@ class InterpretationService:
         if not interpretation:
             raise BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "AI阐释生成失败")
         
+        # 缓存结果到数据库
+        cache_data = {
+            "reply": {
+                "content": interpretation,
+                "type": "interpretation",
+                "sources": [],
+                "suggestions": []
+            }
+        }
+        await self.database_client.set_llm_cache(cache_key, cache_data)
+        
         logger.info(f"AI阐释生成成功: inscription_id={inscription_id}")
         return interpretation
     
+    async def generate_chat_cache_key(self, question: str, context_list: List[str], inscription_id: Optional[int]) -> str:
+        """生成对话缓存键"""
+        import hashlib
+        cache_input = f"chat:{question}:{inscription_id}:{json.dumps(context_list)}"
+        return hashlib.md5(cache_input.encode()).hexdigest()
+
     async def chat(self, question: str, inscription_id: Optional[int] = None) -> str:
         """AI对话"""
+        # 获取上下文
         context_list = await self._get_rag_context(question, inscription_id)
+        
+        # 生成缓存键
+        cache_key = await self.generate_chat_cache_key(question, context_list, inscription_id)
+        
+        # 检查数据库缓存
+        cached_response = await self.database_client.get_llm_cache(cache_key)
+        if cached_response:
+            logger.info(f"AI对话缓存命中: cache_key={cache_key}, inscription_id={inscription_id}")
+            # 解析缓存内容
+            try:
+                # 从cached_response中提取对话内容
+                cached_content = cached_response.get("reply", {}).get("content", "")
+                if cached_content:
+                    logger.info(f"直接使用缓存的AI对话: cache_key={cache_key}")
+                    return cached_content
+            except Exception as e:
+                logger.error(f"解析AI对话缓存失败: {e}")
+        
+        # 缓存未命中，调用LLM生成回答
         answer = await self.llm_client.chat(question, context_list)
         
         if not answer:
             raise BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "AI对话失败")
+        
+        # 缓存结果到数据库
+        cache_data = {
+            "reply": {
+                "content": answer,
+                "type": "chat",
+                "sources": [],
+                "suggestions": []
+            }
+        }
+        await self.database_client.set_llm_cache(cache_key, cache_data)
         
         return answer
 
     async def chat_with_references(self, question: str, inscription_id: Optional[int] = None):
+        # 获取上下文
         context_list = await self._get_rag_context(question, inscription_id)
+        
+        # 生成缓存键
+        cache_key = await self.generate_chat_cache_key(question, context_list, inscription_id)
+        
+        # 检查数据库缓存
+        cached_response = await self.database_client.get_llm_cache(cache_key)
+        if cached_response:
+            logger.info(f"AI对话缓存命中: cache_key={cache_key}, inscription_id={inscription_id}")
+            # 解析缓存内容
+            try:
+                # 从cached_response中提取对话内容
+                cached_content = cached_response.get("reply", {}).get("content", "")
+                if cached_content:
+                    logger.info(f"直接使用缓存的AI对话: cache_key={cache_key}")
+                    return cached_content, (context_list or [])
+            except Exception as e:
+                logger.error(f"解析AI对话缓存失败: {e}")
+        
+        # 缓存未命中，调用LLM生成回答
         answer = await self.llm_client.chat(question, context_list)
+        
         if not answer:
             raise BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "AI对话失败")
+        
+        # 缓存结果到数据库
+        cache_data = {
+            "reply": {
+                "content": answer,
+                "type": "chat_with_references",
+                "sources": context_list,
+                "suggestions": []
+            }
+        }
+        await self.database_client.set_llm_cache(cache_key, cache_data)
+        
         return answer, (context_list or [])
     
+    async def generate_rag_context_cache_key(self, query: str, inscription_id: Optional[int]) -> str:
+        """生成RAG上下文缓存键"""
+        import hashlib
+        cache_input = f"rag:{query}:{inscription_id}"
+        return hashlib.md5(cache_input.encode()).hexdigest()
+
     async def _get_rag_context(self, query: str, inscription_id: Optional[int] = None) -> List[str]:
         """获取RAG上下文（本地索引优先）"""
+        # 生成缓存键
+        cache_key = await self.generate_rag_context_cache_key(query, inscription_id)
+        
+        # 检查数据库缓存
+        cached_response = await self.database_client.get_llm_cache(cache_key)
+        if cached_response:
+            logger.info(f"RAG上下文缓存命中: cache_key={cache_key}, inscription_id={inscription_id}")
+            # 解析缓存内容
+            try:
+                # 从cached_response中提取上下文内容
+                cached_content = cached_response.get("reply", {}).get("content", "")
+                if cached_content:
+                    contexts = json.loads(cached_content)
+                    logger.info(f"直接使用缓存的RAG上下文: cache_key={cache_key}, contexts_length={len(contexts)}")
+                    return contexts
+            except Exception as e:
+                logger.error(f"解析RAG上下文缓存失败: {e}")
+        
+        # 缓存未命中，执行正常检索逻辑
         try:
             emb = await self.embedding_client.embed_texts([query])
             if emb and len(emb) > 0:
                 contexts = retrieve_local(emb[0], top_k=5)
+                
+                # 缓存结果到数据库
+                cache_data = {
+                    "reply": {
+                        "content": json.dumps(contexts),
+                        "type": "rag_context",
+                        "sources": [],
+                        "suggestions": []
+                    }
+                }
+                await self.database_client.set_llm_cache(cache_key, cache_data)
+                
                 return contexts
             return []
         except Exception as e:
