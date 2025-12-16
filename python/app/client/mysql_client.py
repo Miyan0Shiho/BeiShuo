@@ -947,14 +947,21 @@ class MySQLClient:
                     "sources": [],
                     "suggestions": []
                 }
+                
+                # 转换datetime对象为ISO格式字符串
+                def datetime_to_iso(dt):
+                    if dt is not None and hasattr(dt, 'isoformat'):
+                        return dt.isoformat()
+                    return dt
+                
                 cache_data = {
                     "reply": cached_reply,
                     "cache_info": {
                         "cache_key": cache_key,
                         "message_id": cache_record.get("message_id"),
                         "hit_count": cache_record.get("hit_count"),
-                        "created_at": cache_record.get("created_at"),
-                        "updated_at": cache_record.get("updated_at")
+                        "created_at": datetime_to_iso(cache_record.get("created_at")),
+                        "updated_at": datetime_to_iso(cache_record.get("updated_at"))
                     }
                 }
                 return cache_data

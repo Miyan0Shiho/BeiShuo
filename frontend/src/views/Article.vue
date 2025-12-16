@@ -388,7 +388,7 @@ const sendChatQuestion = async () => {
 
 const fetchArticleInterpretation = async () => {
   if (sectionsHistory.value === null && article.value) {
-    const baseUrl = window.location.origin + '/api/v1'
+    const baseUrl = window.location.origin
     const token = userStore.token || ''
     // 发送完整的碑文内容给AI，包括标题、朝代、年份和完整文本
     const text = `${article.value.title} ${article.value.dynasty || ''} ${article.value.year || ''}\n\n${article.value.content || ''}`.trim()
