@@ -183,9 +183,9 @@ const saveCorrections = async () => {
 
 const saveAsNew = async () => {
   try {
-    const baseUrl = window.location.origin + '/api/v1'
+    const baseUrl = window.location.origin
     const token = userStore.token || localStorage.getItem('token') || ''
-    const response = await fetch(`${baseUrl}/inscription/save`, {
+    const response = await fetch(`${baseUrl}/api/v1/inscription/save`, {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`,

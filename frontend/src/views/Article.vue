@@ -258,7 +258,7 @@ const loadArticle = async () => {
     recommendedReading.value = []
     
     // API配置
-    const baseUrl = window.location.origin + '/api/v1'
+    const baseUrl = window.location.origin
     const token = userStore.token || ''
     
     // 调用真实API获取文章详情
