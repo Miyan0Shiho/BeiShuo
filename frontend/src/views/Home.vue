@@ -1,8 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/user'
+import { fetchKnowledgeHome } from '../api/knowledge'
 
 const router = useRouter()
+const userStore = useUserStore()
+const baseUrl = ref(window.location.origin + '/api/v1')
 
 // 功能特性数据
 const features = ref([
@@ -73,55 +77,34 @@ const steps = ref([
 ])
 
 // 推荐碑文数据
-const recommendations = ref([
-  {
-    id: 1,
-    title: '《张迁碑》',
-    dynasty: '汉代',
-    image: '/images/多宝塔碑1.jpg',
-    description: '东汉隶书的代表作，碑文内容记载了张迁的生平事迹，书法风格古朴雄强。',
-    views: '2,341'
-  },
-  {
-    id: 2,
-    title: '《九成宫醴泉铭》',
-    dynasty: '唐代',
-    image: '/images/多宝塔碑1.jpg',
-    description: '唐代楷书经典，由魏征撰文，欧阳询书丹，记载了唐太宗在九成宫发现醴泉的故事。',
-    views: '3,782'
-  },
-  {
-    id: 3,
-    title: '《醉翁亭记》碑',
-    dynasty: '宋代',
-    image: '/images/多宝塔碑1.jpg',
-    description: '北宋文学家欧阳修的代表作，由苏轼手书刻石，文章与书法并称双绝。',
-    views: '1,956'
-  },
-  {
-    id: 4,
-    title: '《永乐大典》序碑',
-    dynasty: '明代',
-    image: '/images/多宝塔碑1.jpg',
-    description: '记载了明代《永乐大典》编纂过程的重要碑文，具有极高的文献价值。',
-    views: '1,423'
+const recommendations = ref([])
+const isLoadingRecommendations = ref(false)
+
+// 获取推荐碑文数据
+const loadRecommendations = async () => {
+  try {
+    isLoadingRecommendations.value = true
+    const homeData = await fetchKnowledgeHome(baseUrl.value, userStore.token || '')
+    recommendations.value = homeData.featured || []
+  } catch (error) {
+    console.error('获取推荐碑文失败:', error)
+  } finally {
+    isLoadingRecommendations.value = false
   }
-])
+}
+
+// 组件挂载时加载数据
+onMounted(() => {
+  loadRecommendations()
+})
 
 // 时间线数据
-const timeline = ref([
-  { year: '701年', event: '李白出生于碎叶城（今吉尔吉斯斯坦托克马克附近）' },
-  { year: '724年', event: '李白开始漫游天下，离开蜀地' },
-  { year: '742年', event: '李白被召入长安，供奉翰林' },
-  { year: '762年', event: '李白病逝于当涂，享年62岁' }
-])
+// TODO: 待接入AI生成的时间线数据
+const timeline = ref([])
 
 // 相关人物
-const relatedPeople = ref([
-  { name: '杜甫', role: '唐代诗人，与李白并称"李杜"', avatar: '/images/dufu.jpg' },
-  { name: '唐玄宗', role: '唐朝皇帝，开创开元盛世', avatar: '/images/xuanzong.jpg' },
-  { name: '杨贵妃', role: '唐玄宗贵妃，唐代宫廷音乐家', avatar: '/images/yanggufei.jpg' }
-])
+// TODO: 待接入AI生成的相关人物数据
+const relatedPeople = ref([])
 
 // 标签页状态
 const activeTab = ref('history')
@@ -428,7 +411,7 @@ const watchDemo = () => {
                     <i class="fas fa-history mr-2"></i>
                     相关时间线
                   </h4>
-                  <div class="space-y-4">
+                  <div v-if="timeline && timeline.length" class="space-y-4">
                     <div v-for="(item, index) in timeline" :key="index" class="flex">
                       <div class="flex-shrink-0 w-16 text-right pr-3 relative">
                         <span class="inline-block w-3 h-3 bg-primary rounded-full absolute right-0 top-1"></span>
@@ -439,6 +422,10 @@ const watchDemo = () => {
                       </div>
                     </div>
                   </div>
+                  <div v-else class="text-sm text-dark/60 flex items-center">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    正在生成中...
+                  </div>
                 </div>
                 <!-- 相关人物 -->
                 <div class="bg-light p-5 rounded-xl border border-gray-100">
@@ -446,7 +433,7 @@ const watchDemo = () => {
                     <i class="fas fa-users mr-2"></i>
                     相关人物
                   </h4>
-                  <div class="space-y-3">
+                  <div v-if="relatedPeople && relatedPeople.length" class="space-y-3">
                     <a v-for="(person, index) in relatedPeople" :key="index" href="javascript:void(0);"
                       class="flex items-center p-2 hover:bg-white rounded-md transition-custom">
                       <div class="w-10 h-10 rounded-full bg-gray-200 mr-3 flex items-center justify-center">
@@ -457,6 +444,10 @@ const watchDemo = () => {
                         <p class="text-xs text-dark/60">{{ person.role }}</p>
                       </div>
                     </a>
+                  </div>
+                  <div v-else class="text-sm text-dark/60 flex items-center">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    正在生成中...
                   </div>
                 </div>
               </div>

@@ -19,7 +19,7 @@ async def generate_interpretation(
             text=request.text,
             dynasty=request.dynasty
         )
-        return Result.success({"interpretation": interpretation})
+        return Result.ok({"interpretation": interpretation})
     finally:
         await service.close()
 
@@ -35,7 +35,7 @@ async def chat(
             question=request.question,
             inscription_id=request.inscriptionId
         )
-        return Result.success({"answer": answer})
+        return Result.ok({"answer": answer})
     finally:
         await service.close()
 

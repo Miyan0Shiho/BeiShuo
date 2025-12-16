@@ -1,8 +1,6 @@
 spring:
   application:
     name: beishuo-backend
-  profiles:
-    active: dev
   servlet:
     multipart:
       enabled: true
@@ -10,10 +8,28 @@ spring:
       max-request-size: 10MB
       file-size-threshold: 2KB
 
+# 数据库配置
+spring.datasource:
+  driver-class-name: org.postgresql.Driver
+  url: jdbc:postgresql://localhost:5432/beishuo
+  username: beishuo
+  password: beishuo123
+
+# JPA配置
+spring.jpa:
+  hibernate:
+    ddl-auto: update
+  show-sql: true
+  properties:
+    hibernate:
+      dialect: org.hibernate.dialect.PostgreSQLDialect
+      format_sql: true
+
 server:
-  port: 8000
+  port: 8081
+  host: 0.0.0.0
   servlet:
-    context-path: /api/v1
+    context-path: /api/database
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
@@ -81,6 +97,15 @@ file:
     allowed-types: jpg,jpeg,png,webp
     url-prefix: /uploads
 
+# 阿里云OSS配置
+aliyun:
+  oss:
+    access-key-id: ${ALIYUN_OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_OSS_ACCESS_KEY_SECRET:}
+    endpoint: ${ALIYUN_OSS_ENDPOINT:https://oss-cn-hangzhou.aliyuncs.com}
+    bucket-name: ${ALIYUN_OSS_BUCKET_NAME:}
+    domain: ${ALIYUN_OSS_DOMAIN:}
+
 # 缓存配置
 cache:
   inscription-list-ttl: 300
@@ -96,4 +121,3 @@ business:
   interpretation:
     max-context-length: 5000
     enable-stream: false
-

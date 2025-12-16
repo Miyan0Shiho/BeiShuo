@@ -60,8 +60,10 @@ file:
 cors:
   allowed-origins:       # 根据前端端口修改
     - http://localhost:3000
+    - http://localhost:5173
     - http://localhost:8080
     - http://127.0.0.1:3000
+    - http://127.0.0.1:5173
     - http://127.0.0.1:8080
   allowed-methods:
     - GET
@@ -73,4 +75,3 @@ cors:
     - "*"
   allow-credentials: true
   max-age: 3600
-

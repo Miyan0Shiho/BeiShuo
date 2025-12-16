@@ -30,7 +30,7 @@ async def get_favorites(
         }
     }
     
-    return Result.success(result)
+    return Result.ok(result)
 
 @router.post("")
 async def add_favorite(
@@ -44,14 +44,14 @@ async def add_favorite(
     tags = request.get("tags", [])
     
     if not type or not item_id:
-        return Result.error(ResultCode.BAD_REQUEST, "type和item_id不能为空")
+        return Result.fail(ResultCode.BAD_REQUEST, "type和item_id不能为空")
     
     # TODO: 实现添加收藏
     result = {
         "favorite_id": 1
     }
     
-    return Result.success("已添加到收藏", result)
+    return Result.ok(result, "已添加到收藏")
 
 @router.put("/{favorite_id}")
 async def update_favorite(
@@ -61,7 +61,7 @@ async def update_favorite(
 ):
     """更新收藏"""
     # TODO: 实现更新收藏
-    return Result.success("收藏已更新", None)
+    return Result.ok(None, "收藏已更新")
 
 @router.delete("/{favorite_id}")
 async def delete_favorite(
@@ -70,5 +70,5 @@ async def delete_favorite(
 ):
     """删除收藏"""
     # TODO: 实现删除收藏
-    return Result.success("已从收藏中移除", None)
+    return Result.ok(None, "已从收藏中移除")
 

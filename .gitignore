@@ -73,3 +73,8 @@ python/logs/*.log
 
 # Resource files
 文件资源/碑说 (2)/
+
+# Environment files
+.env
+.env.*
+!.env.sample
