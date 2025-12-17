@@ -1,5 +1,16 @@
+// 确保baseUrl格式正确，避免重复的/api/v1
+function normalizeBaseUrl(url) {
+  if (url && url.endsWith('/api/v1')) {
+    return url
+  } else if (url && !url.includes('/api/v1')) {
+    return `${url}/api/v1`
+  }
+  return url
+}
+
 export async function postChat({ baseUrl, token, recognitionId, message, conversationId }) {
-  const url = `${baseUrl}/api/v1/ai/chat`
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
+  const url = `${normalizedBaseUrl}/ai/chat`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const body = {
@@ -16,7 +27,8 @@ export async function postChat({ baseUrl, token, recognitionId, message, convers
 }
 
 export async function streamChatFetch({ baseUrl, token, recognitionId, message, conversationId, onEvent }) {
-  const url = `${baseUrl}/api/v1/ai/chat/stream`
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
+  const url = `${normalizedBaseUrl}/ai/chat/stream`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const body = {
@@ -49,7 +61,8 @@ export async function streamChatFetch({ baseUrl, token, recognitionId, message, 
 }
 
 export async function postInterpretationSections({ baseUrl, token, text, recognitionId, inscriptionId, conversationId }) {
-  const url = `${baseUrl}/api/v1/ai/interpretation/sections`
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
+  const url = `${normalizedBaseUrl}/ai/interpretation/sections`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const body = {
@@ -67,7 +80,8 @@ export async function postInterpretationSections({ baseUrl, token, text, recogni
 }
 
 export async function uploadImage({ baseUrl, token, file }) {
-  const url = `${baseUrl}/api/v1/upload/image`
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
+  const url = `${normalizedBaseUrl}/upload/image`
   const headers = {}
   if (token) headers['Authorization'] = `Bearer ${token}`
   const form = new FormData()
@@ -81,7 +95,8 @@ export async function uploadImage({ baseUrl, token, file }) {
 }
 
 export async function startRecognition({ baseUrl, token, imageUrl, imageBase64, options }) {
-  const url = `${baseUrl}/api/v1/recognition/start`
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
+  const url = `${normalizedBaseUrl}/recognition/start`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const body = {
@@ -98,7 +113,8 @@ export async function startRecognition({ baseUrl, token, imageUrl, imageBase64, 
 }
 
 export async function fetchRecognitionHistory({ baseUrl, token, page = 1, size = 10 }) {
-  const url = `${baseUrl}/api/v1/recommendation/recognition/history?page=${page - 1}&size=${size}`
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
+  const url = `${normalizedBaseUrl}/recommendation/recognition/history?page=${page - 1}&size=${size}`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(url, { method: 'GET', headers })
@@ -126,7 +142,8 @@ export async function fetchRecognitionHistory({ baseUrl, token, page = 1, size =
 }
 
 export async function fetchRecommendedInscriptions({ baseUrl, token, recognition_id, text, page = 1, size = 10 }) {
-  const url = `${baseUrl}/api/v1/recommendation/inscriptions`
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
+  const url = `${normalizedBaseUrl}/recommendation/inscriptions`
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const body = {

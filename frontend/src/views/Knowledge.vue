@@ -49,7 +49,7 @@ const chatConversationId = ref('')
 const chatExpanded = ref(false)
 
 // API配置
-const baseUrl = ref(window.location.origin)
+const baseUrl = ref(window.location.origin + '/api/v1')
 
 // 获取知识库数据
 const loadKnowledgeData = async () => {

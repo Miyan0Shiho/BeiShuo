@@ -6,7 +6,7 @@ import { fetchKnowledgeHome } from '../api/knowledge'
 
 const router = useRouter()
 const userStore = useUserStore()
-const baseUrl = ref(window.location.origin)
+const baseUrl = ref(window.location.origin + '/api/v1')
 
 // 功能特性数据
 const features = ref([
@@ -252,20 +252,22 @@ const watchDemo = () => {
       </div>
     </section>
 
-    <!-- 识别演示 -->
+    <!-- 碑文识别与推荐 -->
     <section class="py-16 md:py-24 bg-white">
       <div class="container mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-3xl mx-auto mb-16">
-          <h2 class="text-3xl md:text-4xl font-serif font-bold text-primary mb-4">AI识别演示</h2>
-          <p class="text-dark/70 text-lg">体验碑说AI的强大识别能力，见证历史文字的数字化重生</p>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-primary mb-4">AI碑文识别</h2>
+          <p class="text-dark/70 text-lg">上传碑文图片，AI自动识别文字内容并提供相关碑文推荐</p>
         </div>
-        <div class="bg-light rounded-2xl shadow-sm overflow-hidden">
+        
+        <!-- 碑文识别区域 -->
+        <div class="bg-light rounded-2xl shadow-sm overflow-hidden mb-16">
           <div class="grid md:grid-cols-2">
-            <!-- 左侧：原图展示 -->
+            <!-- 左侧：图片上传与识别 -->
             <div class="p-6 md:p-8 flex flex-col">
               <h3 class="text-xl font-semibold text-primary mb-4 flex items-center">
-                <i class="fas fa-image mr-2"></i>
-                碑文原图
+                <i class="fas fa-camera mr-2"></i>
+                上传碑文图片
               </h3>
               <div class="bg-white rounded-xl p-4 shadow-sm flex-grow flex flex-col items-center justify-center">
                 <div class="relative w-full max-w-md aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
@@ -273,21 +275,26 @@ const watchDemo = () => {
                   <div
                     class="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-custom flex items-center justify-center">
                     <button class="bg-white text-primary px-4 py-2 rounded-md font-medium">
-                      <i class="fas fa-refresh mr-1"></i>
-                      更换示例
+                      <i class="fas fa-upload mr-1"></i>
+                      上传图片
                     </button>
                   </div>
                 </div>
                 <div class="w-full max-w-md">
                   <button @click="startRecognition"
                     class="w-full py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center justify-center">
-                    <i class="fas fa-camera mr-2"></i>
-                    上传我的碑文
+                    <i class="fas fa-magic mr-2"></i>
+                    开始识别
                   </button>
+                </div>
+                <div class="mt-4 text-sm text-dark/60 text-center">
+                  <p>支持 JPG、PNG、WEBP 格式，最大 10MB</p>
+                  <p class="mt-1">识别过程仅需几秒，支持多朝代字体</p>
                 </div>
               </div>
             </div>
-            <!-- 右侧：识别结果 -->
+            
+            <!-- 右侧：识别结果展示 -->
             <div class="p-6 md:p-8 bg-secondary/50 border-t md:border-t-0 md:border-l border-secondary">
               <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-semibold text-primary flex items-center">
@@ -303,40 +310,98 @@ const watchDemo = () => {
                     title="下载文本">
                     <i class="fas fa-download"></i>
                   </button>
-                  <button class="p-2 text-dark/70 hover:text-primary hover:bg-white/50 rounded-md transition-custom"
-                    title="更多选项">
-                    <i class="fas fa-ellipsis-v"></i>
-                  </button>
                 </div>
               </div>
               <div class="bg-white rounded-xl p-5 shadow-sm h-[calc(100%-4rem)] flex flex-col">
                 <div class="mb-4">
-                  <div class="flex items-center text-sm text-dark/70 mb-2">
-                    <i class="fas fa-clock mr-1"></i>
-                    识别时间: 2023-06-15 14:30
-                    <span class="mx-2">|</span>
-                    <i class="fas fa-check-circle text-green-500 mr-1"></i>
-                    识别完成
-                  </div>
-                  <div class="flex items-center text-sm text-dark/70">
-                    <i class="fas fa-font mr-1"></i>
-                    字数: 286字
-                    <span class="mx-2">|</span>
-                    <i class="fas fa-percentage mr-1"></i>
-                    置信度: 98.7%
+                  <div class="flex flex-wrap gap-3 text-sm">
+                    <div class="flex items-center text-dark/70">
+                      <i class="fas fa-clock mr-1"></i>
+                      <span>识别完成</span>
+                    </div>
+                    <div class="flex items-center text-dark/70">
+                      <i class="fas fa-font mr-1"></i>
+                      <span>286字</span>
+                    </div>
+                    <div class="flex items-center text-dark/70">
+                      <i class="fas fa-percentage mr-1"></i>
+                      <span>98.7% 置信度</span>
+                    </div>
+                    <div class="flex items-center text-dark/70">
+                      <i class="fas fa-history mr-1"></i>
+                      <span>唐代碑文</span>
+                    </div>
                   </div>
                 </div>
-                <div class="flex-grow overflow-y-auto text-dark/90 leading-relaxed text-sm">
+                <div class="flex-grow overflow-y-auto text-dark/90 leading-relaxed text-sm font-serif whitespace-pre-wrap">
                   {{ recognitionText }}
                 </div>
-                <div class="mt-6">
+                <div class="mt-6 grid grid-cols-2 gap-3">
                   <button
-                    class="w-full py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center justify-center">
+                    class="py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center justify-center">
                     <i class="fas fa-book-reader mr-2"></i>
-                    查看AI阐释
+                    AI阐释
+                  </button>
+                  <button
+                    class="py-3 border border-primary text-primary rounded-md font-medium hover:bg-primary/5 transition-custom flex items-center justify-center">
+                    <i class="fas fa-comments mr-2"></i>
+                    智能问答
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 相关碑文推荐 -->
+        <div>
+          <h3 class="text-2xl font-serif font-bold text-primary mb-8 text-center">相关碑文推荐</h3>
+          
+          <!-- 推荐加载状态 -->
+          <div v-if="isLoadingRecommendations" class="text-center py-8 text-dark/60">
+            <i class="fas fa-spinner fa-spin text-xl mr-2"></i>
+            正在加载推荐碑文...
+          </div>
+          
+          <!-- 空数据状态 -->
+          <div v-else-if="recommendations.length === 0" class="text-center py-10">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
+              <i class="fas fa-lightbulb text-gray-400 text-3xl"></i>
+            </div>
+            <p class="text-dark/60">暂无相关碑文推荐</p>
+          </div>
+          
+          <!-- 数据列表 -->
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-for="item in recommendations" :key="item.id"
+                class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-custom border border-gray-100 cursor-pointer">
+                <!-- 图片显示 -->
+                <div class="h-48 overflow-hidden bg-gray-100">
+                    <!-- 从excerpt中提取图片链接 -->
+                    <img 
+                        v-if="item.cover_image_url || (item.excerpt && item.excerpt.includes('图片链接：'))" 
+                        :src="item.cover_image_url || (item.excerpt.match(/- 图片链接：(.*?)\n/)?.[1] || '')" 
+                        :alt="item.title" 
+                        class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                        @error="(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }"
+                    />
+                    <!-- 本地占位图 -->
+                    <div class="h-full bg-gray-100 flex items-center justify-center" style="display: none;">
+                        <i class="fas fa-monument text-gray-300 text-5xl"></i>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <h4 class="text-lg font-serif font-medium text-dark mb-2">{{ item.title }}</h4>
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ item.description || item.excerpt }}</p>
+                    <!-- 查看详情跳转 -->
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-gray-500">{{ item.dynasty || '未知朝代' }}</span>
+                        <a @click="router.push('/knowledge/article/' + item.id)" href="javascript:void(0);" class="text-primary text-sm font-medium flex items-center hover:text-accent transition-custom cursor-pointer">
+                            查看详情
+                            <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
           </div>
         </div>
@@ -464,32 +529,53 @@ const watchDemo = () => {
           <h2 class="text-3xl md:text-4xl font-serif font-bold text-primary mb-4">探索更多碑文</h2>
           <p class="text-dark/70 text-lg">基于您的兴趣，发现更多精彩的历史碑文与文化遗产</p>
         </div>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <a v-for="item in recommendations" :key="item.id" href="javascript:void(0);" class="group">
-            <div
-              class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-custom h-full flex flex-col">
-              <div class="relative overflow-hidden">
-                <img :alt="item.dynasty + '碑文'"
-                  class="w-full h-48 object-cover group-hover:scale-105 transition-custom duration-500"
-                  :src="item.image">
-                <div class="absolute top-3 left-3 bg-primary text-white text-xs font-medium px-2 py-1 rounded">
-                  {{ item.dynasty }}
-                </div>
+        
+        <!-- 推荐加载状态 -->
+        <div v-if="isLoadingRecommendations" class="text-center py-8 text-dark/60">
+          <i class="fas fa-spinner fa-spin text-xl mr-2"></i>
+          正在加载推荐碑文...
+        </div>
+        
+        <!-- 空数据状态 -->
+        <div v-else-if="recommendations.length === 0" class="text-center py-10">
+          <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
+            <i class="fas fa-lightbulb text-gray-400 text-3xl"></i>
+          </div>
+          <p class="text-dark/60">暂无推荐碑文</p>
+        </div>
+        
+        <!-- 数据列表 -->
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div v-for="item in recommendations" :key="item.id"
+              class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-custom border border-gray-100 cursor-pointer">
+              <!-- 图片显示 -->
+              <div class="h-48 overflow-hidden bg-gray-100">
+                  <!-- 从excerpt中提取图片链接 -->
+                  <img 
+                      v-if="item.cover_image_url || (item.excerpt && item.excerpt.includes('图片链接：'))" 
+                      :src="item.cover_image_url || (item.excerpt.match(/- 图片链接：(.*?)\n/)?.[1] || '')" 
+                      :alt="item.title" 
+                      class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                      @error="(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }"
+                  />
+                  <!-- 本地占位图 -->
+                  <div class="h-full bg-gray-100 flex items-center justify-center" style="display: none;">
+                      <i class="fas fa-monument text-gray-300 text-5xl"></i>
+                  </div>
               </div>
-              <div class="p-4 flex-grow flex flex-col">
-                <h3 class="font-semibold text-primary mb-2 group-hover:text-accent transition-custom">{{ item.title }}
-                </h3>
-                <p class="text-dark/70 text-sm flex-grow">{{ item.description }}</p>
-                <div class="mt-3 flex justify-between items-center">
-                  <span class="text-xs text-dark/50">识别次数: {{ item.views }}</span>
-                  <span class="text-primary text-sm font-medium">
-                    查看详情
-                    <i class="fas fa-arrow-right ml-1 text-xs"></i>
-                  </span>
-                </div>
+              <div class="p-5">
+                  <h4 class="text-lg font-serif font-medium text-dark mb-2">{{ item.title }}</h4>
+                  <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ item.description || item.excerpt }}</p>
+                  <!-- 查看详情跳转 -->
+                  <div class="flex justify-between items-center">
+                      <span class="text-xs text-gray-500">{{ item.dynasty || '未知朝代' }}</span>
+                      <a @click="router.push('/knowledge/article/' + item.id)" href="javascript:void(0);" class="text-primary text-sm font-medium flex items-center hover:text-accent transition-custom cursor-pointer">
+                          查看详情
+                          <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                      </a>
+                  </div>
               </div>
-            </div>
-          </a>
+          </div>
         </div>
       </div>
     </section>
