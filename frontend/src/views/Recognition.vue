@@ -106,32 +106,151 @@ const loadImage = (src) => new Promise((resolve, reject) => {
 })
 
 const buildStripForLineVertical = async (img, line, targetWidth = 80) => {
+    console.log('\n=== 开始构建竖向拼接图 ===')
+    console.log('当前列文本:', line.text)
+    console.log('当前列完整信息:', JSON.stringify(line, null, 2))
+    
     const words = Array.isArray(line.words) ? line.words : []
-    if (!words.length) return { url: '', rects: [] }
-    const strips = []
-    const rects = []
-    let totalHeight = 0
-    for (const w of words) {
-        const pos = w.position || []
-        const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
-        const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
-        const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
-        const scale = targetWidth / wWidth
-        const h = Math.round(wHeight * scale)
-        strips.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dh: h, scale })
-        rects.push({ left: 0, top: totalHeight, width: targetWidth, height: h })
-        totalHeight += h
+    console.log('列包含文字数量:', words.length)
+    
+    if (!words.length) {
+        console.error('当前列没有文字，无法构建拼接图')
+        return { url: '', rects: [], baseW: targetWidth, baseH: 0 }
     }
-    const canvas = document.createElement('canvas')
-    canvas.width = targetWidth
-    canvas.height = totalHeight
-    const ctx = canvas.getContext('2d')
-    let y = 0
-    for (const s of strips) {
-        ctx.drawImage(img, s.x, s.y, s.w, s.h, 0, y, targetWidth, s.dh)
-        y += s.dh
+    
+    // 直接使用列的整体位置信息
+    const linePos = line.position
+    console.log('列position:', linePos)
+    
+    // 检查列position是否有效
+    if (!Array.isArray(linePos) || linePos.length < 4 || !Array.isArray(linePos[0])) {
+        console.error('列position格式无效，无法构建拼接图')
+        return { url: '', rects: [], baseW: targetWidth, baseH: 0 }
     }
-    return { url: canvas.toDataURL('image/png'), rects, baseW: targetWidth, baseH: totalHeight }
+    
+    // 从列的四个顶点中提取所有x和y坐标
+    const xs = linePos.map(p => typeof p[0] === 'number' ? p[0] : 0)
+    const ys = linePos.map(p => typeof p[1] === 'number' ? p[1] : 0)
+    
+    console.log('列的所有x坐标:', xs)
+    console.log('列的所有y坐标:', ys)
+    
+    // 计算列的矩形区域
+    const colX1 = Math.min(...xs)
+    const colY1 = Math.min(...ys)
+    const colX2 = Math.max(...xs)
+    const colY2 = Math.max(...ys)
+    
+    console.log(`列的矩形区域: x1=${colX1}, y1=${colY1}, x2=${colX2}, y2=${colY2}`)
+    
+    // 计算列的宽度和高度
+    const colWidth = Math.abs(colX2 - colX1)
+    const colHeight = Math.abs(colY2 - colY1)
+    console.log(`列的尺寸: ${colWidth} x ${colHeight}`)
+    
+    // 只有当列尺寸有效时才生成拼接图
+    if (colWidth > 0 && colHeight > 0) {
+        // 创建canvas并绘制整列图像
+        const canvas = document.createElement('canvas')
+        canvas.width = targetWidth
+        canvas.height = colHeight
+        console.log(`创建列canvas尺寸: ${canvas.width} x ${canvas.height}`)
+        
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+            console.error('无法获取canvas上下文')
+            return { url: '', rects: [], baseW: targetWidth, baseH: colHeight }
+        }
+        
+        // 清空画布
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        console.log('画布已清空')
+        
+        // 绘制整列图像
+        console.log(`绘制整列图像:`)
+        console.log(`  源区域: ${colX1}, ${colY1}, ${colWidth}, ${colHeight}`)
+        console.log(`  目标区域: 0, 0, ${targetWidth}, ${colHeight}`)
+        
+        try {
+            // 直接绘制整列图像
+            ctx.drawImage(img, colX1, colY1, colWidth, colHeight, 0, 0, targetWidth, colHeight)
+            console.log('  整列绘制成功')
+        } catch (e) {
+            console.error('  整列绘制失败:', e)
+            return { url: '', rects: [], baseW: targetWidth, baseH: colHeight }
+        }
+        
+        // 计算每个文字在拼接图中的精确矩形区域
+        const rects = []
+        const scale = targetWidth / colWidth
+        
+        for (const word of words) {
+            if (!word.position || !Array.isArray(word.position)) {
+                console.warn('文字缺少位置信息:', word)
+                rects.push({ left: 0, top: 0, width: targetWidth, height: 0 })
+                continue
+            }
+            
+            // 从文字的四个顶点中提取坐标
+            const wordPos = word.position
+            const wordXs = wordPos.map(p => typeof p[0] === 'number' ? p[0] : 0)
+            const wordYs = wordPos.map(p => typeof p[1] === 'number' ? p[1] : 0)
+            
+            // 计算文字在原图中的矩形区域
+            const wordX1 = Math.min(...wordXs)
+            const wordY1 = Math.min(...wordYs)
+            const wordX2 = Math.max(...wordXs)
+            const wordY2 = Math.max(...wordYs)
+            
+            // 计算文字在原图中的宽度和高度
+            const wordWidth = Math.abs(wordX2 - wordX1)
+            const wordHeight = Math.abs(wordY2 - wordY1)
+            
+            console.log(`文字 "${word.text || word.char}" 在原图中的位置: ${wordX1}, ${wordY1}, ${wordWidth}, ${wordHeight}`)
+            
+            // 计算文字在拼接图中的位置和大小
+            // 注意：这里使用的是基于列的坐标系，所以x坐标需要相对于列的左上角
+            const relativeX = wordX1 - colX1
+            const relativeY = wordY1 - colY1
+            
+            const scaledX = Math.round(relativeX * scale)
+            const scaledY = Math.round(relativeY * scale)
+            const scaledWidth = Math.round(wordWidth * scale)
+            const scaledHeight = Math.round(wordHeight * scale)
+            
+            console.log(`文字在拼接图中的位置: x=${scaledX}, y=${scaledY}, width=${scaledWidth}, height=${scaledHeight}`)
+            
+            // 创建文字的精确矩形区域
+            rects.push({
+                left: scaledX,
+                top: scaledY,
+                width: scaledWidth,
+                height: scaledHeight
+            })
+        }
+        
+        // 获取dataURL
+        let dataUrl = ''
+        try {
+            dataUrl = canvas.toDataURL('image/png')
+            console.log('canvas转换为dataURL成功，长度:', dataUrl.length)
+        } catch (e) {
+            console.error('canvas转换为dataURL失败:', e)
+            return { url: '', rects: [], baseW: targetWidth, baseH: colHeight }
+        }
+        
+        console.log('=== 竖向拼接图构建完成 ===')
+        console.log('生成的文字矩形区域数量:', rects.length)
+        return { 
+            url: dataUrl, 
+            rects: rects, 
+            baseW: targetWidth, 
+            baseH: colHeight 
+        }
+    } else {
+        console.error(`列尺寸无效: ${colWidth} x ${colHeight}`)
+        return { url: '', rects: [], baseW: targetWidth, baseH: 0 }
+    }
 }
 
 const buildStripForLineHorizontal = async (img, line, targetHeight = 80) => {
@@ -184,32 +303,64 @@ const formatWordConfidence = (w) => {
 }
 
 const onWordEnter = (li, wi) => {
+    console.log('\n=== 开始处理文字高亮 ===')
+    console.log('当前列索引:', li, '当前文字索引:', wi)
+    
     if (typeof li !== 'number' || typeof wi !== 'number') {
+        console.error('无效的索引值:', li, wi)
         stripHighlight.value.visible = false
         return
     }
-    currentColumn.value = li + 1
+    
+    // 获取当前列的矩形数组
     const rects = lineStripRects.value[li] || []
+    console.log('当前列的矩形数组:', rects)
+    console.log('矩形数组长度:', rects.length)
+    
+    // 获取当前文字的矩形区域
     const r = rects[wi]
+    console.log('当前文字的矩形区域:', r)
+    
     if (!r || !stripContainerRef.value) {
+        console.error('无法获取矩形区域或容器引用')
         stripHighlight.value.visible = false
         return
     }
+    
+    // 获取容器尺寸
     const cw = stripContainerRef.value.clientWidth || 0
     const ch = stripContainerRef.value.clientHeight || 0
-    const dims = (lineStripDims.value[li]) || { baseW: 80, baseH: (rects.length ? rects.reduce((acc, it) => acc + it.height, 0) : 0) }
+    console.log('容器尺寸:', cw, 'x', ch)
+    
+    // 获取当前列的拼接图尺寸
+    const dims = (lineStripDims.value[li]) || { baseW: 80, baseH: 0 }
     const imgW = dims.baseW
     const imgH = dims.baseH
+    console.log('拼接图原始尺寸:', imgW, 'x', imgH)
+    
+    // 计算缩放比例
     const scale = Math.min(cw / imgW, ch / imgH)
+    console.log('缩放比例:', scale)
+    
+    // 计算拼接图在容器中的位置
     const rw = Math.round(imgW * scale)
     const rh = Math.round(imgH * scale)
     const offsetX = Math.floor((cw - rw) / 2)
     const offsetY = Math.floor((ch - rh) / 2)
+    console.log('拼接图在容器中的位置:', offsetX, offsetY, '尺寸:', rw, rh)
+    
+    // 计算高亮区域的最终位置和大小
     const left = offsetX + Math.round(r.left * scale)
     const top = offsetY + Math.round(r.top * scale)
     const width = Math.max(1, Math.round(r.width * scale))
     const height = Math.max(1, Math.round(r.height * scale))
+    
+    console.log('高亮区域计算结果:')
+    console.log('  原始矩形:', r.left, r.top, r.width, r.height)
+    console.log('  缩放后:', left, top, width, height)
+    
     stripHighlight.value = { visible: true, left, top, width, height }
+    console.log('高亮区域设置完成:', stripHighlight.value)
 }
 
 const onWordLeave = () => {
@@ -572,17 +723,35 @@ const startRecognition = async () => {
         originalImageSize.value = { width: r.width || 0, height: r.height || 0 }
         
         // 检查是否是缓存命中，如果是，从返回结果中获取图片URL
+        console.log('=== 开始处理图片URL ===')
+        console.log('r.image_url:', r.image_url)
+        console.log('baseUrl:', baseUrl)
+        
         if (r.image_url) {
             // 如果结果中包含image_url，说明是从数据库读取的缓存结果
             // 构建完整的图片URL
             if (r.image_url.startsWith('http://') || r.image_url.startsWith('https://')) {
                 // 如果已经是完整的URL，直接使用
                 originalImageUrl.value = r.image_url
+                console.log('使用完整URL:', originalImageUrl.value)
             } else {
                 // 否则拼接baseUrl
                 originalImageUrl.value = `${baseUrl}${r.image_url.startsWith('/') ? r.image_url : ('/' + r.image_url)}`
+                console.log('拼接URL:', originalImageUrl.value)
             }
+        } else if (uploadRes && uploadRes.image_url) {
+            // 如果是新上传的图片，使用上传返回的image_url
+            if (uploadRes.image_url.startsWith('http://') || uploadRes.image_url.startsWith('https://')) {
+                originalImageUrl.value = uploadRes.image_url
+            } else {
+                originalImageUrl.value = `${baseUrl}${uploadRes.image_url.startsWith('/') ? uploadRes.image_url : ('/' + uploadRes.image_url)}`
+            }
+            console.log('使用上传返回的URL:', originalImageUrl.value)
+        } else {
+            console.error('没有找到有效的image_url，无法构建拼接图')
         }
+        
+        console.log('最终originalImageUrl:', originalImageUrl.value)
         
         lineConfidences.value = (textLines.value || []).map(computeLineConfidence)
         totalColumns.value = Array.isArray(textLines.value) ? textLines.value.length : 0
@@ -592,8 +761,13 @@ const startRecognition = async () => {
         console.log('textLines.value:', textLines.value)
         
         try {
+            console.log('=== 开始构建拼接图 ===')
+            console.log('originalImageUrl:', originalImageUrl.value)
+            console.log('textLines.length:', textLines.value.length)
+            console.log('textLines详细内容:', JSON.stringify(textLines.value, null, 2))
+            
             if (originalImageUrl.value && textLines.value.length) {
-                console.log('开始加载原始图片')
+                console.log('开始加载原始图片:', originalImageUrl.value)
                 const img = await loadImage(originalImageUrl.value)
                 console.log('原始图片加载成功:', img.width, 'x', img.height)
                 
@@ -601,28 +775,53 @@ const startRecognition = async () => {
                 const rectsAll = []
                 const dimsAll = []
                 
-                for (const line of textLines.value) {
-                    console.log('处理文本行:', line.text)
+                for (let i = 0; i < textLines.value.length; i++) {
+                    const line = textLines.value[i]
+                    console.log(`\n处理第 ${i+1} 行文本`)
+                    console.log('行文本:', line.text)
+                    console.log('行words:', JSON.stringify(line.words, null, 2))
+                    
+                    // 检查行中是否有有效words和位置信息
+                    const validWords = line.words.filter(word => word.position && word.position.length >= 4)
+                    console.log('有效words数量:', validWords.length)
+                    
                     const out = await buildStripForLine(img, line, previewModeSelection.value)
                     urls.push(out.url)
                     rectsAll.push(out.rects)
                     dimsAll.push({ baseW: out.baseW, baseH: out.baseH })
-                    console.log('生成的strip URL:', out.url.substring(0, 50), '...')
+                    
+                    console.log('生成的strip信息:')
+                    console.log('  URL长度:', out.url.length)
+                    console.log('  URL开头:', out.url.substring(0, 50), '...')
+                    console.log('  rects数量:', out.rects.length)
+                    console.log('  尺寸:', out.baseW, 'x', out.baseH)
                 }
                 
                 lineStripUrls.value = urls
                 lineStripRects.value = rectsAll
                 lineStripDims.value = dimsAll
-                console.log('拼接图构建完成，strip数量:', urls.length)
+                
+                console.log('\n=== 拼接图构建完成 ===')
+                console.log('lineStripUrls数组:', lineStripUrls.value)
+                console.log('lineStripUrls数量:', lineStripUrls.value.length)
+                console.log('lineStripUrls[0] URL长度:', lineStripUrls.value[0]?.length || 0)
             } else {
                 console.log('构建拼接图条件不满足:')
-                console.log('originalImageUrl.value:', originalImageUrl.value)
-                console.log('textLines.value.length:', textLines.value.length)
+                console.log('originalImageUrl:', originalImageUrl.value)
+                console.log('textLines.length:', textLines.value.length)
             }
         } catch (e) {
-            console.error('构建拼接图失败:', e)
-            console.error(e.stack)
+            console.error('=== 构建拼接图失败 ===')
+            console.error('错误:', e)
+            console.error('错误栈:', e.stack)
         }
+        
+        // 监听lineStripUrls变化，输出调试信息
+        watch(lineStripUrls, (newUrls) => {
+            console.log('lineStripUrls变化:', newUrls)
+            console.log('当前列索引:', currentColumn.value - 1)
+            console.log('当前列拼接图URL:', newUrls[currentColumn.value - 1])
+        }, { deep: true })
         console.log('=== 拼接图构建结束 ===')
         const conf = typeof r.confidence === 'number' ? r.confidence : 0
         const now = new Date()
@@ -648,11 +847,40 @@ const startRecognition = async () => {
 }
 
 const viewResults = () => {
-    activeTab.value = 'result'
+  // 检查是否未上传图片
+  if (recognitionState.value === 'waiting') {
+    // 显示友好提示
+    appStore.addNotification({
+      type: 'info',
+      message: '请先上传图片进行识别，再进行后续操作',
+      duration: 3000
+    })
+    // 不执行切换
+    return
+  }
+  
+  activeTab.value = 'result'
 }
 
 const switchTab = (tab) => {
-    activeTab.value = tab
+  // 检查是否为需要限制的标签页
+  const restrictedTabs = ['proofread', 'result', 'interpretation']
+  // 检查是否未上传图片
+  const hasNoImage = recognitionState.value === 'waiting'
+  
+  if (restrictedTabs.includes(tab) && hasNoImage) {
+    // 显示友好提示
+    appStore.addNotification({
+      type: 'info',
+      message: '请先上传图片进行识别，再进行后续操作',
+      duration: 3000
+    })
+    // 不执行切换
+    return
+  }
+  
+  // 正常切换标签页
+  activeTab.value = tab
 }
 
 const switchInterpretationTab = (tab) => {
@@ -660,30 +888,42 @@ const switchInterpretationTab = (tab) => {
 }
 
 const showInterpretation = async () => {
-    activeTab.value = 'interpretation'
-    if (!sectionsHistory.value && recognitionResult.value?.text) {
-        const baseUrl = window.location.origin
-        const token = localStorage.getItem('token') || ''
-        try {
-            sectionsLoading.value = true
-            appStore.addNotification({ type: 'info', message: '正在生成AI阐释...', duration: 2000 })
-            const data = await postInterpretationSections({ baseUrl, token, text: recognitionResult.value.text })
-            const s = data.sections || {}
-            sectionsHistory.value = s.history_markdown || ''
-            sectionsCulture.value = s.culture_markdown || ''
-            sectionsFigures.value = s.figures || []
-            sectionsSources.value = data.sources || []
-            if (Array.isArray(s.timeline)) {
-                timeline.value = s.timeline.map(t => ({ year: t.year, event: (t.title ? t.title + '：' : '') + (t.description || '') }))
-            } else {
-                timeline.value = []
-            }
-        } catch (e) {
-            appStore.addNotification({ type: 'error', message: 'AI阐释生成失败', duration: 3000 })
-        } finally {
-            sectionsLoading.value = false
-        }
-    }
+  // 检查是否未上传图片
+  if (recognitionState.value === 'waiting') {
+    // 显示友好提示
+    appStore.addNotification({
+      type: 'info',
+      message: '请先上传图片进行识别，再进行后续操作',
+      duration: 3000
+    })
+    // 不执行切换
+    return
+  }
+  
+  activeTab.value = 'interpretation'
+  if (!sectionsHistory.value && recognitionResult.value?.text) {
+      const baseUrl = window.location.origin
+      const token = localStorage.getItem('token') || ''
+      try {
+          sectionsLoading.value = true
+          appStore.addNotification({ type: 'info', message: '正在生成AI阐释...', duration: 2000 })
+          const data = await postInterpretationSections({ baseUrl, token, text: recognitionResult.value.text })
+          const s = data.sections || {}
+          sectionsHistory.value = s.history_markdown || ''
+          sectionsCulture.value = s.culture_markdown || ''
+          sectionsFigures.value = s.figures || []
+          sectionsSources.value = data.sources || []
+          if (Array.isArray(s.timeline)) {
+              timeline.value = s.timeline.map(t => ({ year: t.year, event: (t.title ? t.title + '：' : '') + (t.description || '') }))
+          } else {
+              timeline.value = []
+          }
+      } catch (e) {
+          appStore.addNotification({ type: 'error', message: 'AI阐释生成失败', duration: 3000 })
+      } finally {
+          sectionsLoading.value = false
+      }
+  }
 }
 
 const prevColumn = () => {
@@ -1037,24 +1277,27 @@ const saveAndNavigateToDetails = async (item = null) => {
                             ]">
                                 图片上传
                             </button>
-                            <button @click="switchTab('proofread')" :class="[
-                                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
-                                activeTab === 'proofread' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'
-                            ]">
-                                详细校对
-                            </button>
-                            <button @click="switchTab('result')" :class="[
-                                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
-                                activeTab === 'result' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'
-                            ]">
-                                识别结果
-                            </button>
-                            <button @click="switchTab('interpretation')" :class="[
-                                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
-                                activeTab === 'interpretation' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'
-                            ]">
-                                AI阐释
-                            </button>
+                            <button @click="switchTab('proofread')" :disabled="recognitionState === 'waiting'" :class="[
+                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
+                activeTab === 'proofread' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70',
+                recognitionState === 'waiting' ? 'cursor-not-allowed opacity-50 hover:no-underline' : ''
+            ]">
+                详细校对
+            </button>
+                            <button @click="switchTab('result')" :disabled="recognitionState === 'waiting'" :class="[
+                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
+                activeTab === 'result' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70',
+                recognitionState === 'waiting' ? 'cursor-not-allowed opacity-50 hover:no-underline' : ''
+            ]">
+                识别结果
+            </button>
+                            <button @click="switchTab('interpretation')" :disabled="recognitionState === 'waiting'" :class="[
+                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
+                activeTab === 'interpretation' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70',
+                recognitionState === 'waiting' ? 'cursor-not-allowed opacity-50 hover:no-underline' : ''
+            ]">
+                AI阐释
+            </button>
                         </div>
                     </div>
 
@@ -1322,11 +1565,6 @@ const saveAndNavigateToDetails = async (item = null) => {
                                 <i v-else class="fas fa-book-reader mr-2"></i>
                                 查看AI阐释
                             </button>
-                            <button @click="saveAndNavigateToDetails()"
-                                class="px-6 py-3 border border-gray-300 text-primary rounded-md hover:bg-primary/5 transition-custom flex items-center font-medium">
-                                <i class="fas fa-external-link-alt mr-2"></i>
-                                查看详情与编辑
-                            </button>
                         </div>
                     </div>
 
@@ -1334,7 +1572,11 @@ const saveAndNavigateToDetails = async (item = null) => {
                     <div v-show="activeTab === 'interpretation'" class="p-6 md:p-8">
                         <!-- 顶部操作按钮 -->
                         <div class="flex justify-end mb-6">
-                            <!-- 移除保存按钮 -->
+                            <button @click="saveAndNavigateToDetails()"
+                                class="px-6 py-3 border border-gray-300 text-primary rounded-md hover:bg-primary/5 transition-custom flex items-center font-medium">
+                                <i class="fas fa-external-link-alt mr-2"></i>
+                                查看详情与编辑
+                            </button>
                         </div>
                         <div v-if="sectionsLoading" class="mb-4 flex items-center text-dark/70 text-sm">
                             <i class="fas fa-spinner fa-spin mr-2 text-primary"></i>

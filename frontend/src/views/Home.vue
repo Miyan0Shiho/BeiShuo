@@ -48,6 +48,9 @@ const features = ref([
   }
 ])
 
+// 了解更多模态框状态
+const showAboutModal = ref(false)
+
 // 使用流程
 const steps = ref([
   {
@@ -161,11 +164,11 @@ const watchDemo = () => {
                 <i class="fas fa-camera mr-2"></i>
                 开始识别
               </button>
-              <button
-                class="px-6 py-3 border border-primary text-primary rounded-md font-medium hover:bg-primary/5 transition-custom flex items-center justify-center">
-                <i class="fas fa-info-circle mr-2"></i>
-                了解更多
-              </button>
+              <button @click="showAboutModal = true"
+            class="px-6 py-3 border border-primary text-primary rounded-md font-medium hover:bg-primary/5 transition-custom flex items-center justify-center">
+            <i class="fas fa-info-circle mr-2"></i>
+            了解更多
+          </button>
             </div>
           </div>
           <div class="hidden md:block relative">
@@ -273,8 +276,8 @@ const watchDemo = () => {
                 <div class="relative w-full max-w-md aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
                   <img alt="碑文示例图" class="w-full h-full object-cover" src="/images/多宝塔碑1.jpg">
                   <div
-                    class="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-custom flex items-center justify-center">
-                    <button class="bg-white text-primary px-4 py-2 rounded-md font-medium">
+                    class="absolute inset-0 bg-black/30 opacity-0 pointer-events-none flex items-center justify-center">
+                    <button class="bg-white text-primary px-4 py-2 rounded-md font-medium opacity-50 cursor-not-allowed">
                       <i class="fas fa-upload mr-1"></i>
                       上传图片
                     </button>
@@ -599,6 +602,59 @@ const watchDemo = () => {
         </div>
       </div>
     </section>
+
+    <!-- 了解更多模态框 -->
+    <div v-if="showAboutModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-fade-in-up">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-medium text-primary">关于碑说项目</h3>
+          <button @click="showAboutModal = false" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="px-6 py-5 flex-grow overflow-y-auto">
+          <div class="prose max-w-none text-dark/90">
+            <h4 class="text-md font-semibold text-primary mb-3">项目简介</h4>
+            <p class="mb-4">碑说平台是一个专注于碑文识别与文化阐释的AI应用，通过先进的计算机视觉和自然语言处理技术，为用户提供碑文识别、历史背景解读和文化内涵阐释等服务。</p>
+            
+            <h4 class="text-md font-semibold text-primary mb-3">核心功能</h4>
+            <ul class="list-disc pl-5 mb-4">
+              <li>AI碑文识别：支持多种格式的碑文图片上传，自动识别文字内容</li>
+              <li>历史背景阐释：提供碑文创作的历史背景和文化语境</li>
+              <li>相关人物介绍：介绍与碑文相关的历史人物和事件</li>
+              <li>知识图谱关联：构建碑文相关的知识网络，展现文化关联</li>
+              <li>个人收藏管理：支持用户收藏和管理感兴趣的碑文</li>
+            </ul>
+            
+            <h4 class="text-md font-semibold text-primary mb-3">技术特色</h4>
+            <ul class="list-disc pl-5 mb-4">
+              <li>先进的OCR技术，支持多种字体和碑刻风格</li>
+              <li>基于大语言模型的智能阐释系统</li>
+              <li>响应式设计，适配各种设备</li>
+              <li>高性能架构，快速响应</li>
+              <li>安全可靠的数据处理</li>
+            </ul>
+            
+            <h4 class="text-md font-semibold text-primary mb-3">应用场景</h4>
+            <ul class="list-disc pl-5 mb-4">
+              <li>历史研究：辅助学者进行碑文研究和历史考证</li>
+              <li>文化传播：向公众普及碑刻文化和历史知识</li>
+              <li>教育教学：为历史和语文教学提供直观素材</li>
+              <li>旅游导览：为游客提供碑文景点的深度解读</li>
+              <li>个人兴趣：满足历史爱好者对碑文的探索需求</li>
+            </ul>
+            
+            <h4 class="text-md font-semibold text-primary mb-3">未来展望</h4>
+            <p>碑说平台将持续优化AI模型，支持更多碑刻类型和语言，扩展知识库内容，为用户提供更加丰富和深入的碑文解读体验。我们致力于成为连接古代碑刻与现代用户的桥梁，让古老文字焕发新生。</p>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+          <button @click="showAboutModal = false" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

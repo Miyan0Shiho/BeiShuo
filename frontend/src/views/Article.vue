@@ -122,6 +122,16 @@ const extractTranslationText = (content) => {
   return '暂无译文数据'
 }
 
+// 从内容中提取朝代信息
+const extractDynastyFromContent = (content) => {
+  if (!content) return null
+  
+  // 匹配常见的朝代模式
+  const dynastyRegex = /朝代：([^\s-]+)/i
+  const match = content.match(dynastyRegex)
+  return match ? match[1] : null
+}
+
 // 从Markdown内容中提取历史背景
 const extractHistoryBackground = (content) => {
   if (!content) return ''
@@ -276,8 +286,13 @@ const loadArticle = async () => {
     
     article.value = articleData
     
-    // 碑刻年代直接从数据库获取，不需要从内容中提取
-    // extractedYear.value = articleData.year || extractYear(articleData.content) || '未知年代'
+    // 提取碑刻年代
+    const extractedDynasty = extractDynastyFromContent(articleData.content || articleData.description)
+    article.value = {
+      ...articleData,
+      dynasty: articleData.dynasty || extractedDynasty,
+      year: articleData.year || extractedDynasty
+    }
     
     // 检查是否已收藏
     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
@@ -303,31 +318,66 @@ const loadArticle = async () => {
 }
 
 // 收藏/取消收藏
-const toggleFavorite = () => {
-  const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-
-  if (isFavorited.value) {
-    const index = favorites.indexOf(articleId.value)
-    if (index > -1) {
-      favorites.splice(index, 1)
+const toggleFavorite = async () => {
+  const baseUrl = window.location.origin + '/api/v1'
+  const token = localStorage.getItem('token') || ''
+  const currentFavorites = JSON.parse(localStorage.getItem('favorites') || '[]')
+  const isCurrentlyFavorited = isFavorited.value
+  
+  try {
+    // 乐观更新
+    let updatedFavorites = [...currentFavorites]
+    
+    if (isCurrentlyFavorited) {
+      // 取消收藏
+      updatedFavorites = updatedFavorites.filter(id => id !== articleId.value)
+      isFavorited.value = false
+    } else {
+      // 添加收藏
+      updatedFavorites.push(articleId.value)
+      isFavorited.value = true
     }
-    isFavorited.value = false
+    
+    // 调用API同步到服务器
+    if (isCurrentlyFavorited) {
+       await fetch(`${baseUrl}/favorite/${articleId.value}`, {
+         method: 'DELETE',
+         headers: { 'Authorization': `Bearer ${token}` }
+       })
+       appStore.addNotification({
+         type: 'info',
+         message: '已取消收藏',
+         duration: 2000
+       })
+    } else {
+       await fetch(`${baseUrl}/favorite/add`, {
+         method: 'POST',
+         headers: { 
+           'Authorization': `Bearer ${token}`,
+           'Content-Type': 'application/json'
+         },
+         body: JSON.stringify({ itemId: articleId.value })
+       })
+       appStore.addNotification({
+         type: 'success',
+         message: '收藏成功',
+         duration: 2000
+       })
+    }
+    
+    // 更新本地存储
+    localStorage.setItem('favorites', JSON.stringify(updatedFavorites))
+  } catch (e) {
+    // 回滚乐观更新
+    isFavorited.value = isCurrentlyFavorited
+    
+    // 显示错误信息
     appStore.addNotification({
-      type: 'info',
-      message: '已取消收藏',
-      duration: 2000
-    })
-  } else {
-    favorites.push(articleId.value)
-    isFavorited.value = true
-    appStore.addNotification({
-      type: 'success',
-      message: '收藏成功',
+      type: 'error',
+      message: '操作失败，请重试',
       duration: 2000
     })
   }
-
-  localStorage.setItem('favorites', JSON.stringify(favorites))
 }
 
 // 分享
@@ -519,11 +569,11 @@ watch(article, (newArticle) => {
           </div>
         </div>
         <div class="flex flex-wrap gap-2">
-          <span class="bg-secondary/30 text-primary text-xs px-3 py-1 rounded-full">欧阳询</span>
-          <span class="bg-secondary/30 text-primary text-xs px-3 py-1 rounded-full">楷书</span>
-          <span class="bg-secondary/30 text-primary text-xs px-3 py-1 rounded-full">{{ article.dynasty }}名碑</span>
-          <span class="bg-secondary/30 text-primary text-xs px-3 py-1 rounded-full">皇家碑刻</span>
-          <span class="bg-secondary/30 text-primary text-xs px-3 py-1 rounded-full">书法艺术</span>
+          <!-- 动态生成标签 -->
+          <span v-for="tag in (article.tags || [article.author, article.category, article.dynasty])" :key="tag" v-if="tag" class="bg-secondary/30 text-primary text-xs px-3 py-1 rounded-full">
+            {{ tag }}
+          </span>
+          <span v-if="article.dynasty" class="bg-secondary/30 text-primary text-xs px-3 py-1 rounded-full">{{ article.dynasty }}名碑</span>
         </div>
       </div>
 
@@ -545,7 +595,7 @@ watch(article, (newArticle) => {
                 <ul class="space-y-3 text-sm">
                     <li class="flex justify-between">
                       <span class="text-dark/60">碑刻年代</span>
-                      <span class="font-medium">{{ article.year || article.dynasty || '未知年代' }}</span>
+                      <span class="font-medium">{{ article.year || article.dynasty || extractDynastyFromContent(article.content || article.description) || '未知年代' }}</span>
                     </li>
                     <li class="flex justify-between">
                       <span class="text-dark/60">文章作者</span>

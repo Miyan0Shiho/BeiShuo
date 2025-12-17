@@ -20,8 +20,7 @@ const dynasties = ref([])
 const loading = ref(false)
 const recommendationPage = ref(1)
 const showPreferences = ref(false)
-const showTagModal = ref(false)
-const selectedTagInfo = ref(null)
+
 const favorites = ref([])
 
 // Mock Tag Library
@@ -51,12 +50,34 @@ const chatExpanded = ref(false)
 // API配置
 const baseUrl = ref(window.location.origin + '/api/v1')
 
+// 从文章内容中提取朝代信息
+const extractDynastyFromContent = (content) => {
+  if (!content) return null
+  
+  // 匹配常见的朝代模式
+  const dynastyRegex = /朝代：([^\s-]+)/i
+  const match = content.match(dynastyRegex)
+  return match ? match[1] : null
+}
+
 // 获取知识库数据
 const loadKnowledgeData = async () => {
   loading.value = true
   try {
     const homeData = await fetchKnowledgeHome(baseUrl.value, userStore.token || '')
-    articles.value = homeData.featured || []
+    let articlesData = homeData.featured || []
+    
+    // 为每个文章提取并设置朝代信息
+    articlesData = articlesData.map(article => {
+      // 从描述或内容中提取朝代
+      const dynasty = extractDynastyFromContent(article.description || article.content)
+      return {
+        ...article,
+        dynasty: dynasty || article.dynasty
+      }
+    })
+    
+    articles.value = articlesData
     
     // 更新分类和朝代数据
     const categoryData = await fetchKnowledgeCategories(baseUrl.value, userStore.token || '')
@@ -169,11 +190,20 @@ const refreshRecommendations = async () => {
   }
 }
 
-// 查看标签详情
-const viewTagInfo = (tag) => {
-  const info = tagLibrary[tag] || { description: '暂无详细描述', example: '暂无示例' }
-  selectedTagInfo.value = { name: tag, ...info }
-  showTagModal.value = true
+
+
+// 从内容中提取标签
+const extractTagsFromContent = (content) => {
+  if (!content) return []
+  
+  // 匹配标签列表
+  const tagsRegex = /## 标签\s*\n*([\s\S]*?)\n*##/i
+  const match = content.match(tagsRegex)
+  if (match && match[1]) {
+    return match[1].trim().split(/[\n,，、]/).filter(tag => tag.trim())
+  }
+  
+  return []
 }
 
 // 获取推荐标签
@@ -189,7 +219,20 @@ const getRecommendTags = () => {
     if (article.category) {
       tags.add(article.category)
     }
+    // 从内容中提取标签
+    const contentTags = extractTagsFromContent(article.content || article.description)
+    contentTags.forEach(tag => tags.add(tag))
+    // 添加作者作为标签
+    if (article.author) {
+      tags.add(article.author)
+    }
   })
+  
+  // 添加标签图谱中的标签
+  Object.keys(tagLibrary).forEach(tag => {
+    tags.add(tag)
+  })
+  
   return Array.from(tags)
 }
 
@@ -302,19 +345,56 @@ const sendChatQuestion = async () => {
 }
 
 // 收藏功能
-const toggleFavorite = (article, event) => {
+const toggleFavorite = async (article, event) => {
   event.stopPropagation()
   const index = favorites.value.indexOf(article.id)
+  const isFavorited = index > -1
+  const baseUrl = window.location.origin + '/api/v1'
+  const token = localStorage.getItem('token') || ''
   
-  if (index > -1) {
-    favorites.value = favorites.value.filter(id => id !== article.id)
-    appStore.addNotification({ type: 'info', message: '已取消收藏', duration: 2000 })
-  } else {
-    favorites.value = [...favorites.value, article.id]
-    appStore.addNotification({ type: 'success', message: '收藏成功', duration: 2000 })
+  try {
+    // 乐观更新
+    if (isFavorited) {
+      favorites.value = favorites.value.filter(id => id !== article.id)
+    } else {
+      favorites.value = [...favorites.value, article.id]
+    }
+    
+    // 调用API同步到服务器
+    if (isFavorited) {
+       await fetch(`${baseUrl}/favorite/${article.id}`, {
+         method: 'DELETE',
+         headers: { 'Authorization': `Bearer ${token}` }
+       })
+       appStore.addNotification({ type: 'info', message: '已取消收藏', duration: 2000 })
+    } else {
+       await fetch(`${baseUrl}/favorite/add`, {
+         method: 'POST',
+         headers: { 
+           'Authorization': `Bearer ${token}`,
+           'Content-Type': 'application/json'
+         },
+         body: JSON.stringify({ itemId: article.id })
+       })
+       appStore.addNotification({ type: 'success', message: '收藏成功', duration: 2000 })
+    }
+    
+    // 更新本地存储
+    localStorage.setItem('favorites', JSON.stringify(favorites.value))
+  } catch (e) {
+    // 回滚乐观更新
+    if (isFavorited) {
+      favorites.value = [...favorites.value, article.id]
+    } else {
+      favorites.value = favorites.value.filter(id => id !== article.id)
+    }
+    
+    // 降级到仅本地存储
+    localStorage.setItem('favorites', JSON.stringify(favorites.value))
+    
+    // 显示错误信息
+    appStore.addNotification({ type: 'error', message: '操作失败，请重试', duration: 2000 })
   }
-  
-  localStorage.setItem('favorites', JSON.stringify(favorites.value))
 }
 
 // 检查是否已收藏
@@ -407,9 +487,7 @@ watch(searchQuery, (newQuery) => {
       <div class="mb-4">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-sm font-medium text-dark/70">推荐标签</h3>
-          <button @click="showTagModal = true" class="text-xs text-primary hover:text-accent flex items-center">
-            标签图谱 <i class="fas fa-book-open ml-1"></i>
-          </button>
+
         </div>
         <div class="flex overflow-x-auto pb-2 gap-2 scrollbar-hide">
           <!-- 全部推荐 -->
@@ -524,9 +602,7 @@ watch(searchQuery, (newQuery) => {
             <i class="fas fa-clock mr-2 text-accent"></i>
             最新收录碑刻
           </h2>
-          <a class="text-primary text-sm hover:text-accent transition-custom flex items-center">
-            查看全部 <i class="fas fa-angle-right ml-1"></i>
-          </a>
+
         </div>
         <div class="bg-white rounded-xl shadow-sm p-5">
           <div class="space-y-5">
@@ -698,44 +774,7 @@ watch(searchQuery, (newQuery) => {
       </div>
     </div>
 
-    <!-- 标签详情弹窗 -->
-    <div v-if="showTagModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col animate-fade-in-up">
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 class="text-lg font-medium text-primary">{{ selectedTagInfo ? selectedTagInfo.name : '标签图谱' }}</h3>
-          <button @click="showTagModal = false; selectedTagInfo = null" class="text-gray-500 hover:text-gray-700">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="px-6 py-4 flex-grow overflow-y-auto">
-          <div v-if="selectedTagInfo">
-            <div class="mb-4">
-              <h4 class="text-sm font-semibold text-gray-500 uppercase mb-1">描述</h4>
-              <p class="text-dark/80">{{ selectedTagInfo.description }}</p>
-            </div>
-            <div class="mb-6">
-              <h4 class="text-sm font-semibold text-gray-500 uppercase mb-1">典型示例</h4>
-              <p class="text-primary">{{ selectedTagInfo.example }}</p>
-            </div>
-            <button @click="selectCategory(selectedTagInfo.name); showTagModal = false; selectedTagInfo = null" 
-              class="w-full py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
-              查看相关碑文
-            </button>
-          </div>
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div v-for="(info, name) in tagLibrary" :key="name" 
-              class="p-4 border border-gray-100 rounded-lg hover:shadow-md cursor-pointer transition-custom"
-              @click="selectedTagInfo = { name, ...info }">
-              <div class="flex justify-between items-center mb-2">
-                <h4 class="font-semibold text-primary">{{ name }}</h4>
-                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
-              </div>
-              <p class="text-sm text-dark/60 line-clamp-2">{{ info.description }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+
   </div>
 </template>
 
