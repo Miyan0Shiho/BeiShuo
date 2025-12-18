@@ -85,18 +85,26 @@ async def general_exception_handler(request: Request, exc: Exception):
 # 注册路由
 app.include_router(v1_router, prefix="/api/v1")
 
+# 自定义支持CORS的静态文件服务
+class CORSStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        # 允许所有源访问静态资源，这对Canvas处理图片至关重要
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+
 # 静态文件挂载（用于前端裁剪原图：/uploads/*）
 import os
 # 创建uploads目录（如果不存在）
 uploads_path = os.path.abspath(settings.file_upload_path)
 os.makedirs(uploads_path, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+app.mount("/uploads", CORSStaticFiles(directory=uploads_path), name="uploads")
 
 # 静态文件挂载（用于临时OSS图片：/temp_oss_images/*）
 # 创建临时目录（如果不存在）
 temp_oss_images_path = os.path.join(os.getcwd(), "temp_oss_images")
 os.makedirs(temp_oss_images_path, exist_ok=True)
-app.mount("/temp_oss_images", StaticFiles(directory=temp_oss_images_path), name="temp_oss_images")
+app.mount("/temp_oss_images", CORSStaticFiles(directory=temp_oss_images_path), name="temp_oss_images")
 
 @app.get("/")
 async def root():

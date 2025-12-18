@@ -350,7 +350,7 @@
                           <button @click="toggleFavorite(2)"
                             class="text-dark/50 hover:text-primary transition-custom p-1" title="收藏">
                             <i
-                              :class="favorites.includes(2) ? 'fas fa-heart text-red-500' : 'far fa-heart text-dark/50'"></i>
+                              :class="favorites.includes(2) ? 'fas fa-heart text-red-500' : 'fas fa-heart text-red-500'"></i>
                           </button>
                           <button @click="downloadItem(2)" class="text-dark/50 hover:text-primary transition-custom p-1"
                             title="下载">
@@ -397,7 +397,7 @@
                           <button @click="toggleFavorite(3)"
                             class="text-dark/50 hover:text-primary transition-custom p-1" title="收藏">
                             <i
-                              :class="favorites.includes(3) ? 'fas fa-heart text-red-500' : 'far fa-heart text-dark/50'"></i>
+                              :class="favorites.includes(3) ? 'fas fa-heart text-red-500' : 'fas fa-heart text-red-500'"></i>
                           </button>
                           <button @click="downloadItem(3)" class="text-dark/50 hover:text-primary transition-custom p-1"
                             title="下载">
