@@ -34,7 +34,7 @@ class KnowledgeService:
             # 如果OSS转换失败，尝试构建基础URL
             return f"https://{settings.aliyun_oss_domain}/{object_name}"
     
-    def _extract_excerpt(self, content: str, max_length: int = 200) -> str:
+    def _extract_excerpt(self, content: str, max_length: int = 300) -> str:
         """从内容中提取摘要"""
         if not content:
             return ""
@@ -45,11 +45,46 @@ class KnowledgeService:
         text = re.sub(r'\*([^*]+)\*', r'\1', text)  # 移除斜体
         text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)  # 移除链接
         
+        # 确保摘要包含朝代信息
+        # 查找基本信息部分
+        basic_info_index = text.find('基本信息')
+        if basic_info_index != -1:
+            # 从基本信息开始截取，确保包含朝代信息
+            text = text[basic_info_index:]
+        
         # 截取前max_length个字符
         if len(text) > max_length:
             text = text[:max_length].rstrip() + "..."
         
         return text
+    
+    def _extract_dynasty_from_content(self, content: str) -> Optional[str]:
+        """从内容中提取朝代信息"""
+        if not content:
+            return None
+        
+        # 匹配多种格式的朝代信息，包括带有Markdown粗体标记的格式
+        # 如：**朝代**：东汉，朝代：东汉，朝代: 东汉等格式
+        pattern = r'\*\*?朝代\*\*?[:：]\s*([^\s-]+)'
+        match = re.search(pattern, content)
+        if match:
+            return match.group(1)
+        
+        return None
+    
+    def _extract_year_from_content(self, content: str) -> Optional[str]:
+        """从内容中提取年份信息"""
+        if not content:
+            return None
+        
+        # 匹配多种格式的年份信息，包括带有Markdown粗体标记的格式
+        # 如：**碑文年代**：东汉中平二年（公元185年），碑文年代: 东汉中平二年
+        pattern = r'\*\*?碑文年代\*\*?[:：]\s*([^-\n]+)'
+        match = re.search(pattern, content)
+        if match:
+            return match.group(1).strip()
+        
+        return None
     
     def _format_article(self, article: Dict[str, Any], include_content: bool = False) -> Dict[str, Any]:
         """格式化文章数据"""
@@ -69,16 +104,16 @@ class KnowledgeService:
             "updated_at": article.get("updated_at"),
         }
         
-        # 添加可选字段
-        if "dynasty" in article:
-            formatted["dynasty"] = article.get("dynasty")
-        if "category" in article:
-            formatted["category"] = article.get("category")
-        if "year" in article:
-            formatted["year"] = article.get("year")
-        
         # 内容处理
         content = article.get("content", "")
+        description = article.get("description", "")
+        full_content = content or description
+        
+        # 提取或使用现有朝代和年份信息
+        formatted["dynasty"] = article.get("dynasty", "") or self._extract_dynasty_from_content(full_content) or ""
+        formatted["category"] = article.get("category", "")
+        formatted["year"] = article.get("year", "") or self._extract_year_from_content(full_content) or ""
+        
         if include_content:
             formatted["content"] = content
         else:
@@ -278,6 +313,29 @@ class KnowledgeService:
         # 获取朝代列表
         dynasties = await self.database_client.get_knowledge_dynasties()
         
+        # 从标签中提取朝代和年份信息的辅助函数
+        async def process_articles(articles):
+            processed = []
+            for item in articles:
+                formatted = self._format_article(item, include_content=False)
+                
+                # 获取文章标签
+                tags = await self.database_client.get_knowledge_tags(item.get("id", 0))
+                
+                # 从标签中提取朝代和年份信息
+                dynasties = ["夏", "商", "周", "秦", "汉", "三国", "晋", "南北朝", "隋", "唐", "五代十国", "宋", "辽", "金", "元", "明", "清", "民国", "现代"]
+                for tag in tags:
+                    tag_name = tag.get("name", "").strip()
+                    # 检查标签是否为朝代名称
+                    if tag_name in dynasties:
+                        formatted["dynasty"] = tag_name
+                    # 检查标签是否为年份（4位数字）
+                    if re.match(r"^\d{4}$", tag_name):
+                        formatted["year"] = tag_name
+                
+                processed.append(formatted)
+            return processed
+        
         # 获取推荐文章（按浏览量排序，取前6条）
         featured_result = await self.database_client.get_knowledge_list(
             page=0,
@@ -287,7 +345,7 @@ class KnowledgeService:
             category=category
         )
         featured_items = featured_result.get("items", []) if featured_result else []
-        featured = [self._format_article(item, include_content=False) for item in featured_items]
+        featured = await process_articles(featured_items)
         
         # 获取最新文章（取前10条）
         recent_result = await self.database_client.get_knowledge_list(
@@ -298,7 +356,7 @@ class KnowledgeService:
             category=None
         )
         recent_items = recent_result.get("items", []) if recent_result else []
-        recent_articles = [self._format_article(item, include_content=False) for item in recent_items]
+        recent_articles = await process_articles(recent_items)
         
         return {
             "categories": [{"name": cat.get("category"), "count": cat.get("count", 0)} for cat in categories],

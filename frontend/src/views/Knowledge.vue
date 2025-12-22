@@ -54,10 +54,22 @@ const baseUrl = ref(window.location.origin + '/api/v1')
 const extractDynastyFromContent = (content) => {
   if (!content) return null
   
-  // 匹配常见的朝代模式
-  const dynastyRegex = /朝代：([^\s-]+)/i
+  // 匹配常见的朝代模式，处理多种格式
+  // 支持：朝代：东汉，基本信息 - 朝代：东汉，朝代: 东汉等格式
+  const dynastyRegex = /朝代[:：]\s*([^\s-]+)/i
   const match = content.match(dynastyRegex)
+  console.log('extractDynastyFromContent:', { content, match })
   return match ? match[1] : null
+}
+
+// 从文章内容中提取碑文年代
+const extractYearFromContent = (content) => {
+  if (!content) return null
+  
+  // 匹配碑文年代模式
+  const yearRegex = /碑文年代[:：]\s*([^-\n]+)/i
+  const match = content.match(yearRegex)
+  return match ? match[1].trim() : null
 }
 
 // 获取知识库数据
@@ -65,16 +77,22 @@ const loadKnowledgeData = async () => {
   loading.value = true
   try {
     const homeData = await fetchKnowledgeHome(baseUrl.value, userStore.token || '')
+    console.log('homeData:', homeData)
     let articlesData = homeData.featured || []
     
-    // 为每个文章提取并设置朝代信息
+    // 为每个文章提取并设置朝代和年代信息
     articlesData = articlesData.map(article => {
-      // 从描述或内容中提取朝代
+      console.log('Original article:', article)
+      // 从描述或内容中提取朝代和年代
       const dynasty = extractDynastyFromContent(article.description || article.content)
-      return {
+      const year = extractYearFromContent(article.description || article.content)
+      const updatedArticle = {
         ...article,
-        dynasty: dynasty || article.dynasty
+        dynasty: dynasty || article.dynasty,
+        year: year || article.year
       }
+      console.log('Updated article:', updatedArticle)
+      return updatedArticle
     })
     
     articles.value = articlesData
@@ -556,7 +574,7 @@ watch(searchQuery, (newQuery) => {
               <div
                 class="absolute top-3 right-3 bg-accent text-white text-xs font-medium px-2 py-1 rounded-full flex items-center">
                 <i class="fas fa-eye mr-1"></i>
-                {{ article.views ? Math.floor(article.views / 1000) + 'k' : '0' }}
+                {{ article.views >= 1000 ? Math.floor(article.views / 1000) + 'k' : article.views || 0 }}
               </div>
             </div>
             <div class="p-5">

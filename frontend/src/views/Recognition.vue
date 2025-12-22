@@ -937,15 +937,63 @@ const dislikeResult = async () => {
             // 这里需要获取当前上传的图片文件或URL，然后重新调用startRecognitionApi
             // 由于当前代码中没有保存原始图片文件，我们可以提示用户重新上传
             uploadModalOpen.value = true
-        } else {
-            const msg = data && data.message ? data.message : '操作失败'
-            throw new Error(msg)
         }
-    } catch (e) {
-        console.error('处理不满意结果失败:', e)
+    } catch (error) {
+        console.error('删除OCR缓存失败:', error)
         appStore.addNotification({
             type: 'error',
-            message: `操作失败: ${e.message}`,
+            message: '删除缓存失败，请稍后重试',
+            duration: 3000
+        })
+    }
+}
+
+// 删除识别记录
+const deleteRecognitionRecord = async (item) => {
+    try {
+        // 显示确认对话框
+        if (!confirm('确定要删除这条识别记录吗？')) {
+            return
+        }
+        
+        const baseUrl = window.location.origin
+        const token = localStorage.getItem('token') || ''
+        const recordId = item.id
+        
+        // 调用API删除识别记录
+        const url = `${baseUrl}/api/v1/recognition/history/${recordId}`
+        const headers = { 'Content-Type': 'application/json' }
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`
+        }
+        
+        const response = await fetch(url, { method: 'DELETE', headers })
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+        }
+        
+        const data = await response.json()
+        if (data && data.success) {
+            appStore.addNotification({
+                type: 'success',
+                message: '识别记录已删除',
+                duration: 3000
+            })
+            
+            // 刷新识别记录列表
+            await loadRecognitionHistory()
+        } else {
+            appStore.addNotification({
+                type: 'error',
+                message: data.message || '删除失败',
+                duration: 3000
+            })
+        }
+    } catch (error) {
+        console.error('删除识别记录失败:', error)
+        appStore.addNotification({
+            type: 'error',
+            message: '删除失败，请稍后重试',
             duration: 3000
         })
     }
@@ -1493,165 +1541,9 @@ const saveAndNavigateToDetails = async (item = null) => {
                 </div>
             </div>
 
-            <!-- 相关碑文推荐 -->
-            <div class="mt-16">
-                <h3 class="text-2xl font-serif font-semibold text-primary mb-6 flex items-center">
-                    <i class="fas fa-lightbulb mr-3 text-accent"></i>
-                    相关碑文推荐
-                </h3>
-                
-                <!-- 加载状态 -->
-                <div v-if="isLoadingRecommendations" class="flex justify-center items-center py-10">
-                    <div class="text-center">
-                        <i class="fas fa-spinner fa-spin text-2xl text-primary mb-2"></i>
-                        <p class="text-dark/60">加载中...</p>
-                    </div>
-                </div>
-                
-                <!-- 空数据状态 -->
-                <div v-else-if="recommendations.length === 0" class="flex justify-center items-center py-10">
-                    <div class="text-center text-dark/60">
-                        <i class="fas fa-lightbulb mb-2 text-xl"></i>
-                        <p>暂无相关碑文推荐</p>
-                    </div>
-                </div>
-                
-                <!-- 数据列表 -->
-                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div v-for="item in recommendations" :key="item.id"
-                        class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-custom border border-gray-100 cursor-pointer">
-                        <!-- 图片显示 -->
-                        <div class="h-48 overflow-hidden bg-gray-100">
-                            <!-- 从excerpt中提取图片链接 -->
-                            <img 
-                                v-if="item.cover_image || (item.excerpt && item.excerpt.includes('图片链接：'))" 
-                                :src="item.cover_image || (item.excerpt.match(/- 图片链接：(.*?)\n/)?.[1] || '')" 
-                                :alt="item.title" 
-                                class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                                @error="(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }"
-                            />
-                            <!-- 本地占位图 -->
-                            <div class="h-full bg-gray-100 flex items-center justify-center" style="display: none;">
-                                <i class="fas fa-monument text-gray-300 text-5xl"></i>
-                            </div>
-                        </div>
-                        <div class="p-5">
-                            <h4 class="text-lg font-serif font-medium text-dark mb-2">{{ item.title }}</h4>
-                            <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ item.description || item.excerpt }}</p>
-                            <!-- 查看详情跳转 -->
-                            <router-link 
-                                :to="`/knowledge/article/${item.id}`" 
-                                class="text-primary text-sm font-medium flex items-center hover:text-accent transition-custom"
-                            >
-                                查看详情
-                                <i class="fas fa-arrow-right ml-2 text-xs"></i>
-                            </router-link>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- 最近识别记录 -->
-            <div class="mt-12">
-                <h2 class="text-xl font-semibold text-primary mb-6 flex items-center">
-                    <i class="fas fa-history mr-2"></i>
-                    最近识别记录
-                </h2>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    
-                    <!-- 加载状态 -->
-                    <div v-if="isLoadingHistory" class="flex justify-center items-center py-10">
-                        <div class="text-center">
-                            <i class="fas fa-spinner fa-spin text-2xl text-primary mb-2"></i>
-                            <p class="text-dark/60">加载中...</p>
-                        </div>
-                    </div>
-                    
-                    <!-- 空数据状态 -->
-                    <div v-else-if="recentHistory.length === 0" class="flex justify-center items-center py-10">
-                        <div class="text-center text-dark/60">
-                            <i class="fas fa-inbox mb-2 text-xl"></i>
-                            <p>暂无识别记录</p>
-                        </div>
-                    </div>
-                    
-                    <!-- 数据列表 -->
-                    <div v-else>
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead>
-                                    <tr class="bg-gray-50 border-b border-gray-200">
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                            图片</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                            识别内容</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                            时间</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                            置信度</th>
-                                        <th
-                                            class="px-6 py-3 text-right text-xs font-medium text-dark/70 uppercase tracking-wider">
-                                            操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200">
-                                    <tr v-for="item in recentHistory" :key="item.id"
-                                        class="hover:bg-gray-50 transition-custom">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="w-12 h-12 rounded bg-gray-100 overflow-hidden relative">
-                                                <img v-if="item.image_path" 
-                                                     :src="`${baseUrl}${item.image_path}`" 
-                                                     :alt="item.preview" 
-                                                     class="w-full h-full object-cover"
-                                                     @error="$event.target.style.display = 'none'"
-                                                />
-                                                <i v-else class="fas fa-image text-gray-400 absolute w-12 h-12 flex items-center justify-center"></i>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <div class="text-sm text-dark line-clamp-2 max-w-xs">{{ item.preview || '无识别内容' }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-dark/70">{{ item.date || item.created_at }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                                                {{ item.confidence }}%
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button @click="saveAndNavigateToDetails(item)"
-                                                class="text-primary hover:text-accent mr-3 transition-custom">查看详情</button>
-                                            <button class="text-dark/70 hover:text-dark transition-custom">删除</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                            <div class="text-sm text-dark/70">显示 {{ (currentPage - 1) * pageSize + 1 }} 至 {{ Math.min(currentPage * pageSize, totalRecords) }}，共 {{ totalRecords }} 条记录</div>
-                            <div class="flex space-x-1">
-                                <button
-                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/50 hover:bg-gray-100 disabled:opacity-50"
-                                    :disabled="currentPage === 1">
-                                    上一页
-                                </button>
-                                <button class="px-3 py-1 border border-primary bg-primary text-white rounded-md">1</button>
-                                <button
-                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">2</button>
-                                <button
-                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">3</button>
-                                <button
-                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">4</button>
-                                <button
-                                    class="px-3 py-1 border border-gray-300 rounded-md text-dark/70 hover:bg-gray-100">下一页</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
+
 
             <!-- 查看识别记录弹窗 -->
             <teleport to="body">

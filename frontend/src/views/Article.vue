@@ -126,10 +126,20 @@ const extractTranslationText = (content) => {
 const extractDynastyFromContent = (content) => {
   if (!content) return null
   
-  // 匹配常见的朝代模式
-  const dynastyRegex = /朝代：([^\s-]+)/i
+  // 匹配常见的朝代模式，处理多种格式
+  const dynastyRegex = /朝代[:：]\s*([^\s-]+)/i
   const match = content.match(dynastyRegex)
   return match ? match[1] : null
+}
+
+// 从内容中提取碑文年代
+const extractYearFromContent = (content) => {
+  if (!content) return null
+  
+  // 匹配碑文年代模式
+  const yearRegex = /碑文年代[:：]\s*([^-\n]+)/i
+  const match = content.match(yearRegex)
+  return match ? match[1].trim() : null
 }
 
 // 从Markdown内容中提取历史背景
@@ -286,12 +296,13 @@ const loadArticle = async () => {
     
     article.value = articleData
     
-    // 提取碑刻年代
+    // 提取碑刻年代和朝代
     const extractedDynasty = extractDynastyFromContent(articleData.content || articleData.description)
+    const extractedYear = extractYearFromContent(articleData.content || articleData.description)
     article.value = {
       ...articleData,
       dynasty: articleData.dynasty || extractedDynasty,
-      year: articleData.year || extractedDynasty
+      year: articleData.year || extractedYear
     }
     
     // 检查是否已收藏

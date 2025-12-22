@@ -356,58 +356,7 @@ const watchDemo = () => {
           </div>
         </div>
         
-        <!-- 相关碑文推荐 -->
-        <div>
-          <h3 class="text-2xl font-serif font-bold text-primary mb-8 text-center">相关碑文推荐</h3>
-          
-          <!-- 推荐加载状态 -->
-          <div v-if="isLoadingRecommendations" class="text-center py-8 text-dark/60">
-            <i class="fas fa-spinner fa-spin text-xl mr-2"></i>
-            正在加载推荐碑文...
-          </div>
-          
-          <!-- 空数据状态 -->
-          <div v-else-if="recommendations.length === 0" class="text-center py-10">
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
-              <i class="fas fa-lightbulb text-gray-400 text-3xl"></i>
-            </div>
-            <p class="text-dark/60">暂无相关碑文推荐</p>
-          </div>
-          
-          <!-- 数据列表 -->
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="item in recommendations" :key="item.id"
-                class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-custom border border-gray-100 cursor-pointer">
-                <!-- 图片显示 -->
-                <div class="h-48 overflow-hidden bg-gray-100">
-                    <!-- 从excerpt中提取图片链接 -->
-                    <img 
-                        v-if="item.cover_image_url || (item.excerpt && item.excerpt.includes('图片链接：'))" 
-                        :src="item.cover_image_url || (item.excerpt.match(/- 图片链接：(.*?)\n/)?.[1] || '')" 
-                        :alt="item.title" 
-                        class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                        @error="(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }"
-                    />
-                    <!-- 本地占位图 -->
-                    <div class="h-full bg-gray-100 flex items-center justify-center" style="display: none;">
-                        <i class="fas fa-monument text-gray-300 text-5xl"></i>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <h4 class="text-lg font-serif font-medium text-dark mb-2">{{ item.title }}</h4>
-                    <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ item.description || item.excerpt }}</p>
-                    <!-- 查看详情跳转 -->
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs text-gray-500">{{ item.dynasty || '未知朝代' }}</span>
-                        <a @click="router.push('/knowledge/article/' + item.id)" href="javascript:void(0);" class="text-primary text-sm font-medium flex items-center hover:text-accent transition-custom cursor-pointer">
-                            查看详情
-                            <i class="fas fa-arrow-right ml-2 text-xs"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </section>
 

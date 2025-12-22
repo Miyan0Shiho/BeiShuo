@@ -220,7 +220,7 @@ class RecommendationService:
                 oj.confidence, 
                 ia.object_path,
                 i.title as inscription_title,
-                GROUP_CONCAT(otl.text SEPARATOR '\n') as recognition_text
+                COALESCE(GROUP_CONCAT(otl.text SEPARATOR '\n'), '') as recognition_text
             FROM ocr_jobs oj
             LEFT JOIN inscription_assets ia ON oj.asset_id = ia.id
             LEFT JOIN inscriptions i ON ia.inscription_id = i.id
@@ -247,20 +247,29 @@ class RecommendationService:
         # 格式化结果
         history = []
         for record in results:
-            # 确保object_path总是包含/uploads/前缀
+            # 确保object_path总是包含正确的URL格式
             object_path = record.get("object_path", "")
-            if object_path and not object_path.startswith('/uploads/'):
-                if object_path.startswith('/'):
-                    object_path = f'/uploads{object_path}'
+            image_path = ""
+            if object_path:
+                # 如果已经是完整URL，直接使用
+                if object_path.startswith('http://') or object_path.startswith('https://'):
+                    image_path = object_path
                 else:
-                    object_path = f'/uploads/{object_path}'
+                    # 如果是本地路径，确保包含/uploads/前缀
+                    if not object_path.startswith('/uploads/'):
+                        if object_path.startswith('/'):
+                            image_path = f'/uploads{object_path}'
+                        else:
+                            image_path = f'/uploads/{object_path}'
+                    else:
+                        image_path = object_path
             
             history.append({
                 "id": record.get("id"),
                 "status": record.get("status"),
                 "created_at": record.get("created_at"),
                 "confidence": round(float(record.get("confidence", 0)) * 100, 2) if record.get("confidence") else 0,
-                "image_path": object_path,
+                "image_path": image_path,
                 "inscription_title": record.get("inscription_title", "未知碑文"),
                 "recognition_text": record.get("recognition_text", "")
             })
