@@ -17,21 +17,8 @@ const selectedImport = ref(null)
 const previewContent = ref('')
 const editContent = ref('')
 const editTitle = ref('')
-const category = ref('')
-const tags = ref([])
-const newTag = ref('')
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
-
-const addTag = () => {
-  const t = newTag.value.trim()
-  if (!t) return
-  tags.value = [...tags.value, t]
-  newTag.value = ''
-}
-const removeTag = (idx) => {
-  tags.value.splice(idx, 1)
-}
 
 const handleFileSelect = (e) => {
   const list = Array.from(e.target.files || [])
@@ -83,34 +70,7 @@ const selectImport = async (item) => {
   editContent.value = item.preview || ''
 }
 
-const publish = async () => {
-  if (!editTitle.value || !editContent.value) {
-    appStore.addNotification({ type: 'error', message: '标题与内容不能为空', duration: 2000 })
-    return
-  }
-  const baseUrl = window.location.origin + '/api/v1'
-  const token = userStore.token || localStorage.getItem('token') || ''
-  try {
-    const res = await fetch(`${baseUrl}/imports/${selectedImport.value.id}/publish`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ category: category.value, tags: tags.value })
-    })
-    if (res.ok) {
-      const json = await res.json()
-      const data = json.data || {}
-      appStore.addNotification({ type: 'success', message: '发布成功', duration: 3000 })
-    } else {
-      const err = await res.json().catch(()=>({}))
-      appStore.addNotification({ type: 'error', message: err.message || '发布失败', duration: 3000 })
-    }
-  } catch (e) {
-    appStore.addNotification({ type: 'error', message: '网络错误，发布失败', duration: 3000 })
-  }
-}
+
 
 onMounted(() => {
   if (!isLoggedIn.value) {
@@ -182,26 +142,8 @@ const loadHistory = async () => {
                 <button @click="trimSpaces" class="px-3 py-1 border rounded">清理空白</button>
               </div>
               <textarea v-model="editContent" rows="12" class="w-full border border-gray-300 rounded-md p-3"></textarea>
-              <div class="mt-3">
-                <label class="block text-sm font-medium mb-1">分类</label>
-                <input v-model="category" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="请输入分类标签" />
-              </div>
-              <div class="mt-3">
-                <label class="block text-sm font-medium mb-1">标签</label>
-                <div class="flex">
-                  <input v-model="newTag" class="flex-grow border border-gray-300 rounded-l-md px-3 py-2" placeholder="添加标签" />
-                  <button @click="addTag" class="px-4 py-2 bg-primary text-white rounded-r-md">添加</button>
-                </div>
-                <div class="mt-2 flex flex-wrap gap-2">
-                  <span v-for="(t,i) in tags" :key="i" class="text-xs px-2 py-1 bg-secondary/30 text-primary rounded">
-                    {{ t }}
-                    <button @click="removeTag(i)" class="ml-1 text-primary">×</button>
-                  </span>
-                </div>
-              </div>
-              <div class="mt-4">
-                <button @click="publish" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">发布到知识库</button>
-              </div>
+
+
             </div>
             <div v-else class="text-sm text-dark/60">请先上传并选择一条导入记录进行预览与编辑</div>
           </div>

@@ -43,17 +43,4 @@ async def get_import(
     finally:
         await service.close()
 
-@router.post("/{import_id}/publish")
-async def publish_import(
-    import_id: str = Path(...),
-    body: dict = Body(...),
-    user_id: int = Depends(get_current_user_id)
-):
-    category = body.get("category")
-    tags = body.get("tags", [])
-    service = ImportService()
-    try:
-        result = await service.publish(user_id, import_id, category, tags)
-        return Result.ok(result)
-    finally:
-        await service.close()
+

@@ -19,7 +19,6 @@ const categories = ref(['全部推荐'])
 const dynasties = ref([])
 const loading = ref(false)
 const recommendationPage = ref(1)
-const showPreferences = ref(false)
 
 const favorites = ref([])
 
@@ -31,10 +30,11 @@ const tagLibrary = {
   '行书': { description: '介于楷书和草书之间的一种字体，书写流畅，实用性强。', example: '王羲之《兰亭序》' },
   '草书': { description: '结构简省、笔画连绵。有章草、今草、狂草之分。', example: '怀素《自叙帖》' },
   '隶书': { description: '字形多呈宽扁，横画长而竖画短，讲究“蚕头燕尾”、“一波三折”。', example: '《曹全碑》' },
-  '墓志铭': { description: '记录死者生平事迹的石刻，埋于墓中。', example: '《张黑女墓志》' },
-  '碑刻': { description: '刻在石碑上的文字，多为记事、颂德。', example: '《颜氏家庙碑》' }
+  '唐代': { description: '中国历史上最强盛的朝代之一，书法艺术达到高峰，楷书、草书均有极大发展。', example: '颜真卿《多宝塔碑》' },
+  '汉代': { description: '隶书发展的鼎盛时期，碑刻数量众多，风格多样。', example: '《张迁碑》、《曹全碑》' }
 }
 
+// 清理不需要的变量
 const preferences = ref({
   dynasties: [],
   categories: []
@@ -132,17 +132,6 @@ const filteredArticles = computed(() => {
         article.category?.includes(selectedCategory.value)
     })
   }
-  
-  // 按偏好过滤 (多选)
-  if (preferences.value.dynasties.length > 0 || preferences.value.categories.length > 0) {
-    filtered = filtered.filter(article => {
-      const matchDynasty = preferences.value.dynasties.length === 0 || 
-        preferences.value.dynasties.some(d => article.dynasty?.includes(d))
-      const matchCategory = preferences.value.categories.length === 0 || 
-        preferences.value.categories.some(c => article.category?.includes(c))
-      return matchDynasty && matchCategory
-    })
-  }
 
   // 按搜索词过滤
   if (searchQuery.value.trim()) {
@@ -226,32 +215,8 @@ const extractTagsFromContent = (content) => {
 
 // 获取推荐标签
 const getRecommendTags = () => {
-  // 从文章中提取推荐标签
-  const tags = new Set()
-  articles.value.forEach(article => {
-    // 添加朝代作为标签
-    if (article.dynasty) {
-      tags.add(article.dynasty)
-    }
-    // 添加分类作为标签
-    if (article.category) {
-      tags.add(article.category)
-    }
-    // 从内容中提取标签
-    const contentTags = extractTagsFromContent(article.content || article.description)
-    contentTags.forEach(tag => tags.add(tag))
-    // 添加作者作为标签
-    if (article.author) {
-      tags.add(article.author)
-    }
-  })
-  
-  // 添加标签图谱中的标签
-  Object.keys(tagLibrary).forEach(tag => {
-    tags.add(tag)
-  })
-  
-  return Array.from(tags)
+  // 仅返回指定的三个标签：东汉、唐
+  return ['东汉', '唐']
 }
 
 // 查看文章详情
@@ -420,12 +385,7 @@ const isFavorited = (articleId) => {
   return favorites.value.includes(articleId)
 }
 
-// 保存偏好设置
-const savePreferences = () => {
-  localStorage.setItem('knowledge_preferences', JSON.stringify(preferences.value))
-  showPreferences.value = false
-  appStore.addNotification({ type: 'success', message: '偏好设置已保存', duration: 2000 })
-}
+
 
 onMounted(() => {
   userStore.initUser()
@@ -435,12 +395,6 @@ onMounted(() => {
   const storedFav = localStorage.getItem('favorites')
   if (storedFav) {
     try { favorites.value = JSON.parse(storedFav) } catch (e) { favorites.value = [] }
-  }
-  
-  // 加载偏好
-  const storedPref = localStorage.getItem('knowledge_preferences')
-  if (storedPref) {
-    try { preferences.value = JSON.parse(storedPref) } catch (e) {}
   }
 })
 
@@ -467,12 +421,7 @@ watch(searchQuery, (newQuery) => {
               为您收录碑刻文字与相关资料，帮助您更方便地查阅与探索。
             </p>
           </div>
-          <div class="mt-4 md:mt-0 flex space-x-3">
-            <button @click="showPreferences = true"
-              class="px-4 py-2 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center">
-              <i class="fas fa-filter mr-2"></i>
-              筛选
-            </button>
+          <div class="mt-4 md:mt-0">
             <router-link to="/favorites?tab=my-collections"
               class="px-4 py-2 bg-white border border-primary text-primary rounded-md font-medium hover:bg-primary/5 transition-custom flex items-center">
               <i class="fas fa-heart mr-2"></i>
@@ -753,45 +702,6 @@ watch(searchQuery, (newQuery) => {
         </div>
       </div>
     </div>
-
-    <!-- 偏好设置弹窗 -->
-    <div v-if="showPreferences" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg w-full max-w-lg max-h-[90vh] flex flex-col animate-fade-in-up">
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 class="text-lg font-medium text-primary">筛选</h3>
-          <button @click="showPreferences = false" class="text-gray-500 hover:text-gray-700">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="px-6 py-4 flex-grow overflow-y-auto">
-          <div class="mb-6">
-            <h4 class="font-medium text-dark mb-3">朝代偏好</h4>
-            <div class="flex flex-wrap gap-2">
-              <label v-for="dyn in dynasties" :key="dyn.id" class="inline-flex items-center px-3 py-2 rounded-full border cursor-pointer transition-custom"
-                :class="preferences.dynasties.includes(dyn.name) ? 'bg-primary/10 border-primary text-primary' : 'border-gray-200 hover:bg-gray-50'">
-                <input type="checkbox" :value="dyn.name" v-model="preferences.dynasties" class="hidden">
-                <span>{{ dyn.name }}</span>
-              </label>
-            </div>
-          </div>
-          <div>
-            <h4 class="font-medium text-dark mb-3">分类偏好</h4>
-            <div class="flex flex-wrap gap-2">
-              <label v-for="cat in categories.filter(c => c !== '全部推荐' && !c.includes('碑文'))" :key="cat" class="inline-flex items-center px-3 py-2 rounded-full border cursor-pointer transition-custom"
-                :class="preferences.categories.includes(cat) ? 'bg-primary/10 border-primary text-primary' : 'border-gray-200 hover:bg-gray-50'">
-                <input type="checkbox" :value="cat" v-model="preferences.categories" class="hidden">
-                <span>{{ cat }}</span>
-              </label>
-            </div>
-          </div>
-        </div>
-        <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-          <button @click="preferences = { dynasties: [], categories: [] }" class="px-4 py-2 text-dark/70 hover:text-dark">重置</button>
-          <button @click="savePreferences" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">保存设置</button>
-        </div>
-      </div>
-    </div>
-
 
   </div>
 </template>

@@ -372,34 +372,7 @@ public class InscriptionService {
         logger.info("取消收藏成功: userId={}, inscriptionId={}", userId, id);
     }
 
-    /**
-     * 发布到知识库
-     */
-    public Long publishToKnowledge(Long id, Long userId) {
-        // 验证权限
-        Map<String, Object> inscription = databaseClient.getInscriptionById(id);
-        if (inscription == null) {
-            throw new BusinessException(ResultCode.INSCRIPTION_NOT_FOUND);
-        }
 
-        Long ownerId = inscription.get("userId") != null ? ((Number) inscription.get("userId")).longValue() : null;
-        if (ownerId == null || !ownerId.equals(userId)) {
-            throw new BusinessException(ResultCode.FORBIDDEN, "无权限发布此碑文");
-        }
-
-        // TODO: 调用数据库API发布到知识库
-        // Map<String, Object> knowledgeData = new HashMap<>();
-        // knowledgeData.put("title", inscription.get("title"));
-        // knowledgeData.put("content", inscription.get("correctedText"));
-        // knowledgeData.put("dynasty", inscription.get("dynasty"));
-        // knowledgeData.put("sourceId", id);
-        // Map<String, Object> knowledge = databaseClient.createKnowledge(knowledgeData);
-        // Long knowledgeId = knowledge.get("id") != null ? ((Number) knowledge.get("id")).longValue() : null;
-
-        // 返回知识库ID（当前返回null，需要实现）
-        logger.info("发布到知识库: inscriptionId={}", id);
-        return null;
-    }
 
     /**
      * 搜索碑文

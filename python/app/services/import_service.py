@@ -160,38 +160,7 @@ class ImportService:
             "created_at": row["created_at"]
         }
 
-    async def publish(self, user_id: int, import_id: str, category: Optional[str], tags: Optional[List[str]]) -> Dict[str, Any]:
-        # 从inscriptions表中获取记录
-        query = "SELECT id, title, description FROM inscriptions WHERE id = %s AND creator_user_id = %s"
-        results = await self.database_client.execute_query(query, (int(import_id), user_id))
-        
-        if not results:
-            raise BusinessException(ResultCode.DATA_NOT_FOUND, "导入记录不存在")
-        
-        row = results[0]
-        title = row["title"].strip()
-        content = row["description"].strip()
-        
-        if not title or not content:
-            raise BusinessException(ResultCode.BAD_REQUEST, "标题或内容为空")
-        
-        try:
-            keywords = self._extract_keywords(content)
-            excerpt = self._extract_excerpt(content)
-            
-            # 插入到knowledge_articles表中
-            sql = "INSERT INTO knowledge_articles(title, content, category, created_at) VALUES (%s, %s, %s, NOW())"
-            await self.database_client.execute_update(sql, (title, content, category or None))
-            
-            # 更新inscriptions表中记录的状态
-            update_sql = "UPDATE inscriptions SET status = 'published' WHERE id = %s"
-            await self.database_client.execute_update(update_sql, (int(import_id),))
-            
-        except Exception as e:
-            logger.error(f"publish insert failed: {e}")
-            raise BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "发布失败")
-        
-        return {"status": "success", "message": "发布成功", "keywords": keywords, "summary": excerpt}
+
 
     def _extract_keywords(self, text: str) -> List[str]:
         import re

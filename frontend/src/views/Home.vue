@@ -322,14 +322,14 @@ const watchDemo = () => {
                       <i class="fas fa-clock mr-1"></i>
                       <span>识别完成</span>
                     </div>
-                    <div class="flex items-center text-dark/70">
+                    <!-- <div class="flex items-center text-dark/70">
                       <i class="fas fa-font mr-1"></i>
                       <span>286字</span>
-                    </div>
-                    <div class="flex items-center text-dark/70">
+                    </div> -->
+                    <!-- <div class="flex items-center text-dark/70">
                       <i class="fas fa-percentage mr-1"></i>
                       <span>98.7% 置信度</span>
-                    </div>
+                    </div> -->
                     <div class="flex items-center text-dark/70">
                       <i class="fas fa-history mr-1"></i>
                       <span>唐代碑文</span>
@@ -537,16 +537,11 @@ const watchDemo = () => {
       <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-3xl md:text-4xl font-serif font-bold mb-6">开始您的碑文探索之旅</h2>
         <p class="text-xl mb-8 opacity-90 max-w-3xl mx-auto">上传碑文图片，AI自动识别并提供详细阐释</p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <div class="flex justify-center">
           <button @click="openRegister"
             class="px-8 py-4 bg-white text-primary rounded-md text-lg font-semibold hover:bg-gray-100 transition-custom flex items-center justify-center border border-white/20">
             <i class="fas fa-user-plus mr-2 text-primary"></i>
             免费注册
-          </button>
-          <button @click="watchDemo"
-            class="px-8 py-4 bg-transparent border-2 border-white text-white rounded-md text-lg font-semibold hover:bg-white/10 transition-custom flex items-center justify-center">
-            <i class="fas fa-play mr-2 text-white"></i>
-            观看演示
           </button>
         </div>
       </div>

@@ -636,8 +636,13 @@ const startRecognition = async () => {
             time: now.toLocaleString()
         }
         recognitionState.value = 'completed'
-        activeTab.value = 'result'
-        appStore.addNotification({ type: 'success', message: '识别完成', duration: 2000 })
+        // 优化流程：识别完成后先跳转到详细校对页面
+        activeTab.value = 'proofread'
+        appStore.addNotification({ 
+            type: 'success', 
+            message: '识别完成，请先校对识别结果', 
+            duration: 3000 
+        })
         
         // 刷新历史记录
         loadRecognitionHistory()
@@ -648,10 +653,54 @@ const startRecognition = async () => {
 }
 
 const viewResults = () => {
+    // 优化流程：先进行详细校对，再查看最终结果
+    activeTab.value = 'proofread'
+    appStore.addNotification({
+        type: 'info',
+        message: '请先在详细校对中检查识别结果，确认无误后再查看最终结果',
+        duration: 4000
+    })
+}
+
+const confirmAndViewResult = () => {
+    // 从详细校对跳转到识别结果
     activeTab.value = 'result'
+    appStore.addNotification({
+        type: 'success',
+        message: '校对完成，正在显示识别结果',
+        duration: 2000
+    })
 }
 
 const switchTab = (tab) => {
+    // 检查前置条件
+    if (tab === 'proofread' && recognitionState.value !== 'completed') {
+        appStore.addNotification({
+            type: 'warning',
+            message: '请先上传图片并完成识别',
+            duration: 3000
+        })
+        return
+    }
+    
+    if (tab === 'result' && recognitionState.value !== 'completed') {
+        appStore.addNotification({
+            type: 'warning',
+            message: '请先上传图片并完成识别',
+            duration: 3000
+        })
+        return
+    }
+    
+    if (tab === 'interpretation' && recognitionState.value !== 'completed') {
+        appStore.addNotification({
+            type: 'warning',
+            message: '请先上传图片并完成识别',
+            duration: 3000
+        })
+        return
+    }
+    
     activeTab.value = tab
 }
 
@@ -888,65 +937,7 @@ const triggerFileInput = () => {
     modalFileInput.value?.click()
 }
 
-const dislikeResult = async () => {
-    try {
-        // 显示确认对话框
-        if (!confirm('确定对当前识别结果不满意吗？系统将重新执行识别。')) {
-            return
-        }
-        
-        // 这里需要获取当前识别结果的图片哈希值
-        // 假设recognitionResult对象中包含image_hash字段
-        const imageHash = recognitionResult.value.image_hash || ''
-        if (!imageHash) {
-            appStore.addNotification({
-                type: 'error',
-                message: '无法获取图片哈希值，无法重新识别',
-                duration: 3000
-            })
-            return
-        }
-        
-        // 调用API删除OCR缓存
-        const baseUrl = window.location.origin
-        const token = localStorage.getItem('token') || ''
-        const url = `${baseUrl}/api/v1/recognition/result/${imageHash}/dislike`
-        const headers = { 'Content-Type': 'application/json' }
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`
-        }
-        
-        const response = await fetch(url, { method: 'POST', headers })
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`)
-        }
-        
-        const data = await response.json()
-        if (data && data.success) {
-            appStore.addNotification({
-                type: 'success',
-                message: '已删除缓存，将重新执行识别',
-                duration: 3000
-            })
-            
-            // 重新执行OCR识别
-            recognitionState.value = 'processing'
-            processingProgress.value = 0
-            processingStatus.value = '准备重新识别...'
-            
-            // 这里需要获取当前上传的图片文件或URL，然后重新调用startRecognitionApi
-            // 由于当前代码中没有保存原始图片文件，我们可以提示用户重新上传
-            uploadModalOpen.value = true
-        }
-    } catch (error) {
-        console.error('删除OCR缓存失败:', error)
-        appStore.addNotification({
-            type: 'error',
-            message: '删除缓存失败，请稍后重试',
-            duration: 3000
-        })
-    }
-}
+
 
 // 删除识别记录
 const deleteRecognitionRecord = async (item) => {
@@ -1085,21 +1076,36 @@ const saveAndNavigateToDetails = async (item = null) => {
                             ]">
                                 图片上传
                             </button>
-                            <button @click="switchTab('proofread')" :class="[
-                                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
-                                activeTab === 'proofread' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'
+                            <button @click="switchTab('proofread')" 
+                                :disabled="recognitionState !== 'completed'"
+                                :title="recognitionState !== 'completed' ? '请先完成图片上传和识别' : '详细校对识别结果'"
+                                :class="[
+                                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom relative',
+                                activeTab === 'proofread' ? 'text-primary border-primary' : 
+                                recognitionState === 'completed' ? 'text-dark/50 border-transparent hover:text-dark/70' : 
+                                'text-gray-400 border-transparent cursor-not-allowed'
                             ]">
                                 详细校对
                             </button>
-                            <button @click="switchTab('result')" :class="[
-                                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
-                                activeTab === 'result' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'
+                            <button @click="switchTab('result')" 
+                                :disabled="recognitionState !== 'completed'"
+                                :title="recognitionState !== 'completed' ? '请先完成图片上传和识别' : '查看识别结果'"
+                                :class="[
+                                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom relative',
+                                activeTab === 'result' ? 'text-primary border-primary' : 
+                                recognitionState === 'completed' ? 'text-dark/50 border-transparent hover:text-dark/70' : 
+                                'text-gray-400 border-transparent cursor-not-allowed'
                             ]">
                                 识别结果
                             </button>
-                            <button @click="switchTab('interpretation')" :class="[
-                                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom',
-                                activeTab === 'interpretation' ? 'text-primary border-primary' : 'text-dark/50 border-transparent hover:text-dark/70'
+                            <button @click="switchTab('interpretation')" 
+                                :disabled="recognitionState !== 'completed'"
+                                :title="recognitionState !== 'completed' ? '请先完成图片上传和识别' : 'AI智能阐释'"
+                                :class="[
+                                'flex-1 py-4 px-6 font-medium border-b-2 whitespace-nowrap transition-custom relative',
+                                activeTab === 'interpretation' ? 'text-primary border-primary' : 
+                                recognitionState === 'completed' ? 'text-dark/50 border-transparent hover:text-dark/70' : 
+                                'text-gray-400 border-transparent cursor-not-allowed'
                             ]">
                                 AI阐释
                             </button>
@@ -1154,13 +1160,13 @@ const saveAndNavigateToDetails = async (item = null) => {
                             </div>
                             <h3 class="text-xl font-semibold text-dark mb-3">识别完成</h3>
                             <p class="text-dark/70 max-w-md mb-8">
-                                已成功识别碑文内容，共{{ recognitionResult.wordCount }}字，置信度{{ recognitionResult.confidence }}%
+                                已成功识别碑文内容<!--，共{{ recognitionResult.wordCount }}字，置信度{{ recognitionResult.confidence }}%-->
                             </p>
                             <div class="w-full max-w-xs">
                                 <button @click="viewResults"
                                     class="w-full py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center justify-center">
                                     <i class="fas fa-arrow-right mr-2"></i>
-                                    查看结果
+                                    开始校对
                                 </button>
                             </div>
                         </div>
@@ -1168,131 +1174,123 @@ const saveAndNavigateToDetails = async (item = null) => {
 
                     <!-- 详细校对内容 -->
                     <div v-show="activeTab === 'proofread'" class="p-6 md:p-8">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-primary">详细校对</h3>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold text-primary">详细校对</h3>
                             <div class="flex space-x-2">
-                                <button
+                                <!-- <button
                                     class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom"
                                     title="保存校对结果">
                                     <i class="fas fa-save"></i>
-                                </button>
-                                <button
+                                </button> -->
+                                <!-- <button
                                     class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom"
                                     title="恢复原始识别">
                                     <i class="fas fa-undo"></i>
-                                </button>
+                                </button> -->
                             </div>
                         </div>
 
                         <!-- 列对比导航 -->
-                        <div class="mb-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <div class="flex items-center space-x-3">
+                        <div class="mb-8">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                                <div class="flex items-center space-x-4">
                                     <button @click="prevColumn"
-                                        class="p-2 rounded-md border border-gray-200 text-dark/70 hover:bg-gray-50 transition-custom"
+                                        class="p-3 rounded-lg border border-gray-200 text-dark/70 hover:bg-gray-50 hover:border-gray-300 transition-custom disabled:opacity-50 disabled:cursor-not-allowed"
                                         :disabled="currentColumn === 1">
                                         <i class="fas fa-chevron-left"></i>
                                     </button>
                                     <span class="text-sm text-dark/70">
-                                        第 <span class="font-medium">{{ currentColumn }}</span> 列 / 共 <span
-                                            class="font-medium">{{
+                                        第 <span class="font-semibold">{{ currentColumn }}</span> 列 / 共 <span
+                                            class="font-semibold">{{
                                                 totalColumns }}</span> 列
                                     </span>
                                     <button @click="nextColumn"
-                                        class="p-2 rounded-md border border-gray-200 text-dark/70 hover:bg-gray-50 transition-custom"
+                                        class="p-3 rounded-lg border border-gray-200 text-dark/70 hover:bg-gray-50 hover:border-gray-300 transition-custom disabled:opacity-50 disabled:cursor-not-allowed"
                                         :disabled="currentColumn === totalColumns">
                                         <i class="fas fa-chevron-right"></i>
                                     </button>
                                 </div>
-                                <div class="flex items-center space-x-2">
-                                    <button
-                                        class="text-xs px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-custom">
-                                        <i class="fas fa-magic mr-1"></i>
-                                        自动校正全部
-                                    </button>
-                                    <button
-                                        class="text-xs px-2 py-1 bg-gray-100 text-dark/70 rounded hover:bg-gray-200 transition-custom">
-                                        <i class="fas fa-check mr-1"></i>
-                                        全部确认
-                                    </button>
+                                <div class="flex items-center space-x-3">
+
+
                                 </div>
                             </div>
 
                             <!-- 列对比展示 -->
-                            <div class="relative overflow-x-auto pb-4">
-                                <div class="flex justify-center space-x-6 min-w-max md:min-w-0">
+                            <div class="relative overflow-x-auto pb-6 column-comparison-container">
+                                <div class="flex justify-center space-x-4 sm:space-x-6 lg:space-x-8 min-w-max md:min-w-0 px-2">
                                     <!-- 原始图片列（按当前行拼接裁剪条） -->
-                                    <div class="w-64 flex-shrink-0">
+                                    <div class="w-56 sm:w-64 lg:w-72 flex-shrink-0">
                                         <div ref="stripContainerRef"
-                                            class="relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 h-[500px] flex items-start justify-center">
+                                            class="relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 h-[400px] sm:h-[450px] lg:h-[500px] flex items-start justify-center shadow-sm">
                                             <img v-if="lineStripUrls[currentColumn - 1]"
                                                 :src="lineStripUrls[currentColumn - 1]"
                                                 class="w-full h-full object-contain" alt="拼接图" />
                                             <div :style="stripOverlayStyle"></div>
                                         </div>
-                                        <div class="text-center text-xs text-dark/60 mt-2">
+                                        <div class="text-center text-xs text-dark/60 mt-3">
                                             拼接图高亮
-                                            <div class="mt-2 flex items-center justify-center gap-2">
+                                            <div class="mt-3 flex items-center justify-center gap-2">
                                                 <label class="inline-flex items-center gap-1 cursor-pointer text-xs">
                                                     <input type="radio" value="vertical" v-model="previewModeSelection"
                                                         class="sr-only">
                                                     <span
-                                                        :class="['px-2 py-1 rounded-full', previewModeSelection === 'vertical' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">竖向拼接</span>
+                                                        :class="['px-3 py-1.5 rounded-full transition-colors', previewModeSelection === 'vertical' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70 hover:bg-gray-200']">竖向拼接</span>
                                                 </label>
                                                 <label class="inline-flex items-center gap-1 cursor-pointer text-xs">
                                                     <input type="radio" value="horizontal"
                                                         v-model="previewModeSelection" class="sr-only">
                                                     <span
-                                                        :class="['px-2 py-1 rounded-full', previewModeSelection === 'horizontal' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70']">横向拼接</span>
+                                                        :class="['px-3 py-1.5 rounded-full transition-colors', previewModeSelection === 'horizontal' ? 'bg-primary text-white' : 'bg-gray-100 text-dark/70 hover:bg-gray-200']">横向拼接</span>
                                                 </label>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- 识别文字列 -->
-                                    <div class="w-32 flex-shrink-0">
+                                    <div class="w-28 sm:w-32 lg:w-36 flex-shrink-0">
                                         <div
-                                            class="bg-gray-50 rounded-lg border border-gray-200 h-[500px] p-2 overflow-y-auto">
-                                            <div class="space-y-1 text-center">
-                                                <div class="mb-2">
+                                            class="bg-gray-50 rounded-lg border border-gray-200 h-[400px] sm:h-[450px] lg:h-[500px] p-3 overflow-y-auto shadow-sm">
+                                            <div class="space-y-2 text-center">
+                                                <div class="mb-3">
                                                     <span v-for="(w, wi) in currentWords" :key="wi"
-                                                        class="block py-3 hover:bg-yellow-100 cursor-pointer rounded text-lg"
+                                                        class="block py-3 hover:bg-yellow-100 cursor-pointer rounded text-base sm:text-lg transition-colors"
                                                         @mouseenter="onWordEnter(currentColumn - 1, wi)"
                                                         @mouseleave="onWordLeave"
                                                         @click="showCorrectionPopup($event, w)">
                                                         {{ w.text || w.char || '' }}
-                                                        <span class="block text-[10px] text-dark/50">{{
-                                                            formatWordConfidence(w) }}%</span>
+                                                        <!-- <span class="block text-[10px] text-dark/50">{{
+                                                            formatWordConfidence(w) }}%</span> -->
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="text-center text-xs text-dark/60 mt-2">识别文字（第 {{ currentColumn }} 列
+                                        <div class="text-center text-xs text-dark/60 mt-3">识别文字（第 {{ currentColumn }} 列
                                             / 共 {{ totalColumns }} 列）</div>
                                     </div>
 
                                     <!-- 校正结果列 -->
-                                    <div class="w-32 flex-shrink-0">
+                                    <div class="w-28 sm:w-32 lg:w-36 flex-shrink-0">
                                         <div
-                                            class="bg-primary/5 rounded-lg border border-primary/20 h-[500px] p-2 overflow-y-auto">
-                                            <div class="space-y-2 text-center">
+                                            class="bg-primary/5 rounded-lg border border-primary/20 h-[400px] sm:h-[450px] lg:h-[500px] p-3 overflow-y-auto shadow-sm">
+                                            <div class="space-y-3 text-center">
                                                 <div v-if="correctionPopup.visible">
-                                                    <div class="text-xs text-dark/60 mb-1">候选字</div>
+                                                    <div class="text-xs text-dark/60 mb-2">候选字</div>
                                                     <span v-for="(c, ci) in correctionPopup.candidates" :key="ci"
-                                                        class="block py-2 hover:bg-primary/10 cursor-pointer rounded text-lg"
+                                                        class="block py-2 hover:bg-primary/10 cursor-pointer rounded text-base sm:text-lg transition-colors"
                                                         @click="selectCandidate(c)">{{ c }}</span>
-                                                    <div class="mt-2 flex flex-col items-center gap-2">
+                                                    <div class="mt-3 flex flex-col items-center gap-2">
                                                         <input v-model="correctionPopup.customInput"
-                                                            class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                                             placeholder="自定义" />
                                                         <button @click="confirmCorrection"
-                                                            class="w-full px-2 py-1 bg-primary text-white rounded text-xs">确定</button>
+                                                            class="w-full px-3 py-2 bg-primary text-white rounded text-xs hover:bg-primary/90 transition-colors">确定</button>
                                                     </div>
                                                 </div>
-                                                <div v-else class="text-dark/60 text-xs mt-4">点击左侧文字以选择候选字</div>
+                                                <div v-else class="text-dark/60 text-xs mt-6">点击左侧文字以选择候选字</div>
                                             </div>
                                         </div>
-                                        <div class="text-center text-xs text-primary mt-2">校正候选</div>
+                                        <div class="text-center text-xs text-primary mt-3">校正候选</div>
                                     </div>
                                 </div>
                             </div>
@@ -1300,71 +1298,60 @@ const saveAndNavigateToDetails = async (item = null) => {
                         </div>
 
                         <!-- 底部操作 -->
-                        <div class="flex justify-between">
-                            <button @click="prevColumn"
-                                class="px-4 py-2 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom">
-                                <i class="fas fa-arrow-left mr-1"></i>
-                                上一页
+                        <div class="flex justify-center mt-8">
+
+                            <button @click="confirmAndViewResult"
+                                class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-custom font-medium shadow-md hover:shadow-lg">
+                                <i class="fas fa-arrow-right mr-2"></i>
+                                确认并查看结果
                             </button>
-                            <button @click="saveCorrections"
-                                class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
-                                保存校对结果
-                            </button>
-                            <button @click="nextColumn"
-                                class="px-4 py-2 border border-gray-300 text-dark/70 rounded-md hover:bg-gray-50 transition-custom">
-                                下一页
-                                <i class="fas fa-arrow-right ml-1"></i>
-                            </button>
+
                         </div>
                     </div>
 
                     <!-- 识别结果内容 -->
                     <div v-show="activeTab === 'result'" class="p-6 md:p-8 flex-grow flex flex-col">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-                            <h3 class="text-lg font-semibold text-primary">识别结果</h3>
-                            <div class="flex space-x-2">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                            <h3 class="text-xl font-semibold text-primary">识别结果</h3>
+                            <div class="flex space-x-3">
                                 <button @click="copyResult"
-                                    class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom"
+                                    class="p-3 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-lg transition-custom"
                                     title="复制文本">
                                     <i class="fas fa-copy"></i>
                                 </button>
                                 <button @click="downloadResult"
-                                    class="p-2 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-md transition-custom"
+                                    class="p-3 text-dark/70 hover:text-primary hover:bg-gray-100 rounded-lg transition-custom"
                                     title="下载文本">
                                     <i class="fas fa-download"></i>
                                 </button>
-                                <button @click="dislikeResult"
-                                    class="p-2 text-dark/70 hover:text-red-500 hover:bg-gray-100 rounded-md transition-custom"
-                                    title="不满意结果">
-                                    <i class="fas fa-thumbs-down"></i>
-                                </button>
+
                             </div>
                         </div>
 
-                        <div class="mb-4 flex flex-wrap items-center text-sm text-dark/70 gap-y-2">
-                            <span class="flex items-center mr-4">
-                                <i class="fas fa-clock mr-1"></i>
+                        <div class="mb-6 flex flex-wrap items-center text-sm text-dark/70 gap-y-2">
+                            <span class="flex items-center mr-6">
+                                <i class="fas fa-clock mr-2"></i>
                                 识别时间: {{ recognitionResult.time }}
                             </span>
-                            <span class="flex items-center mr-4">
+                            <!-- <span class="flex items-center mr-4">
                                 <i class="fas fa-font mr-1"></i>
                                 字数: {{ recognitionResult.wordCount }}
-                            </span>
-                            <span class="flex items-center">
+                            </span> -->
+                            <!-- <span class="flex items-center">
                                 <i class="fas fa-check-circle text-green-500 mr-1"></i>
                                 置信度: {{ recognitionResult.confidence }}%
-                            </span>
+                            </span> -->
                         </div>
 
-                        <div class="border border-gray-200 rounded-lg p-4 min-h-[16rem] md:min-h-[20rem] flex-grow overflow-y-auto mb-6 bg-gray-50">
-                            <div class="text-dark/90 leading-relaxed whitespace-pre-line">
+                        <div class="border border-gray-200 rounded-lg p-6 min-h-[16rem] md:min-h-[20rem] flex-grow overflow-y-auto mb-8 bg-gray-50 shadow-sm">
+                            <div class="text-dark/90 leading-relaxed whitespace-pre-line text-base">
                                 {{ recognitionResult.text }}
                             </div>
                         </div>
 
-                        <div class="flex space-x-3">
+                        <div class="flex space-x-4">
                             <button @click="showInterpretation"
-                                class="flex-1 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-custom flex items-center justify-center"
+                                class="flex-1 py-4 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-custom flex items-center justify-center shadow-md hover:shadow-lg"
                                 :disabled="sectionsLoading">
                                 <i v-if="sectionsLoading" class="fas fa-spinner fa-spin mr-2"></i>
                                 <i v-else class="fas fa-book-reader mr-2"></i>
@@ -1762,5 +1749,59 @@ const saveAndNavigateToDetails = async (item = null) => {
 
 .bg-texture {
     background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d2b48c' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+/* 响应式布局优化 */
+@media (max-width: 640px) {
+    .column-comparison-container {
+        padding: 0 0.5rem;
+    }
+    
+    .column-comparison-container .space-x-4 {
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+    }
+    
+    .column-comparison-container > div {
+        padding: 0 0.5rem;
+    }
+}
+
+@media (max-width: 390px) {
+    .column-comparison-container {
+        padding: 0 0.25rem;
+    }
+    
+    .column-comparison-container .space-x-4 {
+        margin-left: -0.25rem;
+        margin-right: -0.25rem;
+    }
+    
+    .column-comparison-container > div {
+        padding: 0 0.25rem;
+    }
+    
+    .text-xs {
+        font-size: 0.7rem;
+    }
+}
+
+/* 增强触摸体验 */
+@media (hover: none) and (pointer: coarse) {
+    .hover\:bg-yellow-100:active {
+        background-color: rgb(254 249 195);
+    }
+    
+    .hover\:bg-primary\/10:active {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+    
+    .hover\:bg-gray-50:active {
+        background-color: rgb(249 250 251);
+    }
+    
+    .hover\:bg-gray-200:active {
+        background-color: rgb(229 231 235);
+    }
 }
 </style>

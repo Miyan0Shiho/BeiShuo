@@ -58,69 +58,6 @@
       </div>
       <!-- [/MODULE] f6g_我的碑文页面:内容标签页 -- 包含我的识别、我的收藏和我的下载三个标签页切换 -->
 
-      <!-- 发布碑文弹窗 -->
-      <div v-if="showPublishModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg w-full max-w-md flex flex-col animate-fade-in-up">
-          <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 class="text-lg font-medium text-primary">发布碑文</h3>
-            <button @click="showPublishModal = false" class="text-gray-500 hover:text-gray-700">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <div class="p-6 space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-dark mb-2">选择发布平台</label>
-              <div class="space-y-2">
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" value="wechat" v-model="publishForm.platforms" class="rounded text-primary focus:ring-primary">
-                  <span>微信公众号</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" value="weibo" v-model="publishForm.platforms" class="rounded text-primary focus:ring-primary">
-                  <span>新浪微博</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" value="tiktok" v-model="publishForm.platforms" class="rounded text-primary focus:ring-primary">
-                  <span>抖音短视频</span>
-                </label>
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-dark mb-2">发布时间</label>
-              <div class="flex space-x-4 mb-2">
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="radio" value="immediate" v-model="publishForm.scheduleType" class="text-primary focus:ring-primary">
-                  <span>立即发布</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="radio" value="scheduled" v-model="publishForm.scheduleType" class="text-primary focus:ring-primary">
-                  <span>定时发布</span>
-                </label>
-              </div>
-              <input 
-                v-if="publishForm.scheduleType === 'scheduled'"
-                type="datetime-local" 
-                v-model="publishForm.scheduleTime"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-primary"
-              >
-            </div>
-          </div>
-          
-          <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-            <button @click="showPublishModal = false" class="px-4 py-2 text-dark/70 hover:text-dark">取消</button>
-            <button 
-              @click="submitPublish" 
-              class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50"
-              :disabled="publishing || publishForm.platforms.length === 0"
-            >
-              {{ publishing ? '提交中...' : '确认发布' }}
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- 编辑碑文弹窗 -->
       <div v-if="showEditModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg w-full max-w-lg flex flex-col animate-fade-in-up">
@@ -598,41 +535,7 @@
               <div v-else class="text-sm text-dark/60">暂无导入记录，请先在“导入碑文”上传</div>
             </div>
           </div>
-          <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-sm p-4">
-              <h3 class="text-lg font-semibold mb-3">导入详情与发布</h3>
-              <div v-if="selectedImport" class="space-y-3">
-                <input v-model="importEditTitle" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="标题" />
-                <div class="flex space-x-2">
-                  <button @click="toUpperImport" class="px-3 py-1 border rounded">大写</button>
-                  <button @click="toLowerImport" class="px-3 py-1 border rounded">小写</button>
-                  <button @click="trimSpacesImport" class="px-3 py-1 border rounded">清理空白</button>
-                </div>
-                <textarea v-model="importEditContent" rows="12" class="w-full border border-gray-300 rounded-md p-3"></textarea>
-                <div class="mt-3">
-                  <label class="block text-sm font-medium mb-1">分类</label>
-                  <input v-model="importCategory" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="请输入分类标签" />
-                </div>
-                <div class="mt-3">
-                  <label class="block text-sm font-medium mb-1">标签</label>
-                  <div class="flex">
-                    <input v-model="importNewTag" class="flex-grow border border-gray-300 rounded-l-md px-3 py-2" placeholder="添加标签" />
-                    <button @click="addImportTag" class="px-4 py-2 bg-primary text-white rounded-r-md">添加</button>
-                  </div>
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <span v-for="(t,i) in importTags" :key="i" class="text-xs px-2 py-1 bg-secondary/30 text-primary rounded">
-                      {{ t }}
-                      <button @click="removeImportTag(i)" class="ml-1 text-primary">×</button>
-                    </span>
-                  </div>
-                </div>
-                <div class="mt-4">
-                  <button @click="publishImport" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">发布到知识库</button>
-                </div>
-              </div>
-              <div v-else class="text-sm text-dark/60">请选择左侧导入记录查看详情并发布</div>
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -710,16 +613,6 @@ const importEditContent = ref('')
 const importCategory = ref('')
 const importTags = ref([])
 const importNewTag = ref('')
-
-// 发布相关
-const showPublishModal = ref(false) // Replaces showPublish
-const publishForm = ref({
-  platforms: [],
-  scheduleType: 'immediate',
-  scheduleTime: ''
-})
-const publishing = ref(false)
-const currentPublishId = ref(null)
 
 const filteredItems = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -1137,67 +1030,6 @@ const toUpperImport = () => { importEditContent.value = (importEditContent.value
 const toLowerImport = () => { importEditContent.value = (importEditContent.value || '').toLowerCase() }
 const trimSpacesImport = () => { importEditContent.value = (importEditContent.value || '').replace(/\s+/g, ' ').trim() }
 
-const publishImport = async () => {
-  if (!selectedImport.value) return
-  if (!importEditTitle.value || !importEditContent.value) {
-    appStore.addNotification({ type: 'error', message: '标题与内容不能为空', duration: 2000 })
-    return
-  }
-  const baseUrl = window.location.origin + '/api/v1'
-  const token = localStorage.getItem('token') || ''
-  try {
-    const res = await fetch(`${baseUrl}/imports/${selectedImport.value.id}/publish`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ category: importCategory.value, tags: importTags.value })
-    })
-    if (res.ok) {
-      appStore.addNotification({ type: 'success', message: '发布成功', duration: 3000 })
-      selectedImport.value = null
-      await loadImportsHistory()
-    } else {
-      const err = await res.json().catch(()=>({}))
-      appStore.addNotification({ type: 'error', message: err.message || '发布失败', duration: 3000 })
-    }
-  } catch (e) {
-    appStore.addNotification({ type: 'error', message: '网络错误，发布失败', duration: 3000 })
-  }
-}
-// 发布相关逻辑
-const openPublishModal = (id) => {
-    currentPublishId.value = id
-    showPublishModal.value = true
-}
-
-const submitPublish = async () => {
-    publishing.value = true
-    try {
-        const baseUrl = window.location.origin + '/api/v1'
-        const token = localStorage.getItem('token') || ''
-        const response = await fetch(`${baseUrl}/inscription/${currentPublishId.value}/publish`, {
-            method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(publishForm.value)
-        })
-        
-        if (response.ok) {
-            appStore.addNotification({ type: 'success', message: '发布申请已提交', duration: 3000 })
-            showPublishModal.value = false
-        } else {
-             appStore.addNotification({ type: 'error', message: '发布失败', duration: 3000 })
-        }
-    } catch (e) {
-        appStore.addNotification({ type: 'error', message: '发布请求出错', duration: 3000 })
-    } finally {
-        publishing.value = false
-    }
-}
 
 const loadCollections = async () => {
   try {
