@@ -387,14 +387,15 @@ class MySQLClient:
         """创建OCR文本行"""
         import json
         query = """
-        INSERT INTO ocr_text_lines (image_id, line_index, text, position_polygon)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO ocr_text_lines (image_id, line_index, text, position_polygon, words_json)
+        VALUES (%s, %s, %s, %s, %s)
         """
         args = (
             ocr_text_line_data.get('image_id'),
             ocr_text_line_data.get('line_index', 0),
             ocr_text_line_data.get('text', ''),
-            json.dumps(ocr_text_line_data.get('position_polygon', []))
+            json.dumps(ocr_text_line_data.get('position_polygon', [])),
+            json.dumps(ocr_text_line_data.get('words_json', []))  # 添加原始words信息
         )
         affected_rows = await self.execute_update(query, args)
         if affected_rows > 0:
@@ -560,54 +561,51 @@ class MySQLClient:
                     except json.JSONDecodeError:
                         position = []
                 
-                # 构建完整的words字段，包含详细的confidence和choices信息
-                # 对于从数据库读取的数据，我们需要为每个字符生成详细信息
-                text = line.get('text', '')
-                
-                # 计算每个字符的位置信息（基于行位置）
-                # 这里简单地将行宽平均分配给每个字符
+                # 解析words_json字段，获取原始的字符位置信息和候选字
                 words = []
-                if text and len(position) >= 4:
-                    # 获取行的边界
-                    x1, y1 = position[0]
-                    x2, y2 = position[1]
-                    x3, y3 = position[2]
-                    x4, y4 = position[3]
-                    
-                    # 计算行的宽度和高度
-                    line_width = max(x2, x3) - min(x1, x4)
-                    line_height = max(y1, y4) - min(y2, y3)
-                    
-                    # 计算每个字符的宽度
-                    char_width = line_width / len(text)
-                    
-                    # 为每个字符生成位置信息
-                    for i, char in enumerate(text):
-                        # 计算字符的边界坐标
-                        char_x1 = min(x1, x4) + i * char_width
-                        char_y1 = min(y2, y3)
-                        char_x2 = char_x1 + char_width
-                        char_y2 = max(y1, y4)
+                words_json = line.get('words_json')
+                if words_json:
+                    if isinstance(words_json, str):
+                        try:
+                            words = json.loads(words_json)
+                            logger.info(f"6. 成功解析words_json，包含 {len(words)} 个字符")
+                            
+                            # 完整保留字符的所有信息，包括position和候选字
+                            for i, word in enumerate(words):
+                                # 确保word包含必要的字段
+                                word.setdefault("text", "")
+                                word.setdefault("position", [])
+                                word.setdefault("confidence", 0.0)
+                                word.setdefault("choices", [])
+                                word.setdefault("det_confidence", word.get("confidence", 0.0))
+                                
+                                # 检查位置信息格式
+                                word_pos = word.get('position', [])
+                                if isinstance(word_pos, list):
+                                    logger.info(f"6. 字符 {i+1}: 文本='{word.get('text')}', 位置={word_pos}, 候选字={word.get('choices', [])[:2]}...")
+                                else:
+                                    logger.warning(f"6. 字符 {i+1} 位置格式不正确: {word_pos}")
+                                    word['position'] = []
+                        except json.JSONDecodeError as e:
+                            logger.error(f"6. 解析words_json失败: {e}")
+                            words = []
+                    else:
+                        words = words_json
+                        logger.info(f"6. 直接使用words_json对象，包含 {len(words)} 个字符")
                         
-                        # 为每个字符生成一个位置多边形
-                        char_position = [
-                            [int(char_x1), int(char_y1)],
-                            [int(char_x2), int(char_y1)],
-                            [int(char_x2), int(char_y2)],
-                            [int(char_x1), int(char_y2)]
-                        ]
-                        
-                        # 为每个字符生成详细的words信息
-                        word = {
-                            'text': char,
-                            'confidence': ocr_job.get('confidence', 0.0),
-                            'det_confidence': ocr_job.get('confidence', 0.0),
-                            'position': char_position,
-                            'choices': [char]  # 为每个字符添加choices字段，包含原字符
-                        }
-                        words.append(word)
-                else:
-                    # 如果没有位置信息，或者文本为空，生成简单的words信息
+                        # 确保word包含必要的字段
+                        for i, word in enumerate(words):
+                            word.setdefault("text", "")
+                            word.setdefault("position", [])
+                            word.setdefault("confidence", 0.0)
+                            word.setdefault("choices", [])
+                            word.setdefault("det_confidence", word.get("confidence", 0.0))
+                            logger.info(f"6. 字符 {i+1}: 文本='{word.get('text')}', 位置={word.get('position')}, 候选字={word.get('choices', [])[:2]}...")
+                
+                # 如果没有原始words信息，或者解析失败，回退到生成简单的words信息
+                if not words:
+                    logger.info(f"6. 没有原始words信息，生成简单words信息")
+                    text = line.get('text', '')
                     for char in text:
                         word = {
                             'text': char,
@@ -618,15 +616,16 @@ class MySQLClient:
                         }
                         words.append(word)
                 
-                # 构建完整的text_line对象
+                # 构建完整的text_line对象，保留所有字符信息
                 text_line = {
-                    'text': text,
+                    'text': line.get('text', ''),
                     'line_index': line.get('line_index', 0),
                     'position': position,
-                    'words': words
+                    'words': words  # 完整保留字符的所有信息，包括position和候选字
                 }
                 
                 text_lines.append(text_line)
+                logger.info(f"6. 文本行处理完成，包含 {len(words)} 个字符")
             
             logger.info(f"6. 处理后的文本行数量: {len(text_lines)}")
             
@@ -877,11 +876,13 @@ class MySQLClient:
                 text_lines = result.get('text_lines', [])
                 if text_lines:
                     for line_index, line in enumerate(text_lines):
+                        # 保存原始的words信息到words_json字段
                         ocr_text_line_data = {
                             'image_id': ocr_image['id'],
                             'line_index': line_index,
                             'text': line.get('text', ''),
-                            'position_polygon': line.get('position', [])
+                            'position_polygon': line.get('position', []),
+                            'words_json': line.get('words', [])  # 保存原始的字符位置信息
                         }
                         await self.create_ocr_text_line(ocr_text_line_data)
                         logger.debug(f"OCR文本行保存成功: line_index={line_index}")

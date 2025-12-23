@@ -98,74 +98,325 @@ watch(detModeSelection, (v) => {
 
 // 原图裁剪与置信度工具
 const loadImage = (src) => new Promise((resolve, reject) => {
+    console.log('=== 开始 loadImage ===')
+    console.log('loadImage src:', src)
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = reject
+    img.onload = () => {
+        console.log('=== loadImage 成功 ===')
+        console.log('img.width:', img.width)
+        console.log('img.height:', img.height)
+        console.log('img.src:', img.src)
+        resolve(img)
+    }
+    img.onerror = (error) => {
+        console.error('=== loadImage 错误 ===')
+        console.error('错误类型:', error.type)
+        console.error('错误信息:', error)
+        console.error('img.src:', img.src)
+        // 提供更详细的错误信息
+        reject(new Error(`图片加载失败: ${src}, 错误: ${error.type}`))
+    }
     img.src = src
+    console.log('=== loadImage 已启动 ===')
 })
 
-const buildStripForLineVertical = async (img, line, targetWidth = 80) => {
-    const words = Array.isArray(line.words) ? line.words : []
-    if (!words.length) return { url: '', rects: [] }
-    const strips = []
-    const rects = []
+const buildStripForLineVertical = async (img, line, targetWidth = 80, originalSize = null) => {
+    console.log('buildStripForLineVertical called')
+    // Ensure words is always an array
+    const words = line?.words && Array.isArray(line.words) ? line.words : []
+    console.log('buildStripForLineVertical words:', words)
+    
     let totalHeight = 0
-    for (const w of words) {
-        const pos = w.position || []
-        const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
-        const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
-        const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
-        const scale = targetWidth / wWidth
-        const h = Math.round(wHeight * scale)
-        strips.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dh: h, scale })
-        rects.push({ left: 0, top: totalHeight, width: targetWidth, height: h })
-        totalHeight += h
+    let strips = []
+    let rects = []
+    
+    // 计算坐标缩放比例（如果提供了原始尺寸）
+    const scaleX = originalSize && originalSize.width > 0 ? img.width / originalSize.width : 1
+    const scaleY = originalSize && originalSize.height > 0 ? img.height / originalSize.height : 1
+    console.log('坐标缩放比例:', { scaleX, scaleY, originalSize, img: { width: img.width, height: img.height } })
+    
+    if (words.length) {
+        for (let i = 0; i < words.length; i++) {
+            const w = words[i]
+            // Ensure position is always an array with valid numbers
+            const pos = w?.position && Array.isArray(w.position) ? w.position : [0, 0, 0, 0]
+            console.log(`buildStripForLineVertical word ${i} pos:`, pos)
+            
+            // Use safe values with proper validation
+            let x1 = typeof pos[0] === 'number' && isFinite(pos[0]) ? pos[0] : 0
+            let y1 = typeof pos[1] === 'number' && isFinite(pos[1]) ? pos[1] : 0
+            let x2 = typeof pos[2] === 'number' && isFinite(pos[2]) ? pos[2] : 0
+            let y2 = typeof pos[3] === 'number' && isFinite(pos[3]) ? pos[3] : 0
+            
+            console.log(`原始坐标 word ${i}:`, { x1, y1, x2, y2 })
+            
+            // 如果提供了原始尺寸，则转换坐标到当前图片尺寸
+            if (originalSize && originalSize.width > 0 && originalSize.height > 0) {
+                x1 = Math.round(x1 * scaleX)
+                y1 = Math.round(y1 * scaleY)
+                x2 = Math.round(x2 * scaleX)
+                y2 = Math.round(y2 * scaleY)
+            }
+            
+            console.log(`转换后坐标 word ${i}:`, { x1, y1, x2, y2 })
+            
+            // Calculate width and height with validation
+            const calculatedWidth = Math.abs((x2 || 0) - (x1 || 0))
+            const calculatedHeight = Math.abs((y2 || 0) - (y1 || 0))
+            const wWidth = Math.max(1, calculatedWidth)
+            const wHeight = Math.max(1, calculatedHeight)
+            
+            console.log(`计算尺寸 word ${i}:`, { wWidth, wHeight })
+            
+            // Prevent division by zero
+            const scale = wWidth > 0 ? targetWidth / wWidth : 1
+            const h = Math.round(Math.max(1, wHeight * scale))
+            
+            console.log(`缩放后尺寸 word ${i}:`, { h, scale })
+            
+            strips.push({ 
+                x: Math.max(0, x1), 
+                y: Math.max(0, y1), 
+                w: wWidth, 
+                h: wHeight, 
+                dh: h, 
+                scale 
+            })
+            rects.push({ left: 0, top: totalHeight, width: targetWidth, height: h })
+            totalHeight += h
+        }
     }
+    
+    // Ensure totalHeight is always a valid number
+    totalHeight = typeof totalHeight === 'number' && isFinite(totalHeight) ? totalHeight : 0
+    console.log('buildStripForLineVertical strips:', strips)
+    console.log('buildStripForLineVertical totalHeight:', totalHeight)
+    
     const canvas = document.createElement('canvas')
     canvas.width = targetWidth
-    canvas.height = totalHeight
+    // Ensure canvas has valid height
+    canvas.height = words.length ? Math.max(80, totalHeight) : 80
+    console.log('buildStripForLineVertical canvas created:', canvas.width, 'x', canvas.height)
+    
     const ctx = canvas.getContext('2d')
-    let y = 0
-    for (const s of strips) {
-        ctx.drawImage(img, s.x, s.y, s.w, s.h, 0, y, targetWidth, s.dh)
-        y += s.dh
+    console.log('buildStripForLineVertical ctx:', ctx)
+    
+    if (words.length && strips.length && canvas.height > 0) {
+        let y = 0
+        console.log('开始绘制strips，总共', strips.length, '个片段')
+        for (let idx = 0; idx < strips.length; idx++) {
+            const s = strips[idx]
+            console.log(`第${idx+1}个strip的drawImage参数:`, s.x, s.y, s.w, s.h, 0, y, targetWidth, s.dh)
+            try {
+                // Only draw if we have valid parameters
+                if (typeof s.x === 'number' && typeof s.y === 'number' && s.w > 0 && s.h > 0) {
+                    ctx.drawImage(img, s.x, s.y, s.w, s.h, 0, y, targetWidth, s.dh)
+                    console.log(`成功绘制第${idx+1}个strip，坐标(${s.x},${s.y})，尺寸(${s.w}x${s.h})`)
+                } else {
+                    console.log(`跳过第${idx+1}个strip，参数无效:`, s.x, s.y, s.w, s.h)
+                }
+            } catch (e) {
+                console.error('drawImage失败:', e)
+                // Draw a placeholder if drawing fails
+                ctx.fillStyle = '#f0f0f0'
+                ctx.fillRect(0, y, targetWidth, s.dh)
+            }
+            y += s.dh
+        }
+    } else {
+        // Draw placeholder for empty content
+        ctx.fillStyle = '#f0f0f0'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = '#999'
+        ctx.font = '14px Arial'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('无文字内容', canvas.width / 2, canvas.height / 2)
     }
-    return { url: canvas.toDataURL('image/png'), rects, baseW: targetWidth, baseH: totalHeight }
+    
+    const dataUrl = canvas.toDataURL('image/png')
+    console.log('buildStripForLineVertical toDataURL result:', dataUrl.substring(0, 100), '...')
+    
+    return { 
+        url: dataUrl, 
+        rects, 
+        baseW: targetWidth, 
+        baseH: Math.max(80, totalHeight) 
+    }
 }
 
-const buildStripForLineHorizontal = async (img, line, targetHeight = 80) => {
+const buildStripForLineHorizontal = async (img, line, targetHeight = 80, originalSize = null) => {
+    console.log('buildStripForLineHorizontal called')
     const words = Array.isArray(line.words) ? line.words : []
-    if (!words.length) return { url: '', rects: [] }
-    const pieces = []
-    const rects = []
+    console.log('buildStripForLineHorizontal words:', words)
+    
     let totalWidth = 0
-    for (const w of words) {
-        const pos = w.position || []
-        const x1 = pos[0]; const y1 = pos[1]; const x2 = pos[2]; const y2 = pos[3]
-        const wWidth = Math.max(1, (x2 || 0) - (x1 || 0))
-        const wHeight = Math.max(1, (y2 || 0) - (y1 || 0))
-        const scale = targetHeight / wHeight
-        const wScaled = Math.round(wWidth * scale)
-        pieces.push({ x: x1 || 0, y: y1 || 0, w: wWidth, h: wHeight, dw: wScaled, scale })
-        rects.push({ left: totalWidth, top: 0, width: wScaled, height: targetHeight })
-        totalWidth += wScaled
+    let pieces = []
+    let rects = []
+    
+    // 计算坐标缩放比例（如果提供了原始尺寸）
+    const scaleX = originalSize && originalSize.width > 0 ? img.width / originalSize.width : 1
+    const scaleY = originalSize && originalSize.height > 0 ? img.height / originalSize.height : 1
+    console.log('坐标缩放比例:', { scaleX, scaleY, originalSize, img: { width: img.width, height: img.height } })
+    
+    if (words.length) {
+        for (let i = 0; i < words.length; i++) {
+            const w = words[i]
+            // Ensure position is always an array with valid numbers
+            const pos = w?.position && Array.isArray(w.position) ? w.position : [0, 0, 0, 0]
+            console.log(`buildStripForLineHorizontal word ${i} pos:`, pos)
+            
+            // Use safe values with proper validation
+            let x1 = typeof pos[0] === 'number' && isFinite(pos[0]) ? pos[0] : 0
+            let y1 = typeof pos[1] === 'number' && isFinite(pos[1]) ? pos[1] : 0
+            let x2 = typeof pos[2] === 'number' && isFinite(pos[2]) ? pos[2] : 0
+            let y2 = typeof pos[3] === 'number' && isFinite(pos[3]) ? pos[3] : 0
+            
+            console.log(`原始坐标 word ${i}:`, { x1, y1, x2, y2 })
+            
+            // 如果提供了原始尺寸，则转换坐标到当前图片尺寸
+            if (originalSize && originalSize.width > 0 && originalSize.height > 0) {
+                x1 = Math.round(x1 * scaleX)
+                y1 = Math.round(y1 * scaleY)
+                x2 = Math.round(x2 * scaleX)
+                y2 = Math.round(y2 * scaleY)
+            }
+            
+            console.log(`转换后坐标 word ${i}:`, { x1, y1, x2, y2 })
+            
+            // Calculate width and height with validation
+            const wWidth = Math.max(1, Math.abs((x2 || 0) - (x1 || 0)))
+            const wHeight = Math.max(1, Math.abs((y2 || 0) - (y1 || 0)))
+            console.log(`计算尺寸 word ${i}:`, { wWidth, wHeight })
+            
+            const scale = targetHeight / wHeight
+            const wScaled = Math.round(Math.max(1, wWidth * scale))
+            console.log(`缩放后尺寸 word ${i}:`, { wScaled, scale })
+            
+            pieces.push({ x: Math.max(0, x1), y: Math.max(0, y1), w: wWidth, h: wHeight, dw: wScaled, scale })
+            rects.push({ left: totalWidth, top: 0, width: wScaled, height: targetHeight })
+            totalWidth += wScaled
+        }
     }
+    
+    console.log('buildStripForLineHorizontal pieces:', pieces)
+    console.log('buildStripForLineHorizontal totalWidth:', totalWidth)
+    
     const canvas = document.createElement('canvas')
-    canvas.width = totalWidth
+    canvas.width = words.length ? Math.max(80, totalWidth) : 80
     canvas.height = targetHeight
+    console.log('buildStripForLineHorizontal canvas created:', canvas.width, 'x', canvas.height)
+    
     const ctx = canvas.getContext('2d')
-    let x = 0
-    for (const p of pieces) {
-        ctx.drawImage(img, p.x, p.y, p.w, p.h, x, 0, p.dw, targetHeight)
-        x += p.dw
+    console.log('buildStripForLineHorizontal ctx:', ctx)
+    
+    if (words.length && pieces.length && canvas.width > 0) {
+        let x = 0
+        console.log('开始绘制pieces，总共', pieces.length, '个片段')
+        for (let idx = 0; idx < pieces.length; idx++) {
+            const p = pieces[idx]
+            console.log(`第${idx+1}个piece的drawImage参数:`, p.x, p.y, p.w, p.h, x, 0, p.dw, targetHeight)
+            try {
+                // Only draw if we have valid parameters
+                if (typeof p.x === 'number' && typeof p.y === 'number' && p.w > 0 && p.h > 0) {
+                    ctx.drawImage(img, p.x, p.y, p.w, p.h, x, 0, p.dw, targetHeight)
+                    console.log(`成功绘制第${idx+1}个piece，坐标(${p.x},${p.y})，尺寸(${p.w}x${p.h})`)
+                } else {
+                    console.log(`跳过第${idx+1}个piece，参数无效:`, p.x, p.y, p.w, p.h)
+                }
+            } catch (e) {
+                console.error('drawImage failed:', e)
+                // Draw a placeholder if drawing fails
+                ctx.fillStyle = '#f0f0f0'
+                ctx.fillRect(x, 0, p.dw, targetHeight)
+            }
+            x += p.dw
+        }
+    } else {
+        // Draw placeholder for empty content
+        ctx.fillStyle = '#f0f0f0'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = '#999'
+        ctx.font = '14px Arial'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('无文字内容', canvas.width / 2, canvas.height / 2)
     }
-    return { url: canvas.toDataURL('image/png'), rects, baseW: totalWidth, baseH: targetHeight }
+    
+    const dataUrl = canvas.toDataURL('image/png')
+    console.log('buildStripForLineHorizontal toDataURL result:', dataUrl.substring(0, 100), '...')
+    
+    return { 
+        url: dataUrl, 
+        rects, 
+        baseW: words.length ? Math.max(80, totalWidth) : 80, 
+        baseH: targetHeight 
+    }
 }
 
-const buildStripForLine = async (img, line, mode) => {
-    if (mode === 'horizontal') return buildStripForLineHorizontal(img, line)
-    return buildStripForLineVertical(img, line)
+const buildStripForLine = async (img, line, mode, originalSize = null) => {
+    console.log('=== 开始 buildStripForLine ===')
+    console.log('buildStripForLine 调用参数:')
+    console.log('  mode:', mode)
+    console.log('  line.text:', line.text || 'no text')
+    console.log('  line.index:', line.index || 'no index')
+    console.log('  line.words.length:', line.words ? line.words.length : 'no words')
+    console.log('  originalSize:', originalSize)
+    console.log('  img.width:', img.width)
+    console.log('  img.height:', img.height)
+    console.log('  img.src:', img.src)
+    console.log('  line:', line)
+    
+    try {
+        let result
+        console.log('=== 开始执行具体构建逻辑 ===')
+        if (mode === 'horizontal') {
+            console.log('调用 buildStripForLineHorizontal')
+            result = await buildStripForLineHorizontal(img, line, 80, originalSize)
+        } else {
+            console.log('调用 buildStripForLineVertical')
+            result = await buildStripForLineVertical(img, line, 80, originalSize)
+        }
+        console.log('=== 构建完成 ===')
+        console.log('buildStripForLine 结果:')
+        console.log('  url:', result.url.substring(0, 100) + '...')
+        console.log('  rects.length:', result.rects.length)
+        console.log('  baseW:', result.baseW)
+        console.log('  baseH:', result.baseH)
+        console.log('=== buildStripForLine 结束 ===')
+        return result
+    } catch (e) {
+        console.error('=== buildStripForLine 错误 ===')
+        console.error('错误类型:', e.name)
+        console.error('错误信息:', e.message)
+        console.error('错误栈:', e.stack)
+        console.error('=== 错误上下文信息 ===')
+        console.error('  mode:', mode)
+        console.error('  line.text:', line.text || 'no text')
+        console.error('  line.words:', line.words)
+        console.error('  originalSize:', originalSize)
+        console.error('  img.width:', img.width)
+        console.error('  img.height:', img.height)
+        console.error('  img.src:', img.src)
+        console.error('  line:', line)
+        console.error('=== buildStripForLine 错误结束 ===')
+        
+        // Create a placeholder canvas when error occurs to ensure valid URL
+        const canvas = document.createElement('canvas')
+        canvas.width = 80
+        canvas.height = 80
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = '#f0f0f0'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = '#999'
+        ctx.font = '14px Arial'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('生成失败', canvas.width / 2, canvas.height / 2)
+        const dataUrl = canvas.toDataURL('image/png')
+        return { url: dataUrl, rects: [], baseW: 80, baseH: 80 }
+    }
 }
 
 const computeLineConfidence = (line) => {
@@ -578,9 +829,24 @@ const startRecognition = async () => {
             if (r.image_url.startsWith('http://') || r.image_url.startsWith('https://')) {
                 // 如果已经是完整的URL，直接使用
                 originalImageUrl.value = r.image_url
+            } else if (r.image_url.startsWith('/temp_oss_images/')) {
+                // 临时图片，使用后端URL访问
+                const backendUrl = 'http://localhost:8080'
+                originalImageUrl.value = `${backendUrl}${r.image_url}`
+                console.log('使用后端URL访问临时图片:', originalImageUrl.value)
             } else {
-                // 否则拼接baseUrl
+                // 其他情况，拼接baseUrl
                 originalImageUrl.value = `${baseUrl}${r.image_url.startsWith('/') ? r.image_url : ('/' + r.image_url)}`
+            }
+        }
+        
+        console.log('OCR API 返回的原始数据:', r)
+        console.log('OCR API 返回的 text_lines:', r.text_lines)
+        if (r.text_lines && r.text_lines.length > 0) {
+            console.log('第一个文本行的完整数据:', r.text_lines[0])
+            if (r.text_lines[0] && r.text_lines[0].words && r.text_lines[0].words.length > 0) {
+                console.log('第一个文本行第一个词的完整数据:', r.text_lines[0].words[0])
+                console.log('第一个文本行第一个词的position:', r.text_lines[0].words[0].position)
             }
         }
         
@@ -592,35 +858,67 @@ const startRecognition = async () => {
         console.log('textLines.value:', textLines.value)
         
         try {
+            
+            console.log('=== 开始构建拼接图 ===')
+            console.log('originalImageUrl.value:', originalImageUrl.value)
+            console.log('textLines.value.length:', textLines.value.length)
+            console.log('previewModeSelection.value:', previewModeSelection.value)
+            
             if (originalImageUrl.value && textLines.value.length) {
-                console.log('开始加载原始图片')
+                console.log('=== 开始加载原始图片 ===')
                 const img = await loadImage(originalImageUrl.value)
-                console.log('原始图片加载成功:', img.width, 'x', img.height)
+                console.log('=== 原始图片加载成功 ===')
+                console.log('img.width:', img.width)
+                console.log('img.height:', img.height)
+                console.log('img.src:', img.src)
+                
+                // 使用原始图片的实际尺寸作为originalImageSize.value
+                originalImageSize.value = { width: img.width, height: img.height }
+                console.log('更新originalImageSize.value为原始图片实际尺寸:', originalImageSize.value)
                 
                 const urls = []
                 const rectsAll = []
                 const dimsAll = []
                 
-                for (const line of textLines.value) {
-                    console.log('处理文本行:', line.text)
-                    const out = await buildStripForLine(img, line, previewModeSelection.value)
+                console.log('=== 开始处理文本行 ===')
+                for (let i = 0; i < textLines.value.length; i++) {
+                    console.log(`=== 处理第${i+1}列文本行 ===`)
+                    const line = textLines.value[i]
+                    console.log(`第${i+1}列文本行 text:`, line.text)
+                    console.log(`第${i+1}列文本行 words 数量:`, line.words ? line.words.length : 0)
+                    console.log(`第${i+1}列文本行 words:`, line.words)
+                    if (line.words && line.words.length > 0) {
+                        console.log(`第${i+1}列第1个word:`, line.words[0])
+                        console.log(`第${i+1}列第1个word的position:`, line.words[0].position)
+                    }
+                    const out = await buildStripForLine(img, line, previewModeSelection.value, originalImageSize.value)
+                    console.log(`第${i+1}列 buildStripForLine 返回结果:`, out.url.substring(0, 100), '...')
                     urls.push(out.url)
                     rectsAll.push(out.rects)
                     dimsAll.push({ baseW: out.baseW, baseH: out.baseH })
-                    console.log('生成的strip URL:', out.url.substring(0, 50), '...')
+                    console.log(`=== 第${i+1}列处理完成 ===`)
+                    console.log(`第${i+1}列 生成的strip URL:`, out.url.substring(0, 100), '...')
                 }
                 
+                console.log('=== 所有文本行处理完成 ===')
+                console.log('所有strip URL生成完成:', urls)
                 lineStripUrls.value = urls
                 lineStripRects.value = rectsAll
                 lineStripDims.value = dimsAll
                 console.log('拼接图构建完成，strip数量:', urls.length)
+                console.log('lineStripUrls:', lineStripUrls.value.map(u => u.substring(0, 50) + '...'))
             } else {
-                console.log('构建拼接图条件不满足:')
+                console.log('=== 构建拼接图条件不满足 ===')
                 console.log('originalImageUrl.value:', originalImageUrl.value)
                 console.log('textLines.value.length:', textLines.value.length)
             }
+            console.log('=== 构建拼接图完成 ===')
         } catch (e) {
-            console.error('构建拼接图失败:', e)
+            console.error('=== 构建拼接图失败 ===')
+            console.error('错误类型:', e.name)
+            console.error('错误信息:', e.message)
+            console.error('错误栈:', e.stack)
+            console.error('=== 构建拼接图失败结束 ===')
             console.error(e.stack)
         }
         console.log('=== 拼接图构建结束 ===')
@@ -1035,14 +1333,13 @@ const saveAndNavigateToDetails = async (item = null) => {
     } catch (e) {
         console.error('进入详情页失败:', e)
         appStore.addNotification({
-            type: 'error',
-            message: '无法进入详情页，请稍后重试',
-            duration: 3000
-        })
+                type: 'error',
+                message: '无法进入详情页，请稍后重试',
+                duration: 3000,
+            })
     }
 }
 </script>
-
 <template>
     <div class="recognition-page bg-light bg-texture min-h-screen py-12 md:py-16">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
