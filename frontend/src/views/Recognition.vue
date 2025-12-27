@@ -960,8 +960,31 @@ const viewResults = () => {
     })
 }
 
+const reconstructTextFromLines = () => {
+    if (!Array.isArray(textLines.value) || textLines.value.length === 0) {
+        return recognitionResult.value.text || ''
+    }
+    
+    const lines = textLines.value.map(line => {
+        if (!line) return ''
+        
+        if (line.words && Array.isArray(line.words) && line.words.length > 0) {
+            return line.words.map(w => w.text || w.char || '').join('')
+        }
+        
+        return line.text || ''
+    })
+    
+    return lines.join('\n')
+}
+
 const confirmAndViewResult = () => {
-    // 从详细校对跳转到识别结果
+    const correctedText = reconstructTextFromLines()
+    if (correctedText) {
+        recognitionResult.value.text = correctedText
+        recognitionResult.value.wordCount = correctedText.length
+    }
+    
     activeTab.value = 'result'
     appStore.addNotification({
         type: 'success',
@@ -1080,7 +1103,7 @@ const confirmCorrection = () => {
 const saveCorrections = async () => {
     const baseUrl = window.location.origin
     const token = localStorage.getItem('token') || ''
-    const correctedText = (textLines.value || []).map(tl => tl.text || '').join('\n') || recognitionResult.value.text || ''
+    const correctedText = reconstructTextFromLines()
     const corrections = []
     try {
         const url = `${baseUrl}/api/v1/recognition/${recognitionId.value || 'rec_local'}/correct`
